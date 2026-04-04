@@ -1,0 +1,60 @@
+# --- Node.js Standard ---
+node_modules/
+dist/
+build/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# --- Frontend Specific (Next.js) ---
+frontend/.next/
+frontend/out/
+frontend/.env*.local
+frontend/node_modules/
+
+# --- Backend Specific (NestJS / TypeScript) ---
+backend/dist/
+backend/node_modules/
+backend/.env
+backend/drizzle/migrations/ # Keep source migrations if using drizzle-kit generate, ignore if push only (keeping but including metadata if needed)
+backend/db/data/ # Ignore local database volume if mapped
+
+# --- Editor / OS Noise ---
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.bak
+*.tmp
+*.log
+
+# --- Docker ---
+.docker-compose.override.yml
+docker-compose.override.yml
+
+# --- Coverage / Reports ---
+coverage/
+.nyc_output/
+*.lcov
+htmlcov/
+
+# --- Drizzle / DB Artefacts ---
+backend/.drizzle/
+backend/drizzle.config.ts.timestamp-*
+
+# --- Signals / Logs ---
+signalstack.log
+logs/
+tmp/
+*.sqlite
+*.db
+
+spec.md
+spec-patch.md

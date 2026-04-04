@@ -1,0 +1,48 @@
+
+services:
+  app:
+    build: ./backend
+    container_name: signalstack-app
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      DATABASE_URL: postgresql://signal:signal@postgres:5432/signalstack
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      FRONTEND_URL: http://localhost:3001
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: npm run start:dev
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: signalstack-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: signalstack
+      POSTGRES_USER: signal
+      POSTGRES_PASSWORD: signal
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U signal -d signalstack']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    container_name: signalstack-redis
+    ports:
+      - '6380:6379'
+
+volumes:
+  pgdata:

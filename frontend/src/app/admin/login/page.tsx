@@ -1,0 +1,95 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { setAdminKey } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { KeyRound, ShieldAlert, Loader2 } from "lucide-react";
+
+export default function AdminLogin() {
+  const [key, setKey] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+
+    // Simple check to see if the key works by calling the categories endpoint
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/admin/categories`, {
+        headers: { "x-admin-key": key }
+      });
+
+      if (response.ok) {
+        setAdminKey(key);
+        router.push("/admin");
+      } else {
+        setError("Invalid Admin Key. Please check your system configuration.");
+      }
+    } catch (err) {
+      setError("Unable to connect to the Admin Hub.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-slate-950/20 px-4">
+      <div className="w-full max-w-md">
+        <div className="flex items-center justify-center gap-3 mb-8">
+           <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+             <KeyRound className="w-5 h-5 text-white" />
+           </div>
+           <h1 className="text-2xl font-bold tracking-tight">System Authenticator</h1>
+        </div>
+
+        <Card className="border-border/50 shadow-2xl backdrop-blur-sm bg-card/30">
+          <CardHeader>
+            <CardTitle>Restricted Access</CardTitle>
+            <CardDescription>
+              Enter the Admin Secret Key to manage SignalStack protocols.
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs font-semibold">
+                   <ShieldAlert className="w-4 h-4" />
+                   <span>{error}</span>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="key">System Key</Label>
+                <Input 
+                  id="key" 
+                  type="password" 
+                  value={key} 
+                  onChange={(e) => setKey(e.target.value)}
+                  placeholder="••••••••••••••••"
+                  required
+                  className="bg-muted/50 border-border/50"
+                />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Authorize Access
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        <p className="mt-8 text-center text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+           SignalStack v2.0-Alpha — Enterprise Node
+        </p>
+      </div>
+    </div>
+  );
+}
