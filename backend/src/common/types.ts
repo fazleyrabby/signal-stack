@@ -11,6 +11,8 @@ export interface ScoredSignal extends RawSignal {
   score: number;
   severity: 'low' | 'medium' | 'high';
   hash: string;
+  summary?: string;
+  aiCategory?: string;
 }
 
 export interface PaginatedResponse<T> {

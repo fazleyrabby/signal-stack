@@ -25,6 +25,8 @@ export class SignalsService {
       url: signal.url,
       score: signal.score,
       severity: signal.severity,
+      summary: signal.summary,
+      aiCategory: signal.aiCategory,
       hash: signal.hash,
       publishedAt: signal.publishedAt,
     });
@@ -51,6 +53,7 @@ export class SignalsService {
     source?: string;
     categoryId?: string;
     since?: string;
+    search?: string;
     sort?: string;
     order?: string;
   }) {
@@ -73,6 +76,7 @@ export class SignalsService {
       source: params.source,
       categoryId: params.categoryId,
       since,
+      search: params.search,
       sort: params.sort,
       order,
     });

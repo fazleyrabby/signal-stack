@@ -39,26 +39,22 @@ export class FeedScheduler implements OnModuleInit {
       let alerted = 0;
 
       for (const signal of scoredSignals) {
-        // Discard low-value signals
+        // Discard low-value signals (< 5)
         if (signal.score < 5) {
           discarded++;
           continue;
         }
 
-        // Attempt to store (dedup handled inside)
+        // Attempt to store
         const wasInserted = await this.signalsService.insertSignal(signal);
         if (!wasInserted) {
           duplicates++;
-          logEvent('info', 'duplicate_skipped', {
-            source: signal.source,
-            title: signal.title.slice(0, 80),
-          });
           continue;
         }
 
         stored++;
 
-        // Alert if score >= 7
+        // Alert if critical (>= 7)
         if (signal.score >= 7) {
           await this.discordService.sendAlert(signal);
           alerted++;

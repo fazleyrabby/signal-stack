@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq, desc, asc, sql, and, gte, SQL } from 'drizzle-orm';
+import { eq, desc, asc, sql, and, gte, SQL, or, ilike } from 'drizzle-orm';
 import { signals, Signal, NewSignal } from '../database/schema';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
@@ -49,10 +49,11 @@ export class SignalsRepository {
     source?: string;
     categoryId?: string;
     since?: Date;
+    search?: string;
     sort?: string;
     order?: 'asc' | 'desc';
   }): Promise<{ data: Signal[]; total: number }> {
-    const { page, limit, severity, source, categoryId, since, sort = 'created_at', order = 'desc' } = params;
+    const { page, limit, severity, source, categoryId, since, search, sort = 'created_at', order = 'desc' } = params;
     const offset = (page - 1) * limit;
 
     // Build where conditions
@@ -69,6 +70,14 @@ export class SignalsRepository {
     }
     if (since) {
       conditions.push(gte(signals.createdAt, since));
+    }
+    if (search) {
+      const term = `%${search}%`;
+      conditions.push(or(
+        ilike(signals.title, term),
+        ilike(signals.summary, term),
+        ilike(signals.content, term)
+      ) as SQL);
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

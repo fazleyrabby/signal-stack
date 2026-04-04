@@ -19,6 +19,7 @@ export class SignalsController {
     @Query('source') source?: string,
     @Query('categoryId') categoryId?: string,
     @Query('since') since?: string,
+    @Query('search') search?: string,
     @Query('sort') sort?: string,
     @Query('order') order?: string,
   ) {
@@ -29,6 +30,7 @@ export class SignalsController {
       source,
       categoryId,
       since,
+      search,
       sort,
       order,
     });

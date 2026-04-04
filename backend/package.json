@@ -22,6 +22,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "test:discord": "ts-node src/scripts/test-discord.ts",
+    "test:ai": "ts-node src/scripts/test-ai.ts",
     "start:prod": "npx drizzle-kit push && node dist/main"
   },
   "dependencies": {

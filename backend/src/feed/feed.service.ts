@@ -97,7 +97,7 @@ export class FeedService {
         const raw = this.normalizeItem(item, source);
         if (!raw) continue;
 
-        const scored = this.scorerService.score(raw, source);
+        const scored = await this.scorerService.score(raw, source);
         signals.push(scored);
       }
 
