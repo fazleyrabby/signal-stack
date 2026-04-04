@@ -38,6 +38,12 @@ export class AIService {
   }
 
   async analyzeSignal(title: string, content: string): Promise<AIAnalysisResult | null> {
+    const isAiEnabled = this.configService.get<string>('AI_ENABLED') !== 'false';
+    if (!isAiEnabled) {
+      logEvent('info', 'ai_intelligence_disabled', { reason: 'manual_override' });
+      return null;
+    }
+
     for (const provider of this.providers) {
       if (!provider.key) {
         continue;
