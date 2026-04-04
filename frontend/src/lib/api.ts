@@ -11,6 +11,8 @@ export interface Signal {
   severity: "low" | "medium" | "high";
   publishedAt: string | null;
   createdAt: string;
+  summary?: string;
+  aiCategory?: string;
 }
 
 export interface SignalsResponse {

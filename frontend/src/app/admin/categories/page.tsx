@@ -100,12 +100,12 @@ export default function CategoriesAdmin() {
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingCategory(null); }}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  New Protocol
-                </Button>
-              </DialogTrigger>
+              <DialogTrigger render={
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                New Protocol
+              </Button>
+            } />
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{editingCategory ? "Update Protocol" : "Define New Protocol"}</DialogTitle>

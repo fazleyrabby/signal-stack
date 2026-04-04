@@ -80,11 +80,9 @@ export default function AdminDashboard() {
                     <span className="font-bold">{module.stat}</span>
                   </div>
                   {!module.disabled ? (
-                    <Link href={module.href}>
-                      <Button className="w-full" variant={module.variant as any}>
-                        Open {module.title}
-                      </Button>
-                    </Link>
+                    <Button render={<Link href={module.href} />} className="w-full" variant={module.variant as any}>
+                      Open {module.title}
+                    </Button>
                   ) : (
                     <Button className="w-full" variant="ghost" disabled>
                       Coming Soon

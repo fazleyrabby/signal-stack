@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Clock, Zap } from "lucide-react";
+import { ExternalLink, Clock, Zap, Sparkles, BrainCircuit } from "lucide-react";
 import type { Signal } from "@/lib/api";
 
 function timeAgo(dateStr: string): string {
@@ -25,58 +25,116 @@ function timeAgo(dateStr: string): string {
 
 const severityConfig = {
   high: {
-    label: "HIGH",
-    className: "bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/25",
+    label: "H",
+    color: "text-red-400",
+    className: "bg-red-500/10 text-red-500 border-red-500/20",
   },
   medium: {
-    label: "MED",
-    className: "bg-orange-500/15 text-orange-400 border-orange-500/30 hover:bg-orange-500/25",
+    label: "M",
+    color: "text-orange-400",
+    className: "bg-orange-500/10 text-orange-500 border-orange-500/20",
   },
   low: {
-    label: "LOW",
-    className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25",
+    label: "L",
+    color: "text-emerald-400",
+    className: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   },
 };
 
-export function SignalCard({ signal }: { signal: Signal }) {
+export function SignalCard({ signal, isCompact = false }: { signal: Signal; isCompact?: boolean }) {
   const severity = severityConfig[signal.severity];
   const displayTime = signal.publishedAt || signal.createdAt;
 
+  if (isCompact) {
+    return (
+      <Card className="group border-none bg-background/30 hover:bg-muted/40 transition-all duration-150 cursor-pointer border-b border-border/10 rounded-none first:rounded-t-lg last:rounded-b-lg">
+        <CardContent className="p-2 sm:p-2.5 flex items-center gap-3">
+          <div className={`w-1 h-3 rounded-full shrink-0 ${severity.color} bg-current opacity-60`} />
+          
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
+             {/* Title Group */}
+             <a
+                href={signal.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group/link flex-1 min-w-0"
+              >
+                <h3 className="text-[11px] sm:text-[12px] font-bold leading-none text-foreground truncate group-hover/link:text-primary transition-colors">
+                  {signal.title}
+                </h3>
+              </a>
+
+              {/* Ultra-compact metadata */}
+              <div className="flex items-center gap-3 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
+                 <span className="text-[9px] font-mono tracking-tighter uppercase font-black">{signal.source.slice(0, 10)}</span>
+                 <span className="text-[9px] font-mono">{timeAgo(displayTime)}</span>
+                 <Badge variant="outline" className={`h-4 text-[7px] px-1 font-black ${severity.className}`}>
+                    {severity.label}
+                 </Badge>
+              </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="group border-border/50 bg-card/50 backdrop-blur-sm hover:border-border hover:bg-card/80 transition-all duration-300 cursor-pointer">
-      <CardContent className="p-4 sm:p-5">
-        {/* Title row */}
-        <a
-          href={signal.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-start gap-2 group/link"
-        >
-          <h3 className="text-sm sm:text-base font-medium leading-snug text-foreground group-hover/link:text-primary transition-colors flex-1">
-            {signal.title}
-          </h3>
-          <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" />
-        </a>
+    <Card className="group border-none bg-background/50 hover:bg-muted/30 transition-all duration-200 cursor-pointer overflow-hidden border-b border-border/20 rounded-none first:rounded-t-lg last:rounded-b-lg">
+      <CardContent className="p-3 relative z-10">
+        <div className="flex items-start gap-3">
+          {/* Compact Severity indicator */}
+          <div className={`mt-1.5 w-1 h-3 rounded-full shrink-0 ${severity.color} bg-current opacity-60`} />
+          
+          <div className="flex-1 min-w-0">
+            {/* Metadata Line */}
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">
+                {signal.source}
+              </span>
+              <span className="text-[10px] text-muted-foreground/40">•</span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {timeAgo(displayTime)}
+              </span>
+              {signal.aiCategory && (
+                <div className="ml-auto flex items-center gap-1 text-[9px] font-bold text-violet-400/80 uppercase tracking-tighter">
+                  <Sparkles className="w-2 h-2" />
+                  {signal.aiCategory}
+                </div>
+              )}
+            </div>
 
-        {/* Metadata row */}
-        <div className="flex items-center gap-3 mt-3 flex-wrap">
-          <Badge variant="outline" className={severity.className}>
-            {severity.label}
-          </Badge>
+            {/* Title */}
+            <a
+              href={signal.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group/link block"
+            >
+              <h3 className="text-xs sm:text-sm font-semibold leading-tight text-foreground transition-colors group-hover/link:text-primary">
+                {signal.title}
+              </h3>
+            </a>
 
-          <span className="text-xs text-muted-foreground font-medium">
-            {signal.source}
-          </span>
+            {/* AI Summary (Subtle) */}
+            {signal.summary && (
+              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground/90 font-medium italic border-l-2 border-violet-500/20 pl-2">
+                {signal.summary}
+              </p>
+            )}
 
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Zap className="w-3 h-3" />
-            <span>{signal.score}</span>
+            {/* Footer Mini Stats */}
+            <div className="flex items-center mt-2.5 gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
+               <div className="flex items-center gap-1 text-[9px] font-mono">
+                <Zap className="w-2.5 h-2.5 text-amber-500" />
+                <span>{signal.score} XP</span>
+              </div>
+              <Badge variant="outline" className={`h-4 text-[8px] px-1 font-black ${severity.className}`}>
+                S-{severity.label}
+              </Badge>
+            </div>
           </div>
-
-          <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-            <Clock className="w-3 h-3" />
-            <span>{timeAgo(displayTime)}</span>
-          </div>
+          
+          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
         </div>
       </CardContent>
     </Card>

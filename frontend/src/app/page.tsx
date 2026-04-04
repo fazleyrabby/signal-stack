@@ -10,13 +10,26 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Radio, SearchX, Globe2, Cpu, ChevronDown, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Radio, SearchX, Globe2, Cpu, ChevronDown, Loader2, LayoutGrid, List, Maximize2, Minimize2, Activity } from "lucide-react";
 import type { SignalsResponse, SignalStats } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-function Column({ title, icon: Icon, categoryId }: { title: string; icon: any; categoryId: string }) {
+function Column({ 
+  title, 
+  icon: Icon, 
+  categoryId, 
+  params, 
+  layoutMode 
+}: { 
+  title: string; 
+  icon: any; 
+  categoryId: string, 
+  params: { severity: string, search: string },
+  layoutMode: 'grid' | 'list'
+}) {
   const [limit, setLimit] = useState(30);
   
   const {
@@ -25,7 +38,7 @@ function Column({ title, icon: Icon, categoryId }: { title: string; icon: any; c
     isLoading: signalsLoading,
     isValidating,
   } = useSWR<SignalsResponse>(
-    `${API_BASE}/api/signals?limit=${limit}&categoryId=${categoryId}&sort=created_at&order=desc`,
+    `${API_BASE}/api/signals?limit=${limit}&categoryId=${categoryId}&severity=${params.severity === 'all' ? '' : params.severity}&search=${params.search || ''}&sort=created_at&order=desc`,
     fetcher,
     {
       refreshInterval: 10_000,
@@ -40,20 +53,20 @@ function Column({ title, icon: Icon, categoryId }: { title: string; icon: any; c
   const hasMore = totalAvailable > signals.length;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4 px-2">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex items-center justify-between mb-3 px-2">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-primary/10 text-primary">
             <Icon className="w-4 h-4" />
           </div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider">
+          <h2 className="text-xs font-black uppercase tracking-[0.2em] opacity-80">
             {title}
           </h2>
         </div>
         {signalsData?.meta && (
-          <Badge variant="outline" className="text-[10px] font-mono opacity-70">
+          <div className="text-[10px] font-black font-mono px-2 py-0.5 rounded bg-muted/30 border border-border/20 text-muted-foreground">
             {signals.length} / {totalAvailable}
-          </Badge>
+          </div>
         )}
       </div>
 
@@ -61,31 +74,31 @@ function Column({ title, icon: Icon, categoryId }: { title: string; icon: any; c
         {signalsLoading && signals.length === 0 && <div className="p-4"><FeedSkeleton /></div>}
 
         {signalsError && signals.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+          <div className="flex flex-col items-center justify-center py-20 text-center p-6">
             <Radio className="w-8 h-8 text-red-400 mb-2 opacity-50" />
-            <p className="text-xs text-muted-foreground">Source unreachable</p>
+            <p className="text-xs text-muted-foreground">Node sync failure</p>
           </div>
         )}
 
         {!signalsLoading && !signalsError && !hasSignals && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-6 text-muted-foreground">
+          <div className="flex flex-col items-center justify-center py-20 text-center p-6 text-muted-foreground">
             <SearchX className="w-8 h-8 mb-2 opacity-20" />
-            <p className="text-xs italic">Awaiting first signal...</p>
+            <p className="text-xs italic">Awaiting node transmission...</p>
           </div>
         )}
 
         {hasSignals && (
-          <ScrollArea className="h-full max-h-[700px] md:max-h-none">
-            <div className="p-3 space-y-3">
+          <ScrollArea className="h-full">
+            <div className={layoutMode === 'grid' ? "grid grid-cols-1 xl:grid-cols-2 gap-px bg-border/20" : "flex flex-col"}>
               {signals.map((signal) => (
-                <SignalCard key={signal.id} signal={signal} />
+                <SignalCard key={signal.id} signal={signal} isCompact={layoutMode === 'list'} />
               ))}
               
               {hasMore && (
-                <div className="pt-2 pb-4 px-2">
+                <div className="col-span-full pt-4 pb-8 px-4">
                   <Button 
                     variant="ghost" 
-                    className="w-full h-12 border-dashed border-border border-2 hover:bg-primary/5 hover:border-primary/50 group transition-all"
+                    className="w-full h-11 border-dashed border-border border-2 hover:bg-primary/5 hover:border-primary/50 group transition-all"
                     onClick={() => setLimit(prev => prev + 20)}
                     disabled={isValidating}
                   >
@@ -94,8 +107,8 @@ function Column({ title, icon: Icon, categoryId }: { title: string; icon: any; c
                     ) : (
                       <ChevronDown className="w-4 h-4 mr-2 group-hover:translate-y-1 transition-transform" />
                     )}
-                    <span className="text-xs font-bold uppercase tracking-widest">
-                      Load More Signals
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                      SYNC MORE DATA
                     </span>
                   </Button>
                 </div>
@@ -110,6 +123,10 @@ function Column({ title, icon: Icon, categoryId }: { title: string; icon: any; c
 
 export default function Home() {
   const [mobileCategory, setMobileCategory] = useState<string>("geopolitics");
+  const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isWidescreen, setIsWidescreen] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('list');
 
   const { data: statsData } = useSWR<SignalStats>(
     `${API_BASE}/api/signals/stats`,
@@ -121,48 +138,110 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950/20">
+    <div className={`flex flex-col min-h-screen bg-slate-950/40 selection:bg-violet-500/30 selection:text-white`}>
       <Header isLive={true} onRefresh={() => {}} isRefreshing={false} />
 
-      <main className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-4 py-6 space-y-6">
+      <main className="flex-1 overflow-x-hidden pb-16">
+        <div className={`${isWidescreen ? 'max-w-full px-6' : 'max-w-[1400px] mx-auto px-4'} py-4 space-y-4 transition-all duration-500`}>
           <StatsBar stats={statsData} />
 
-          <Separator className="opacity-20" />
-
-          {/* Mobile Filter Buttons */}
-          <div className="flex md:hidden items-center justify-center gap-2 p-1 bg-card/50 border border-border/50 rounded-xl mb-4">
+          {/* Intelligence Switcher (Prominent Tabs on Mobile) */}
+          <div className="flex md:hidden items-center p-1.5 bg-card/60 border border-border/50 rounded-2xl shadow-xl backdrop-blur-md">
             <button
               onClick={() => setMobileCategory("geopolitics")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black tracking-widest transition-all ${
                 mobileCategory === "geopolitics"
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "text-muted-foreground hover:bg-muted"
+                  ? "bg-violet-500 text-white shadow-lg shadow-violet-500/30"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Globe2 className="w-3.5 h-3.5" />
-              WORLD
+              WORLD AFFAIRS
             </button>
             <button
               onClick={() => setMobileCategory("technology")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black tracking-widest transition-all ${
                 mobileCategory === "technology"
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "text-muted-foreground hover:bg-muted"
+                  ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Cpu className="w-3.5 h-3.5" />
-              TECH
+              TECH HUB
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start min-h-[500px]">
+          {/* Master Control Bar */}
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-2.5 bg-card/10 border border-border/20 rounded-2xl backdrop-blur-md relative z-30 shadow-2xl">
+            {/* Search Hub */}
+            <div className="relative w-full lg:w-[400px] group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <SearchX className="h-4 w-4 text-muted-foreground/30 group-focus-within:text-violet-400 transition-colors" />
+              </div>
+              <Input
+                placeholder="PROBE WORLD INTELLIGENCE..."
+                className="pl-10 h-10 bg-background/30 border-border/40 text-xs font-bold tracking-wider rounded-xl focus-visible:ring-violet-500/20 focus-visible:border-violet-500/50 transition-all placeholder:text-[9px] placeholder:font-black placeholder:uppercase placeholder:tracking-[0.2em] placeholder:opacity-30"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {/* Severity Quick Toggles */}
+              <div className="flex items-center gap-1 p-1 bg-background/40 rounded-xl border border-border/30">
+                {['all', 'high', 'medium', 'low'].map((sev) => (
+                  <button
+                    key={sev}
+                    onClick={() => setSeverityFilter(sev)}
+                    className={`px-3 py-2 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                      severityFilter === sev
+                        ? sev === 'high' ? "bg-red-500 text-white shadow-lg shadow-red-500/30" :
+                          sev === 'medium' ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30" :
+                          sev === 'low' ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" :
+                          "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                        : "text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground"
+                    }`}
+                  >
+                    {sev}
+                  </button>
+                ))}
+              </div>
+
+              {/* Layout Control Group */}
+              <div className="flex items-center gap-1 p-1 bg-background/40 rounded-xl border border-border/30">
+                 <button
+                  onClick={() => setIsWidescreen(!isWidescreen)}
+                  className={`p-2 rounded-lg transition-all ${isWidescreen ? "bg-violet-500/20 text-violet-400" : "text-muted-foreground/40 hover:bg-muted/50"}`}
+                >
+                  {isWidescreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+                <Separator orientation="vertical" className="h-4 mx-1 opacity-20" />
+                <button
+                  onClick={() => setLayoutMode('list')}
+                  className={`p-2 rounded-lg transition-all ${layoutMode === 'list' ? "bg-violet-500/20 text-violet-400 shadow-xl" : "text-muted-foreground/40 hover:bg-muted/50"}`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setLayoutMode('grid')}
+                  className={`p-2 rounded-lg transition-all ${layoutMode === 'grid' ? "bg-violet-500/20 text-violet-400 shadow-xl" : "text-muted-foreground/40 hover:bg-muted/50"}`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Intelligence Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start min-h-[600px]">
             {/* Column 1 (Geopolitics) - Hidden on mobile if tech is selected */}
             <div className={`${mobileCategory !== "geopolitics" ? "hidden md:block" : "block"} h-full`}>
                <Column 
                 title="World Geopolitics" 
                 icon={Globe2} 
                 categoryId="geopolitics" 
+                params={{ severity: severityFilter, search: searchQuery }}
+                layoutMode={layoutMode}
               />
             </div>
 
@@ -172,23 +251,39 @@ export default function Home() {
                 title="Technology Intelligence" 
                 icon={Cpu} 
                 categoryId="technology" 
+                params={{ severity: severityFilter, search: searchQuery }}
+                layoutMode={layoutMode}
               />
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="border-t border-border/20 py-4 bg-background/50 backdrop-blur-md">
-        <div className="max-w-[1400px] mx-auto px-4 flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
-          <div className="flex items-center gap-4">
-            <span>SignalStack Next-Gen</span>
-            <span className="opacity-30">|</span>
-            <span>Real-time Ingestion</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>NRT Active</span>
-          </div>
+      <footer className="border-t border-border/10 bg-slate-950/90 backdrop-blur-3xl py-4">
+        <div className="max-w-[1400px] mx-auto px-6 text-center sm:text-left">
+           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                 <div className="flex items-center gap-2 text-violet-500/80 font-black text-[10px] tracking-[0.2em]">
+                    <Activity className="w-3.5 h-3.5 animate-pulse" />
+                    SIGNALSTACK TERMINAL
+                 </div>
+                 <div className="hidden sm:block h-3 w-px bg-border/20" />
+                 <div className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">
+                    Active Uplink: <span className={mobileCategory === 'geopolitics' ? 'text-violet-400' : 'text-blue-400'}>
+                       {mobileCategory === 'geopolitics' ? 'World Intelligence' : 'Technology Hub'}
+                    </span>
+                 </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                 <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border border-border/20 bg-background/50`}>
+                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${mobileCategory === 'geopolitics' ? 'bg-violet-500' : 'bg-blue-500'}`} />
+                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                       {mobileCategory.toUpperCase()}_TRANSMISSION_LIVE
+                    </span>
+                 </div>
+              </div>
+           </div>
         </div>
       </footer>
     </div>

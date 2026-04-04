@@ -124,12 +124,12 @@ export default function SourcesAdmin() {
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingSource(null); }}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Source
-                </Button>
-              </DialogTrigger>
+              <DialogTrigger render={
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Add Source
+              </Button>
+            } />
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>{editingSource ? "Edit Source" : "Add New Feed Source"}</DialogTitle>
