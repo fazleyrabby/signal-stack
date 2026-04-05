@@ -1,8 +1,10 @@
+version: "3.8"
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: signalstack-db
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_DB: signalstack
       POSTGRES_USER: signal
@@ -18,12 +20,12 @@ services:
   redis:
     image: redis:7-alpine
     container_name: signalstack-redis
-    restart: unless-stopped
+    restart: always
 
   app:
     build: ./backend
     container_name: signalstack-app
-    restart: unless-stopped
+    restart: always
     ports:
       - "3000:3000"
     environment:
@@ -43,7 +45,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: https://api.fazleyrabbi.xyz
     container_name: signalstack-frontend-1
-    restart: unless-stopped
+    restart: always
     ports:
       - "3001:3001"
     depends_on:
