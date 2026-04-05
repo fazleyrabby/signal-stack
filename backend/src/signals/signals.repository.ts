@@ -24,16 +24,16 @@ export class SignalsRepository {
   }
 
   /**
-   * Insert a new signal. Returns false if hash duplicate.
+   * Insert a new signal. Returns the inserted signal or null if duplicate.
    */
-  async insert(data: NewSignal): Promise<boolean> {
+  async insert(data: NewSignal): Promise<Signal | null> {
     try {
-      await this.db.insert(signals).values(data);
-      return true;
+      const [inserted] = await this.db.insert(signals).values(data).returning();
+      return inserted;
     } catch (error: any) {
       // Handle unique constraint violation on hash
       if (error?.code === '23505') {
-        return false;
+        return null;
       }
       throw error;
     }

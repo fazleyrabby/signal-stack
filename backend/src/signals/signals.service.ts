@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { SignalsRepository } from './signals.repository';
 import { ScoredSignal } from '../common/types';
 import { logEvent } from '../common/logger';
+import { AIQueue } from '../ai/ai.queue';
 
 @Injectable()
 export class SignalsService {
-  constructor(private readonly repository: SignalsRepository) {}
+  constructor(
+    private readonly repository: SignalsRepository,
+    private readonly aiQueue: AIQueue,
+  ) {}
 
   /**
    * Insert a scored signal. Returns true if inserted, false if duplicate.
@@ -17,7 +21,7 @@ export class SignalsService {
       return false;
     }
 
-    const wasInserted = await this.repository.insert({
+    const inserted = await this.repository.insert({
       source: signal.source,
       categoryId: signal.categoryId,
       title: signal.title,
@@ -31,16 +35,25 @@ export class SignalsService {
       publishedAt: signal.publishedAt,
     });
 
-    if (wasInserted) {
+    if (inserted) {
       logEvent('info', 'signal_processed', {
-        source: signal.source,
-        score: signal.score,
-        severity: signal.severity,
-        title: signal.title.slice(0, 80),
+        source: inserted.source,
+        score: inserted.score,
+        severity: inserted.severity,
+        title: inserted.title.slice(0, 80),
       });
+
+      // ⚡ New: Step 2: Trigger AI ONLY for high-importance signals (score >= 7)
+      if (inserted.score >= 7) {
+        this.aiQueue.enqueue({
+          id: inserted.id,
+          title: inserted.title,
+          content: inserted.content,
+        });
+      }
     }
 
-    return wasInserted;
+    return !!inserted;
   }
 
   /**
