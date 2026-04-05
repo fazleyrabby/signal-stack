@@ -15,6 +15,18 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 import { useState } from "react";
 import { triggerBackup } from "@/lib/api";
 
+interface AdminModule {
+  title: string;
+  description: string;
+  icon: any;
+  href?: string;
+  onClick?: () => void;
+  variant?: "default" | "secondary" | "ghost";
+  disabled?: boolean;
+  stat: string;
+  loading?: boolean;
+}
+
 export default function AdminDashboard() {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const { data: statsData } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
@@ -32,13 +44,13 @@ export default function AdminDashboard() {
     }
   };
 
-  const adminModules = [
+  const adminModules: AdminModule[] = [
     {
       title: "Feed Sources",
       description: "Manage RSS feeds and their trust scores.",
       icon: Rss,
       href: "/admin/sources",
-      variant: "default" as const,
+      variant: "default",
       stat: statsData?.topSource || "..."
     },
     {
@@ -46,7 +58,7 @@ export default function AdminDashboard() {
       description: "Create and edit geopolitical or tech categories.",
       icon: Layers,
       href: "/admin/categories",
-      variant: "secondary" as const,
+      variant: "secondary",
       stat: "Live"
     },
     {
@@ -101,7 +113,7 @@ export default function AdminDashboard() {
                       {(module as any).loading ? "Backing up..." : `Trigger ${module.title}`}
                     </Button>
                   ) : !(module as any).disabled ? (
-                    <Button render={<Link href={(module as any).href} />} className="w-full" variant={module.variant as any}>
+                    <Button render={<Link href={(module as any).href} />} nativeButton={false} className="w-full" variant={module.variant as any}>
                       Open {module.title}
                     </Button>
                   ) : (
