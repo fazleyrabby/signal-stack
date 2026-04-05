@@ -128,3 +128,9 @@ This project is built on **Efficiency over Complexity**. We treat AI as an **Opt
 - **Signal Quality**: Removed "Low Signal-to-Noise" sources like *AP News* and *Hacker News* (too much general chatter).
 - **Premium Expansion**: Integrated high-trust, specific feeds like *Foreign Affairs*, *Al Jazeera*, *TechCrunch*, and *Wired*.
 - **Categorization**: Alignment with the dual-column "Command Center" dashboard, ensuring a balanced feed between Global Geopolitics and Emerging Technology.
+
+### 💾 Automated Backup Infrastructure
+- **System**: Implemented `BackupService` using `pg_dump` with a dual-failover file write (temp file -> final).
+- **Trigger**: Added a manual trigger button in the **System Console** for on-demand snapshots.
+- **Automation**: Established a daily cron cycle (Midnight) to ensure regular data persistence.
+- **Infrastructure**: Updated the Docker architecture to include `postgresql-client` for native shell access to dump utilities.

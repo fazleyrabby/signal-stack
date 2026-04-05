@@ -3,12 +3,18 @@ import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 import { categories, sources } from '../database/schema';
 import { eq } from 'drizzle-orm';
+import { BackupService } from '../database/backup.service';
 
 @Injectable()
 export class AdminService {
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
+    private readonly backupService: BackupService,
   ) {}
+
+  async triggerBackup() {
+    return this.backupService.triggerManualBackup();
+  }
 
   // --- Categories ---
 

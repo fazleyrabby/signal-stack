@@ -3,12 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
+import { BackupService } from './backup.service';
 
 export const DATABASE_CONNECTION = 'DATABASE_CONNECTION';
 
 @Global()
 @Module({
   providers: [
+    BackupService,
     {
       provide: DATABASE_CONNECTION,
       useFactory: async (configService: ConfigService) => {
@@ -31,7 +33,7 @@ export const DATABASE_CONNECTION = 'DATABASE_CONNECTION';
       inject: [ConfigService],
     },
   ],
-  exports: [DATABASE_CONNECTION],
+  exports: [DATABASE_CONNECTION, BackupService],
 })
 export class DatabaseModule {}
 

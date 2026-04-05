@@ -59,4 +59,11 @@ export class AdminController {
   async deleteSource(@Param('id') id: string) {
     return this.adminService.deleteSource(id);
   }
+
+  // --- System ---
+
+  @Post('backup')
+  async triggerBackup() {
+    return this.adminService.triggerBackup();
+  }
 }

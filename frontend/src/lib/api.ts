@@ -52,8 +52,13 @@ export async function fetchStats(): Promise<SignalStats> {
   return res.json();
 }
 
-export async function fetchHealth() {
-  const res = await fetch(`${API_BASE}/api/health`);
-  if (!res.ok) throw new Error("Failed to fetch health");
+export async function triggerBackup(apiKey: string) {
+  const res = await fetch(`${API_BASE}/api/admin/backup`, {
+    method: 'POST',
+    headers: {
+      'x-admin-key': apiKey,
+    },
+  });
+  if (!res.ok) throw new Error("Failed to trigger backup");
   return res.json();
 }
