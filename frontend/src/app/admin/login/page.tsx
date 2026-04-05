@@ -21,7 +21,9 @@ export default function AdminLogin() {
     setError("");
 
     try {
+      console.log("Logging in with key:", key);
       const success = await loginAdmin(key);
+      console.log("Login success:", success);
 
       if (success) {
         router.push("/admin");
@@ -29,7 +31,8 @@ export default function AdminLogin() {
       } else {
         setError("Invalid Admin Key. Please check your system configuration.");
       }
-    } catch {
+    } catch (err) {
+      console.error("Login error:", err);
       setError("Unable to connect to the Admin Hub.");
     } finally {
       setIsSubmitting(false);
