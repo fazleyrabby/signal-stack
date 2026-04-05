@@ -1,8 +1,8 @@
-# SignalStack Production Monorepo Deployment
-# Optimized for Proxmox VPS (Ubuntu VM)
+# SignalStack Production Deployment
+# Optimized for Proxmox VPS — fully isolated, zero volume mounts for app code
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
 
 services:
-  # Database Layer
   postgres:
     image: postgres:16-alpine
     container_name: signalstack-db
@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_DB: signalstack
       POSTGRES_USER: signal
-      POSTGRES_PASSWORD: signal # Change this in production!
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-signal}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -19,21 +19,19 @@ services:
       timeout: 3s
       retries: 5
 
-  # Redis Layer (Optional, for future use)
   redis:
     image: redis:7-alpine
     container_name: signalstack-redis
     restart: unless-stopped
 
-  # Backend Layer (NestJS)
-  backend:
+  app:
     build: ./backend
-    container_name: signalstack-backend
+    container_name: signalstack-app
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://signal:signal@postgres:5432/signalstack
+      DATABASE_URL: postgresql://signal:${POSTGRES_PASSWORD:-signal}@postgres:5432/signalstack
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
@@ -41,6 +39,7 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       AI_ENABLED: ${AI_ENABLED:-true}
       ADMIN_API_KEY: ${ADMIN_API_KEY}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
       NODE_ENV: production
     depends_on:
       postgres:
@@ -48,21 +47,20 @@ services:
       redis:
         condition: service_started
 
-  # Frontend Layer (Next.js)
   frontend:
-    build: 
+    build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:3000 # On your VPS, this is the public URL
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
     container_name: signalstack-frontend
     restart: unless-stopped
     ports:
       - "3001:3001"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3000 # Same here, needs to be reachable from browser
-      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      PORT: 3001
     depends_on:
-      - backend
+      - app
 
 volumes:
   pgdata:

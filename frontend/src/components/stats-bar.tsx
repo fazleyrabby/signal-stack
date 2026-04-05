@@ -1,59 +1,51 @@
 "use client";
 
-import { Activity, AlertTriangle, TrendingUp, BarChart3 } from "lucide-react";
-import type { SignalStats } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { 
+  Signal, 
+  AlertTriangle, 
+  Zap, 
+  Globe2 
+} from "lucide-react";
 
-export function StatsBar({ stats }: { stats: SignalStats | undefined }) {
-  if (!stats) return null;
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <StatCard
-        icon={<BarChart3 className="w-4 h-4" />}
-        label="Total Signals"
-        value={stats.total}
-        color="text-blue-400"
-      />
-      <StatCard
-        icon={<AlertTriangle className="w-4 h-4" />}
-        label="High Severity"
-        value={stats.high}
-        color="text-red-400"
-      />
-      <StatCard
-        icon={<TrendingUp className="w-4 h-4" />}
-        label="Last 24h"
-        value={stats.last24h}
-        color="text-emerald-400"
-      />
-      <StatCard
-        icon={<Activity className="w-4 h-4" />}
-        label="Top Source"
-        value={stats.topSource}
-        color="text-orange-400"
-      />
-    </div>
-  );
+interface StatsBarProps {
+  stats?: {
+    total: number;
+    high: number;
+    low: number;
+    last24h: number;
+    topSource: string;
+  };
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-  color,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  color: string;
-}) {
+export function StatsBar({ stats }: StatsBarProps) {
+  const statsItems = [
+    { label: "Total Signals", value: stats?.total || 0, icon: Signal, color: "text-blue-500" },
+    { label: "Critical Alerts", value: stats?.high || 0, icon: AlertTriangle, color: "text-red-500" },
+    { label: "24h Activity", value: stats?.last24h || 0, icon: Zap, color: "text-emerald-500" },
+    { label: "Primary Source", value: stats?.topSource || "Scanning...", icon: Globe2, color: "text-amber-500" },
+  ];
+
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm p-3">
-      <div className={`${color}`}>{icon}</div>
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-semibold tabular-nums">{String(value)}</p>
-      </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+      {statsItems.map((item, idx) => (
+        <div key={idx} className={cn(
+          "p-2.5 rounded-md border border-border/30 shadow-sm transition-all duration-300",
+          "bg-card/30 hover:bg-[var(--card-hover)]"
+        )}>
+          <div className="flex items-center justify-between">
+             <div className="flex flex-col gap-0">
+                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
+                  {item.label}
+                </span>
+                <span className="text-md md:text-lg font-black tracking-tight tabular-nums text-foreground leading-none">
+                  {typeof item.value === 'number' ? item.value.toLocaleString() : item.value}
+                </span>
+             </div>
+             <item.icon className={cn("w-3.5 h-3.5 opacity-30", item.color)} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
