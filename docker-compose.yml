@@ -10,14 +10,19 @@ services:
       - /app/node_modules
     environment:
       DATABASE_URL: postgresql://signal:signal@postgres:5432/signalstack
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
       GROQ_API_KEY: ${GROQ_API_KEY}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
       FRONTEND_URL: http://localhost:3001
       NODE_ENV: development
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     command: sh -c "npx drizzle-kit push && npm run start:dev"
 
   frontend:
@@ -37,6 +42,7 @@ services:
       PORT: 3001
     depends_on:
       - app
+    command: npm run dev
 
   postgres:
     image: postgres:16-alpine

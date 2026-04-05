@@ -64,6 +64,14 @@ export class AdminController {
 
   @Post('backup')
   async triggerBackup() {
-    return this.adminService.triggerBackup();
+    console.log('🏁 Admin API: Triggering manual database backup...');
+    try {
+      const result = await this.adminService.triggerBackup();
+      console.log('✅ Admin API: Backup successful');
+      return result;
+    } catch (err) {
+      console.error(`❌ Admin API: Backup failed: ${err.message}`);
+      throw err;
+    }
   }
 }
