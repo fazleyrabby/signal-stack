@@ -12,8 +12,25 @@ import type { SignalStats } from "@/lib/api";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+import { useState } from "react";
+import { triggerBackup } from "@/lib/api";
+
 export default function AdminDashboard() {
+  const [isBackingUp, setIsBackingUp] = useState(false);
   const { data: statsData } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
+
+  const handleBackup = async () => {
+    const adminKey = localStorage.getItem("admin_key") || "dev-admin-key";
+    setIsBackingUp(true);
+    try {
+      await triggerBackup(adminKey);
+      alert("✅ Backup successful! SignalStack data captured safely.");
+    } catch (err) {
+      alert("❌ Backup failed. Check system logs.");
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
 
   const adminModules = [
     {
@@ -21,7 +38,7 @@ export default function AdminDashboard() {
       description: "Manage RSS feeds and their trust scores.",
       icon: Rss,
       href: "/admin/sources",
-      variant: "default",
+      variant: "default" as const,
       stat: statsData?.topSource || "..."
     },
     {
@@ -29,16 +46,16 @@ export default function AdminDashboard() {
       description: "Create and edit geopolitical or tech categories.",
       icon: Layers,
       href: "/admin/categories",
-      variant: "secondary",
+      variant: "secondary" as const,
       stat: "Live"
     },
     {
-      title: "Scoring Engine",
-      description: "Configure point multipliers and keywords.",
+      title: "System Backup",
+      description: "Snapshot the entire database to a SQL file.",
       icon: ShieldCheck,
-      href: "/admin/scoring",
-      disabled: true,
-      stat: "Static (v1)"
+      onClick: handleBackup,
+      loading: isBackingUp,
+      stat: "Idle"
     }
   ];
 
@@ -61,14 +78,14 @@ export default function AdminDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {adminModules.map((module) => (
-              <Card key={module.title} className={module.disabled ? "opacity-60 cursor-not-allowed group/item" : "transition-all hover:border-primary/50 group/item"}>
+              <Card key={module.title} className={(module as any).disabled ? "opacity-60 cursor-not-allowed group/item" : "transition-all hover:border-primary/50 group/item"}>
                 <CardHeader>
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                     <module.icon className="w-5 h-5 text-primary" />
                   </div>
                   <CardTitle className="flex items-center justify-between">
                     {module.title}
-                    {!module.disabled && (
+                    {!(module as any).disabled && (
                       <ArrowRight className="w-4 h-4 opacity-0 group-hover/item:opacity-100 group-hover/item:translate-x-1 transition-all" />
                     )}
                   </CardTitle>
@@ -77,10 +94,14 @@ export default function AdminDashboard() {
                 <CardContent className="space-y-4">
                   <div className="text-xs font-mono py-2 px-3 rounded bg-muted/50 flex items-center justify-between">
                     <span className="opacity-50 uppercase">Status</span>
-                    <span className="font-bold">{module.stat}</span>
+                    <span className="font-bold">{(module as any).loading ? "Working..." : module.stat}</span>
                   </div>
-                  {!module.disabled ? (
-                    <Button render={<Link href={module.href} />} className="w-full" variant={module.variant as any}>
+                  {(module as any).onClick ? (
+                    <Button onClick={(module as any).onClick} className="w-full" disabled={(module as any).loading}>
+                      {(module as any).loading ? "Backing up..." : `Trigger ${module.title}`}
+                    </Button>
+                  ) : !(module as any).disabled ? (
+                    <Button render={<Link href={(module as any).href} />} className="w-full" variant={module.variant as any}>
                       Open {module.title}
                     </Button>
                   ) : (

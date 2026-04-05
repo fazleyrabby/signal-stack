@@ -90,5 +90,12 @@ cd backend && npm run seed
 ```
 *Note: This script handles its own database connection and can be run safely multiple times; it will not duplicate existing records.*
 
+### 💾 Automated Backup & Recovery
+SignalStack includes a specialized backup engine that mirrors your data to a SQL file for disaster recovery.
+- **Automated**: Runs every day at **Midnight** via `@Cron`.
+- **Manual**: Triggerable via the **Admin Console** (`System Backup` module).
+- **Target File**: `backend/signalstack_backup.sql`
+- **Infrastructure**: Requires `postgresql-client` (included in the production Docker image).
+
 ### High-Fidelity Monitoring
 Your SignalStack node automatically pushes the latest DB schema updates using `drizzle-kit push` on startup, ensuring that your production environment is always in sync with the intelligence engine's evolving data structures.
