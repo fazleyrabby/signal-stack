@@ -18,8 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
 
-// Direct Telemetry Override to bypass proxy resolution friction
-const API_BASE = "http://localhost:3000/api/signals";
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/signals`;
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const PAGE_SIZE = 20;
