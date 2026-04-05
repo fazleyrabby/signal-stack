@@ -13,6 +13,9 @@ export interface Signal {
   createdAt: string;
   summary?: string;
   aiCategory?: string;
+  aiSummary: string | null;
+  aiProcessed: boolean;
+  aiFailed: boolean;
 }
 
 export interface SignalsResponse {

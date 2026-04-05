@@ -72,5 +72,23 @@ cd backend && npm run test:ai
    docker compose -f docker-compose.prod.yml up -d --build
    ```
 
+### 🛰️ Coverage & Categories (Active Streams)
+SignalStack monitors high-fidelity streams divided into strategic intelligence categories:
+- **World Geopolitics**: High-impact regional news and global policy shifts.
+    - *Sources*: Guardian World, NYTimes, Al Jazeera, Foreign Affairs.
+- **Technology Intelligence**: Deep tech shifts, hardware breakthroughs, and software engineering signals.
+    - *Sources*: Ars Technica, The Verge, TechCrunch, MIT Tech Review, Wired.
+
+---
+
+## 🛠 Maintenance & Engineering
+
+### Database Seeding (Idempotent)
+To reset or bootstrap your regional categories and sources, run the standalone seeder:
+```bash
+cd backend && npm run seed
+```
+*Note: This script handles its own database connection and can be run safely multiple times; it will not duplicate existing records.*
+
 ### High-Fidelity Monitoring
 Your SignalStack node automatically pushes the latest DB schema updates using `drizzle-kit push` on startup, ensuring that your production environment is always in sync with the intelligence engine's evolving data structures.

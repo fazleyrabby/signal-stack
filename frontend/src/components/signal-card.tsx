@@ -115,11 +115,25 @@ export function SignalCard({ signal, isCompact = false }: { signal: Signal; isCo
               </h3>
             </a>
 
-            {/* AI Summary (Subtle) */}
-            {signal.summary && (
-              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground/90 font-medium italic border-l-2 border-violet-500/20 pl-2">
-                {signal.summary}
-              </p>
+            {/* AI Engineering Highlights (The 'Why it Matters' Summary) */}
+            {(signal.aiSummary || signal.summary) && (
+              <div className="mt-3 group/ai">
+                <div className="flex items-center gap-1.5 mb-1.5 opacity-60 group-hover/ai:opacity-100 transition-opacity">
+                  <BrainCircuit className="w-3 h-3 text-violet-400" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400/80">Why it matters</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-muted-foreground/90 font-medium italic border-l-2 border-violet-500/20 pl-3">
+                  {signal.aiSummary || signal.summary}
+                </p>
+              </div>
+            )}
+
+            {/* Processing State logic */}
+            {signal.score >= 7 && !signal.aiProcessed && !signal.aiFailed && (
+              <div className="mt-2 flex items-center gap-2 opacity-50">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">Analyzing Intelligence...</span>
+              </div>
             )}
 
             {/* Footer Mini Stats */}

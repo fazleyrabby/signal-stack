@@ -156,6 +156,11 @@ export class FeedService {
       }
     }
 
+    const STALE_THRESHOLD_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
+    if (publishedAt && Date.now() - publishedAt.getTime() > STALE_THRESHOLD_MS) {
+      return null; // Skip stale data
+    }
+
     return {
       source: source.name,
       categoryId: source.categoryId,
