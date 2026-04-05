@@ -31,17 +31,17 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://signal:${POSTGRES_PASSWORD:-signal}@postgres:5432/signalstack
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
-      GROQ_API_KEY: ${GROQ_API_KEY}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      AI_ENABLED: ${AI_ENABLED:-true}
-      ADMIN_API_KEY: ${ADMIN_API_KEY}
-      JWT_SECRET: ${JWT_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
-      NODE_ENV: production
+      - DATABASE_URL=postgresql://signal:${POSTGRES_PASSWORD:-signal}@postgres:5432/signalstack
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AI_ENABLED=${AI_ENABLED:-true}
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
+      - NODE_ENV=production
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,14 +52,14 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     container_name: signalstack-frontend-1
     restart: unless-stopped
     ports:
       - "3001:3001"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-      PORT: 3001
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - PORT=3001
     depends_on:
       - app
 
