@@ -27,7 +27,8 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-  logger.log(`SignalStack API running on port ${port}`);
+  await app.listen(port, '0.0.0.0');
+  logger.log(`🚀 SignalStack API ready on http://0.0.0.0:${port}`);
+  logger.log(`🔗 Cross-Origin Allowed: ${process.env.FRONTEND_URL || 'http://localhost:3001'}`);
 }
 bootstrap();
