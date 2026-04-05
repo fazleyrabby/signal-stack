@@ -105,8 +105,14 @@ export default function SourcesAdmin() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header isLive={true} onRefresh={() => {}} isRefreshing={false} />
+    <div className="flex flex-col min-h-screen bg-background font-sans">
+      <Header 
+        isRefreshing={false} 
+        onRefresh={() => {}} 
+        searchQuery="" 
+        onSearchChange={() => {}} 
+        showSearch={false} 
+      />
 
       <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto space-y-6">

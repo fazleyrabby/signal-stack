@@ -1,291 +1,317 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import useSWR from "swr";
-import { Header } from "@/components/header";
+import {
+  LayoutGrid,
+  List,
+  RefreshCw,
+  Globe2,
+  Cpu,
+  Maximize2,
+  ChevronDown,
+} from "lucide-react";
 import { SignalCard } from "@/components/signal-card";
-import { FeedSkeleton } from "@/components/signal-skeleton";
+import { Header } from "@/components/header";
 import { StatsBar } from "@/components/stats-bar";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Radio, SearchX, Globe2, Cpu, ChevronDown, Loader2, LayoutGrid, List, Maximize2, Minimize2, Activity } from "lucide-react";
-import type { SignalsResponse, SignalStats } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import type { Signal } from "@/lib/api";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+// Direct Telemetry Override to bypass proxy resolution friction
+const API_BASE = "http://localhost:3000/api/signals";
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+const PAGE_SIZE = 20;
+
+interface StatsData {
+  total: number;
+  high: number;
+  medium: number;
+  low: number;
+  last24h: number;
+  topSource: string;
+}
+
+interface SignalsResponse {
+  data: Signal[];
+  meta: any;
+}
 
 function Column({ 
   title, 
   icon: Icon, 
   categoryId, 
-  params, 
-  layoutMode 
+  layoutMode,
+  searchQuery,
+  filter,
+  isFullWidth,
 }: { 
   title: string; 
   icon: any; 
-  categoryId: string, 
-  params: { severity: string, search: string },
-  layoutMode: 'grid' | 'list'
+  categoryId: string;
+  layoutMode: 'grid' | 'list';
+  searchQuery: string;
+  filter: string;
+  isFullWidth: boolean;
 }) {
-  const [limit, setLimit] = useState(30);
-  
-  const {
-    data: signalsData,
-    error: signalsError,
-    isLoading: signalsLoading,
-    isValidating,
-  } = useSWR<SignalsResponse>(
-    `${API_BASE}/api/signals?limit=${limit}&categoryId=${categoryId}&severity=${params.severity === 'all' ? '' : params.severity}&search=${params.search || ''}&sort=created_at&order=desc`,
+  const [page, setPage] = useState(1);
+
+  const { data: response, isLoading, isValidating } = useSWR<SignalsResponse>(
+    `${API_BASE}?limit=${PAGE_SIZE * page}&categoryId=${categoryId}&sort=created_at&order=desc`,
     fetcher,
-    {
-      refreshInterval: 10_000,
-      revalidateOnFocus: false,
-      keepPreviousData: true,
-    }
+    { refreshInterval: 15000, revalidateOnFocus: false, keepPreviousData: true }
   );
 
-  const signals = signalsData?.data || [];
-  const hasSignals = signals.length > 0;
-  const totalAvailable = signalsData?.meta?.total || 0;
-  const hasMore = totalAvailable > signals.length;
+  const signals = response?.data ?? [];
+  const hasMore = signals.length === PAGE_SIZE * page;
+
+  const filtered = useMemo(() => {
+    let result = signals;
+    if (filter !== 'all') {
+      result = result.filter(s => {
+        const sev = s.severity?.toLowerCase() || 'low';
+        if (filter === 'high') return sev === 'high' || s.score >= 8;
+        if (filter === 'medium') return sev === 'medium' || (s.score >= 5 && s.score < 8);
+        return sev === 'low' || s.score < 5;
+      });
+    }
+    if (searchQuery) {
+      result = result.filter(s => 
+        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.source.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return result;
+  }, [signals, filter, searchQuery]);
+
+  const hasSignals = filtered.length > 0;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between mb-3 px-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-            <Icon className="w-4 h-4" />
-          </div>
-          <h2 className="text-xs font-black uppercase tracking-[0.2em] opacity-80">
-            {title}
-          </h2>
+      <div className="flex items-center gap-2 mb-3 px-1 shrink-0">
+        <div className="p-1.5 rounded-md bg-primary/10 text-primary">
+          <Icon className="w-4 h-4" />
         </div>
-        {signalsData?.meta && (
-          <div className="text-[10px] font-black font-mono px-2 py-0.5 rounded bg-muted/30 border border-border/20 text-muted-foreground">
-            {signals.length} / {totalAvailable}
-          </div>
-        )}
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
+          {title}
+        </h2>
+        <span className="text-[9px] font-mono text-muted-foreground/30 ml-auto tabular-nums bg-accent/20 px-2 py-0.5 rounded-full">
+           {isLoading ? '--' : filtered.length} / {isLoading ? '--' : signals.length}
+        </span>
       </div>
 
-      <div className="flex-1 bg-card/30 border border-border/50 rounded-xl overflow-hidden backdrop-blur-sm">
-        {signalsLoading && signals.length === 0 && <div className="p-4"><FeedSkeleton /></div>}
-
-        {signalsError && signals.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center p-6">
-            <Radio className="w-8 h-8 text-red-400 mb-2 opacity-50" />
-            <p className="text-xs text-muted-foreground">Node sync failure</p>
+      <div className="flex-1 bg-card/25 border border-border/10 rounded-xl overflow-hidden backdrop-blur-sm transition-all duration-500 flex flex-col">
+        {isLoading && signals.length === 0 && (
+          <div className="flex items-center justify-center py-24 opacity-30">
+            <RefreshCw className="w-6 h-6 animate-spin text-primary" />
           </div>
         )}
 
-        {!signalsLoading && !signalsError && !hasSignals && (
-          <div className="flex flex-col items-center justify-center py-20 text-center p-6 text-muted-foreground">
-            <SearchX className="w-8 h-8 mb-2 opacity-20" />
-            <p className="text-xs italic">Awaiting node transmission...</p>
+        {!isLoading && !hasSignals && (
+          <div className="flex flex-col items-center justify-center py-24 text-center opacity-30 uppercase-none">
+            <RefreshCw className="w-8 h-8 mb-3 text-muted-foreground" />
+            <span className="text-[9px] font-black tracking-widest uppercase italic">Awaiting local uplink...</span>
           </div>
         )}
 
         {hasSignals && (
-          <ScrollArea className="h-full">
-            <div className={layoutMode === 'grid' ? "grid grid-cols-1 xl:grid-cols-2 gap-px bg-border/20" : "flex flex-col"}>
-              {signals.map((signal) => (
-                <SignalCard key={signal.id} signal={signal} isCompact={layoutMode === 'list'} />
-              ))}
-              
-              {hasMore && (
-                <div className="col-span-full pt-4 pb-8 px-4">
-                  <Button 
-                    variant="ghost" 
-                    className="w-full h-11 border-dashed border-border border-2 hover:bg-primary/5 hover:border-primary/50 group transition-all"
-                    onClick={() => setLimit(prev => prev + 20)}
-                    disabled={isValidating}
-                  >
-                    {isValidating ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 mr-2 group-hover:translate-y-1 transition-transform" />
-                    )}
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                      SYNC MORE DATA
-                    </span>
-                  </Button>
+          <div className="flex-1 overflow-y-auto">
+            <div className={cn(
+              "p-3 pr-4",
+              layoutMode === 'grid'
+                ? isFullWidth
+                  ? "columns-2 xl:columns-3 gap-4"
+                  : "columns-2 gap-4"
+                : "flex flex-col space-y-3"
+            )}>
+              {filtered.map((signal) => (
+                <div key={signal.id} className="break-inside-avoid mb-4">
+                  <SignalCard signal={signal} isCompact={layoutMode === 'list'} />
                 </div>
-              )}
+              ))}
             </div>
-          </ScrollArea>
+
+            {hasMore && (
+              <div className="flex justify-center py-4">
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={isValidating}
+                  className="flex items-center gap-2 px-5 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary bg-accent/20 hover:bg-accent/40 border border-border/10 rounded-lg transition-all disabled:opacity-40"
+                >
+                  {isValidating ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                  {isValidating ? "Loading..." : "Load More"}
+                </button>
+              </div>
+            )}
+
+            {!hasMore && signals.length > 0 && (
+              <div className="text-center py-4 text-[9px] font-mono text-muted-foreground/30 uppercase tracking-widest">
+                All signals loaded
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-export default function Home() {
-  const [mobileCategory, setMobileCategory] = useState<string>("geopolitics");
-  const [severityFilter, setSeverityFilter] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [isWidescreen, setIsWidescreen] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('list');
+export default function SignalsDashboard() {
+  const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
+  const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isFullWidth, setIsFullWidth] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'geopolitics' | 'technology'>('geopolitics');
 
-  const { data: statsData } = useSWR<SignalStats>(
-    `${API_BASE}/api/signals/stats`,
+  const { data: statsResponse } = useSWR<StatsData>(
+    `${API_BASE}/stats`,
     fetcher,
-    {
-      refreshInterval: 30_000,
-      revalidateOnFocus: false,
-    }
+    { refreshInterval: 30000 }
   );
 
+  const stats = statsResponse || { total: 0, high: 0, low: 0, last24h: 0, topSource: 'Scanning...' };
+
   return (
-    <div className={`flex flex-col min-h-screen bg-slate-950/40 selection:bg-violet-500/30 selection:text-white`}>
-      <Header isLive={true} onRefresh={() => {}} isRefreshing={false} />
+    <div className="flex flex-col h-screen bg-background overflow-hidden relative">
+      <Header 
+        isRefreshing={false}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        isFullWidth={isFullWidth}
+      />
 
-      <main className="flex-1 overflow-x-hidden pb-16">
-        <div className={`${isWidescreen ? 'max-w-full px-6' : 'max-w-[1400px] mx-auto px-4'} py-4 space-y-4 transition-all duration-500`}>
-          <StatsBar stats={statsData} />
+      <div className={cn(
+        "mx-auto px-4 sm:px-6 w-full py-4 transition-all duration-500 overflow-hidden flex flex-col flex-1",
+        isFullWidth ? "max-w-full" : "max-w-[1400px]"
+      )}>
+        <div className="flex flex-col gap-4 h-full">
+          <StatsBar stats={stats} />
 
-          {/* Intelligence Switcher (Prominent Tabs on Mobile) */}
-          <div className="flex md:hidden items-center p-1.5 bg-card/60 border border-border/50 rounded-2xl shadow-xl backdrop-blur-md">
+          {/* Mobile Tab Switcher */}
+          <div className="flex md:hidden items-center p-1 bg-card/40 border border-border/10 rounded-xl">
             <button
-              onClick={() => setMobileCategory("geopolitics")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black tracking-widest transition-all ${
-                mobileCategory === "geopolitics"
-                  ? "bg-violet-500 text-white shadow-lg shadow-violet-500/30"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              onClick={() => setMobileTab('geopolitics')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
+                mobileTab === 'geopolitics'
+                  ? "bg-violet-600 text-white shadow-lg"
+                  : "text-muted-foreground"
+              )}
             >
               <Globe2 className="w-3.5 h-3.5" />
-              WORLD AFFAIRS
+              GEOPOLITICS
             </button>
             <button
-              onClick={() => setMobileCategory("technology")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black tracking-widest transition-all ${
-                mobileCategory === "technology"
-                  ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              onClick={() => setMobileTab('technology')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
+                mobileTab === 'technology'
+                  ? "bg-indigo-500 text-white shadow-lg"
+                  : "text-muted-foreground"
+              )}
             >
               <Cpu className="w-3.5 h-3.5" />
-              TECH HUB
+              TECHNOLOGY
             </button>
           </div>
 
-          {/* Master Control Bar */}
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-2.5 bg-card/10 border border-border/20 rounded-2xl backdrop-blur-md relative z-30 shadow-2xl">
-            {/* Search Hub */}
-            <div className="relative w-full lg:w-[400px] group">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <SearchX className="h-4 w-4 text-muted-foreground/30 group-focus-within:text-violet-400 transition-colors" />
-              </div>
-              <Input
-                placeholder="PROBE WORLD INTELLIGENCE..."
-                className="pl-10 h-10 bg-background/30 border-border/40 text-xs font-bold tracking-wider rounded-xl focus-visible:ring-violet-500/20 focus-visible:border-violet-500/50 transition-all placeholder:text-[9px] placeholder:font-black placeholder:uppercase placeholder:tracking-[0.2em] placeholder:opacity-30"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+          {/* Control Bar */}
+          <div className="flex items-center justify-between bg-card/10 backdrop-blur-sm p-1.5 rounded-lg border border-border/5 shrink-0">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+              {['all', 'high', 'medium', 'low'].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={cn(
+                    "h-7 px-3 text-[10px] font-black uppercase tracking-widest rounded-md transition-all whitespace-nowrap px-4",
+                    filter === f ? "bg-primary text-primary-foreground shadow-md" : "opacity-40 hover:opacity-100 hover:bg-accent/10"
+                  )}
+                >
+                  {f}
+                </button>
+              ))}
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {/* Severity Quick Toggles */}
-              <div className="flex items-center gap-1 p-1 bg-background/40 rounded-xl border border-border/30">
-                {['all', 'high', 'medium', 'low'].map((sev) => (
-                  <button
-                    key={sev}
-                    onClick={() => setSeverityFilter(sev)}
-                    className={`px-3 py-2 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${
-                      severityFilter === sev
-                        ? sev === 'high' ? "bg-red-500 text-white shadow-lg shadow-red-500/30" :
-                          sev === 'medium' ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30" :
-                          sev === 'low' ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" :
-                          "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
-                        : "text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground"
-                    }`}
-                  >
-                    {sev}
-                  </button>
-                ))}
-              </div>
-
-              {/* Layout Control Group */}
-              <div className="flex items-center gap-1 p-1 bg-background/40 rounded-xl border border-border/30">
-                 <button
-                  onClick={() => setIsWidescreen(!isWidescreen)}
-                  className={`p-2 rounded-lg transition-all ${isWidescreen ? "bg-violet-500/20 text-violet-400" : "text-muted-foreground/40 hover:bg-muted/50"}`}
-                >
-                  {isWidescreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </button>
-                <Separator orientation="vertical" className="h-4 mx-1 opacity-20" />
-                <button
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-accent/20 rounded-lg p-0.5 border border-border/10">
+                <button 
+                  className={cn("p-1.5 rounded-md transition-all", layoutMode === 'list' && "bg-background text-primary shadow-sm")}
                   onClick={() => setLayoutMode('list')}
-                  className={`p-2 rounded-lg transition-all ${layoutMode === 'list' ? "bg-violet-500/20 text-violet-400 shadow-xl" : "text-muted-foreground/40 hover:bg-muted/50"}`}
                 >
-                  <List className="w-4 h-4" />
+                  <List className="w-3.5 h-3.5" />
                 </button>
-                <button
+                <button 
+                  className={cn("p-1.5 rounded-md transition-all", layoutMode === 'grid' && "bg-background text-primary shadow-sm")}
                   onClick={() => setLayoutMode('grid')}
-                  className={`p-2 rounded-lg transition-all ${layoutMode === 'grid' ? "bg-violet-500/20 text-violet-400 shadow-xl" : "text-muted-foreground/40 hover:bg-muted/50"}`}
                 >
-                  <LayoutGrid className="w-4 h-4" />
+                  <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
               </div>
+              <button 
+                className={cn(
+                   "flex items-center justify-center h-8 w-8 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all",
+                   isFullWidth && "bg-primary/20 border-primary/20 text-primary shadow-[0_0_15px_-5px_rgba(var(--primary),0.3)]"
+                )}
+                onClick={() => setIsFullWidth(!isFullWidth)}
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
-          {/* Intelligence Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start min-h-[600px]">
-            {/* Column 1 (Geopolitics) - Hidden on mobile if tech is selected */}
-            <div className={`${mobileCategory !== "geopolitics" ? "hidden md:block" : "block"} h-full`}>
-               <Column 
+          <div className="flex-1 overflow-hidden">
+            <div className="hidden md:grid grid-cols-2 gap-6 h-full">
+              <Column 
                 title="World Geopolitics" 
                 icon={Globe2} 
-                categoryId="geopolitics" 
-                params={{ severity: severityFilter, search: searchQuery }}
+                categoryId="geopolitics"
                 layoutMode={layoutMode}
+                searchQuery={searchQuery}
+                filter={filter}
+                isFullWidth={isFullWidth}
               />
-            </div>
-
-            {/* Column 2 (Technology) - Hidden on mobile if geopolitics is selected */}
-            <div className={`${mobileCategory !== "technology" ? "hidden md:block" : "block"} h-full`}>
               <Column 
                 title="Technology Intelligence" 
                 icon={Cpu} 
-                categoryId="technology" 
-                params={{ severity: severityFilter, search: searchQuery }}
+                categoryId="technology"
                 layoutMode={layoutMode}
+                searchQuery={searchQuery}
+                filter={filter}
+                isFullWidth={isFullWidth}
               />
+            </div>
+
+            <div className="md:hidden h-full">
+              {mobileTab === 'geopolitics' ? (
+                <Column 
+                  title="World Geopolitics" 
+                  icon={Globe2} 
+                  categoryId="geopolitics"
+                  layoutMode={layoutMode}
+                  searchQuery={searchQuery}
+                  filter={filter}
+                  isFullWidth={false}
+                />
+              ) : (
+                <Column 
+                  title="Technology Intelligence" 
+                  icon={Cpu} 
+                  categoryId="technology"
+                  layoutMode={layoutMode}
+                  searchQuery={searchQuery}
+                  filter={filter}
+                  isFullWidth={false}
+                />
+              )}
             </div>
           </div>
         </div>
-      </main>
-
-      <footer className="border-t border-border/10 bg-slate-950/90 backdrop-blur-3xl py-4">
-        <div className="max-w-[1400px] mx-auto px-6 text-center sm:text-left">
-           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                 <div className="flex items-center gap-2 text-violet-500/80 font-black text-[10px] tracking-[0.2em]">
-                    <Activity className="w-3.5 h-3.5 animate-pulse" />
-                    SIGNALSTACK TERMINAL
-                 </div>
-                 <div className="hidden sm:block h-3 w-px bg-border/20" />
-                 <div className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">
-                    Active Uplink: <span className={mobileCategory === 'geopolitics' ? 'text-violet-400' : 'text-blue-400'}>
-                       {mobileCategory === 'geopolitics' ? 'World Intelligence' : 'Technology Hub'}
-                    </span>
-                 </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                 <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border border-border/20 bg-background/50`}>
-                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${mobileCategory === 'geopolitics' ? 'bg-violet-500' : 'bg-blue-500'}`} />
-                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                       {mobileCategory.toUpperCase()}_TRANSMISSION_LIVE
-                    </span>
-                 </div>
-              </div>
-           </div>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

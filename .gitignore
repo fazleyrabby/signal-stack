@@ -1,3 +1,8 @@
+# --- Environment Files ---
+.env
+.env.*
+!.env.example
+
 # --- Node.js Standard ---
 node_modules/
 dist/
@@ -9,35 +14,37 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
-# --- Frontend Specific (Next.js) ---
+# --- Frontend (Next.js) ---
 frontend/.next/
 frontend/out/
-frontend/.env*.local
 frontend/node_modules/
 
-# --- Backend Specific (NestJS / TypeScript) ---
+# --- Backend (NestJS) ---
 backend/dist/
 backend/node_modules/
-backend/.env
-backend/drizzle/migrations/ # Keep source migrations if using drizzle-kit generate, ignore if push only (keeping but including metadata if needed)
-backend/db/data/ # Ignore local database volume if mapped
+backend/.drizzle/
+backend/drizzle.config.ts.timestamp-*
+
+# --- Database ---
+backend/drizzle/migrations/
+backend/db/data/
+*.sqlite
+*.db
 
 # --- Editor / OS Noise ---
 .DS_Store
+.AppleDouble
+.LSOverride
 .idea/
 .vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
 *.swp
-*.bak
-*.tmp
-*.log
+*.swo
+*~
+.bak
 
 # --- Docker ---
-.docker-compose.override.yml
 docker-compose.override.yml
+.docker-compose.override.yml
 
 # --- Coverage / Reports ---
 coverage/
@@ -45,17 +52,17 @@ coverage/
 *.lcov
 htmlcov/
 
-# --- Drizzle / DB Artefacts ---
-backend/.drizzle/
-backend/drizzle.config.ts.timestamp-*
-
-# --- Signals / Logs ---
-signalstack.log
+# --- Logs ---
 logs/
 tmp/
-*.sqlite
-*.db
+*.log
 
+# --- Backup Files ---
+signalstack_backup.sql
+backend/signalstack_backup.sql
+
+# --- Spec / Planning Docs (keep only DOCS.md) ---
 spec.md
 spec-patch.md
 rate-limit.md
+report.md

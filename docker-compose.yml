@@ -5,9 +5,6 @@ services:
     restart: unless-stopped
     ports:
       - '3000:3000'
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
     environment:
       DATABASE_URL: postgresql://signal:signal@postgres:5432/signalstack
       REDIS_HOST: redis
@@ -17,31 +14,30 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       ADMIN_API_KEY: ${ADMIN_API_KEY}
       FRONTEND_URL: http://localhost:3001
-      NODE_ENV: development
+      NODE_ENV: production
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
-    command: sh -c "npx drizzle-kit push && npm run start:dev"
 
   frontend:
     build: 
       context: ./frontend
-      args:
-        - NEXT_PUBLIC_API_URL=http://localhost:3000
-    container_name: signalstack-frontend
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - '3001:3001'
-    # Removing volume mount to stop sync-corruption with Next.js 16 cache
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3000
       PORT: 3001
+      WATCHPACK_POLLING: "true"
+    command: npm run dev
     depends_on:
       - app
-    # Running from the internal build ONLY
-    command: npm start
 
   postgres:
     image: postgres:16-alpine

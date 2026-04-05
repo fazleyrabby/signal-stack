@@ -1,101 +1,285 @@
 # SignalStack: Advanced Intelligence Platform 📡🧠
 
 ## Modern Stack Overview
-- **Frontend**: Next.js 15, Base UI, Lucide Icons, SWR Intelligence Polling.
-- **Backend**: NestJS, Drizzle ORM (PostgreSQL), Redis.
-- **AI Engine**: Dual-provider failover (Groq ⚡ + OpenRouter 🧠).
-- **Deployment**: Multi-container Docker (Production-ready).
+- **Frontend**: Next.js 16 (App Router), Base UI, Lucide Icons, SWR Intelligence Polling, Tailwind CSS v4.
+- **Backend**: NestJS 11, Drizzle ORM (PostgreSQL 16), Redis, RxJS.
+- **AI Engine**: Dual-provider failover (Groq ⚡ + OpenRouter 🧠) with rate-limited background workers.
+- **Deployment**: Fully isolated multi-container Docker — zero host dependencies, zero volume mounts for app code.
 
 ---
 
-### 🧠 Phase 5 Intelligence Tier (Rate-Limited Background Processing)
-SignalStack now features a production-grade, asynchronous AI enrichment pipeline designed for reliability and cost-efficiency.
+## Quick Start
+
+### Docker (Recommended — Fully Isolated)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/fazleyrabby/signal-stack.git && cd signal-stack
+
+# 2. Configure environment (copy and edit)
+cp .env.example .env
+
+# 3. Start all services
+docker compose up -d --build
+```
+
+| Service | URL | Description |
+|---|---|---|
+| Frontend | http://localhost:3001 | Dashboard + Admin Portal |
+| Backend API | http://localhost:3000 | REST API + Feed Scheduler |
+| PostgreSQL | localhost:5433 | Database (external access) |
+| Redis | localhost:6380 | Cache + AI Queue (external access) |
+
+### Local Development
+
+```bash
+# 1. Start infrastructure only
+docker compose up postgres redis -d
+
+# 2. Backend
+cd backend && cp .env.example .env
+# Edit .env with your keys, then:
+npm install && npm run db:push && npm run start:dev
+
+# 3. Frontend (new terminal)
+cd frontend && npm install && npm run dev
+```
+
+Access at [http://localhost:3001](http://localhost:3001).
+
+---
+
+## Environment Configuration
+
+Create a `.env` file at the project root for Docker Compose:
+
+```env
+# --- Security ---
+ADMIN_API_KEY=your-secret-admin-key
+
+# --- AI Intelligence (Failover Cluster) ---
+GROQ_API_KEY=gsk_your-groq-key
+OPENROUTER_API_KEY=sk-or-v1-your-openrouter-key
+
+# --- Alerts ---
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/your-webhook
+
+# --- AI Toggle ---
+AI_ENABLED=true
+```
+
+> **Note**: The backend `.env` uses `localhost:5433` for local development. Docker Compose overrides this with the internal `postgres:5432` hostname.
+
+---
+
+## 🧠 AI Intelligence Tier (Phase 5)
+
+SignalStack features a production-grade, asynchronous AI enrichment pipeline designed for reliability and cost-efficiency.
+
 - **Asynchronous Processing**: Ingestion no longer blocks on AI. Signals are scored via keywords first, and high-impact items (score ≥ 7) are enqueued for deep analysis.
 - **Rate-Limited Execution**:
-    - **Smoothing**: Processes 1 job every ~1.5 seconds to prevent API bursts.
-    - **Concurrency**: Managed by 2 parallel background workers.
-    - **Daily Quota**: Automatically pauses AI analysis after 150 requests to stay within free-tier limits.
+  - **Smoothing**: Processes 1 job every ~1.5 seconds to prevent API bursts.
+  - **Concurrency**: Managed by 2 parallel background workers via RxJS.
+  - **Daily Quota**: Automatically pauses AI analysis after 150 requests to stay within free-tier limits.
 - **Strategic Failover & Cooldowns**:
-    - **Primary**: **Groq** (⚡ Sub-second inference).
-    - **Secondary**: **OpenRouter** (🧠 Comprehensive failover).
-    - **429 Mitigation**: If a provider returns a rate limit error, the system enters a **60s Cooldown** for that provider.
+  - **Primary**: **Groq** (⚡ Sub-second inference).
+  - **Secondary**: **OpenRouter** (🧠 Comprehensive failover).
+  - **429 Mitigation**: If a provider returns a rate limit error, the system enters a **60s Cooldown** for that provider.
 - **Executive Summaries**: AI distills entire news articles into a single, high-impact sentence (max 200 chars).
 - **Safe Fallback**: If all AI providers fail or are paused, the system remains 100% functional via high-fidelity keyword scoring.
 
-### 📰 The SignalStack Terminal (UI Overhaul)
-The dashboard has been upgraded to a pro-grade analytical terminal:
+---
+
+## 📰 The SignalStack Terminal (Dashboard)
+
+The dashboard is a pro-grade analytical terminal:
+
 - **Widescreen Command Center**: Toggle between standard/centered and 100% viewport width for ultrawide monitoring.
 - **High-Density Modes**:
-    - **Grid/Masonry**: Expansive layout for detailed signal cards.
-    - **News List**: Ultra-compact, single-line "quick titles" for scanning hundreds of events at once.
-- **Intelligence Switcher (Mobile)**: Tactile tabs to switch between Geopolitical and Tech streams on the go.
+  - **List Mode**: Ultra-compact, single-line "quick titles" for scanning hundreds of events.
+  - **Grid Mode**: Expansive layout for detailed signal cards.
+- **Intelligence Switcher (Mobile)**: Tactile tabs to switch between Geopolitical and Tech streams.
 - **Real-time Global Search**: Instant, server-side full-text search across titles, content, and AI summaries.
+- **Severity Quick Filters**: One-click toggles for All / High / Medium / Low severity.
+- **Live Stats Bar**: Real-time signal counts, severity breakdown, and top source.
+- **Load More**: Fetch additional signals on demand without page reload.
 
 ---
 
-## System Configuration (Backend)
+## 🛡 Admin Portal
 
-### Environment Variables (`backend/.env`)
-```env
-# --- Database ---
-DATABASE_URL="postgresql://..."
+Access at `/admin`. Protected by API key authentication.
 
-# --- Security ---
-ADMIN_API_KEY="your-secret-key"
+| Page | Description |
+|---|---|
+| `/admin/login` | API key authentication |
+| `/admin` | Dashboard — feed health, stats, manual backup trigger |
+| `/admin/categories` | Manage intelligence categories (Geopolitics, Technology) |
+| `/admin/sources` | Manage RSS feed sources per category |
 
-# --- AI Intelligence (Failover Cluster) ---
-GROQ_API_KEY="gsk_..."
-OPENROUTER_API_KEY="sk-or-v1..."
+**Default Admin Key**: `dev-admin-key` (configure via `ADMIN_API_KEY` in `.env`)
 
-# --- Alerts ---
-DISCORD_WEBHOOK_URL="your-webhook-url"
-```
+### System Backup
+- **Automated**: Runs daily at **Midnight** via cron.
+- **Manual**: Triggerable from the Admin Dashboard.
+- **Output**: `backend/signalstack_backup.sql`
+- **Requires**: `postgresql-client` (included in Docker image).
 
-### Analytical Testing
-Run the following connectivity probe to verify your dual-provider intelligence uplink:
-```bash
-cd backend && npm run test:ai
-```
+---
+
+## 🛰️ Coverage & Categories (Active Streams)
+
+SignalStack monitors high-fidelity streams divided into strategic intelligence categories:
+
+- **World Geopolitics**: High-impact regional news and global policy shifts.
+  - *Sources*: Guardian World, NYTimes, Al Jazeera, Foreign Affairs.
+- **Technology Intelligence**: Deep tech shifts, hardware breakthroughs, and software engineering signals.
+  - *Sources*: Ars Technica, The Verge, TechCrunch, MIT Tech Review, Wired.
 
 ---
 
 ## Production Deployment (Proxmox / VPS)
 
-### Command Flow:
+### Prerequisites
+- Docker + Docker Compose installed
+- Git installed
+- At least 2GB RAM (4GB recommended with AI enabled)
+
+### Command Flow
+
 1. **Repository Sync**:
    ```bash
    git clone https://github.com/fazleyrabby/signal-stack.git && cd signal-stack
    ```
 
-2. **Container Ignition**:
+2. **Environment Setup**:
    ```bash
-   docker compose -f docker-compose.prod.yml up -d --build
+   cp .env.example .env
+   # Edit .env with your API keys and admin secret
    ```
 
-### 🛰️ Coverage & Categories (Active Streams)
-SignalStack monitors high-fidelity streams divided into strategic intelligence categories:
-- **World Geopolitics**: High-impact regional news and global policy shifts.
-    - *Sources*: Guardian World, NYTimes, Al Jazeera, Foreign Affairs.
-- **Technology Intelligence**: Deep tech shifts, hardware breakthroughs, and software engineering signals.
-    - *Sources*: Ars Technica, The Verge, TechCrunch, MIT Tech Review, Wired.
+3. **Container Ignition**:
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. **Seed Database** (first run only):
+   ```bash
+   docker exec signalstack-app npm run seed
+   ```
+
+### VPS Considerations
+
+- **NEXT_PUBLIC_API_URL**: If deploying to a public domain, update the build arg in `docker-compose.yml` to your public backend URL (e.g., `https://api.yourdomain.com`).
+- **Reverse Proxy**: Place Nginx/Caddy in front of ports 3000/3001 for HTTPS.
+- **Firewall**: Only expose ports 80/443. Block direct access to 3000, 3001, 5433, 6380.
+- **Database Password**: Change `POSTGRES_PASSWORD` from the default `signal` value.
 
 ---
 
 ## 🛠 Maintenance & Engineering
 
 ### Database Seeding (Idempotent)
-To reset or bootstrap your regional categories and sources, run the standalone seeder:
+To reset or bootstrap your regional categories and sources:
 ```bash
 cd backend && npm run seed
 ```
 *Note: This script handles its own database connection and can be run safely multiple times; it will not duplicate existing records.*
 
-### 💾 Automated Backup & Recovery
-SignalStack includes a specialized backup engine that mirrors your data to a SQL file for disaster recovery.
-- **Automated**: Runs every day at **Midnight** via `@Cron`.
-- **Manual**: Triggerable via the **Admin Console** (`System Backup` module).
-- **Target File**: `backend/signalstack_backup.sql`
-- **Infrastructure**: Requires `postgresql-client` (included in the production Docker image).
+### Database Migrations
+```bash
+cd backend && npm run db:push    # Push schema changes
+cd backend && npm run db:studio  # Open Drizzle Studio (visual DB browser)
+```
 
-### High-Fidelity Monitoring
-Your SignalStack node automatically pushes the latest DB schema updates using `drizzle-kit push` on startup, ensuring that your production environment is always in sync with the intelligence engine's evolving data structures.
+### AI Connectivity Test
+```bash
+cd backend && npm run test:ai
+```
+
+### Discord Webhook Test
+```bash
+cd backend && npm run test:discord
+```
+
+### Viewing Logs
+```bash
+docker compose logs -f          # All services
+docker compose logs -f app      # Backend only
+docker compose logs -f frontend # Frontend only
+```
+
+### Rebuilding After Code Changes
+```bash
+docker compose up -d --build    # Rebuild and restart all services
+docker compose up -d --build frontend  # Rebuild frontend only
+```
+
+---
+
+## Architecture
+
+```
+┌─────────────┐     ┌───────────────┐     ┌──────────┐     ┌───────────┐
+│ RSS Feeds   │────▶│ Fetch Job     │────▶│ Parser   │────▶│ Scorer    │
+│ (10 sources)│     │ (Promise.all) │     │ (rss-p)  │     │ (Keywords)│
+└─────────────┘     └───────────────┘     └──────────┘     └─────┬─────┘
+                                                                 │
+                                                    ┌────────────┼────────────┐
+                                                    ▼            ▼            ▼
+                                              ┌──────────┐ ┌────────┐ ┌──────────┐
+                                              │ Discard  │ │  DB    │ │  Alert   │
+                                              │ (< 5)    │ │ (≥ 5)  │ │  (≥ 7)  │
+                                              └──────────┘ └───┬────┘ └──────────┘
+                                                               │
+                                                    ┌──────────┴──────────┐
+                                                    ▼                     ▼
+                                              ┌──────────┐         ┌──────────────┐
+                                              │ REST API │         │ AI Queue     │
+                                              └────┬─────┘         │ (Groq ➜ OR)  │
+                                                   │               └──────────────┘
+                                                   ▼
+                                             ┌──────────┐
+                                             │ Frontend │
+                                             │ (Next.js)│
+                                             └──────────┘
+```
+
+---
+
+## Error Handling
+
+SignalStack includes comprehensive error boundaries at every layer:
+
+### Frontend Error Boundaries
+| File | Scope |
+|---|---|
+| `app/global-error.tsx` | Root-level catch (render-time errors) |
+| `app/error.tsx` | Route-level catch (client-side errors) |
+| `app/not-found.tsx` | 404 handler |
+| `app/admin/error.tsx` | Admin section errors |
+| `app/admin/categories/error.tsx` | Categories page errors |
+| `app/admin/sources/error.tsx` | Sources page errors |
+
+### Backend Error Handling
+- **Feed failures**: Logged and skipped — never crash the cycle
+- **AI provider failures**: Automatic failover with 60s cooldown
+- **Database errors**: Structured logging with PostgreSQL error code handling
+- **Discord webhook failures**: Logged, non-blocking
+
+---
+
+## 📜 License
+
+Private / Internal Protocol
+
+---
+
+## 🧠 Philosophy
+
+Less noise. More signal.
+
+The system prioritizes:
+- **Reliability** over speed
+- **Signal quality** over quantity
+- **Simplicity** over overengineering

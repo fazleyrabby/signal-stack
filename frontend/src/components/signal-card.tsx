@@ -1,156 +1,125 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { 
+  Sparkles,
+  ChevronRight,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Clock, Zap, Sparkles, BrainCircuit } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import type { Signal } from "@/lib/api";
 
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+interface SignalCardProps {
+  signal: Signal;
+  isCompact: boolean;
+  className?: string;
 }
 
-const severityConfig = {
-  high: {
-    label: "H",
-    color: "text-red-400",
-    className: "bg-red-500/10 text-red-500 border-red-500/20",
-  },
-  medium: {
-    label: "M",
-    color: "text-orange-400",
-    className: "bg-orange-500/10 text-orange-500 border-orange-500/20",
-  },
-  low: {
-    label: "L",
-    color: "text-emerald-400",
-    className: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  },
-};
-
-export function SignalCard({ signal, isCompact = false }: { signal: Signal; isCompact?: boolean }) {
-  const severity = severityConfig[signal.severity];
-  const displayTime = signal.publishedAt || signal.createdAt;
-
-  if (isCompact) {
-    return (
-      <Card className="group border-none bg-background/30 hover:bg-muted/40 transition-all duration-150 cursor-pointer border-b border-border/10 rounded-none first:rounded-t-lg last:rounded-b-lg">
-        <CardContent className="p-2 sm:p-2.5 flex items-center gap-3">
-          <div className={`w-1 h-3 rounded-full shrink-0 ${severity.color} bg-current opacity-60`} />
-          
-          <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
-             {/* Title Group */}
-             <a
-                href={signal.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group/link flex-1 min-w-0"
-              >
-                <h3 className="text-[11px] sm:text-[12px] font-bold leading-none text-foreground truncate group-hover/link:text-primary transition-colors">
-                  {signal.title}
-                </h3>
-              </a>
-
-              {/* Ultra-compact metadata */}
-              <div className="flex items-center gap-3 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
-                 <span className="text-[9px] font-mono tracking-tighter uppercase font-black">{signal.source.slice(0, 10)}</span>
-                 <span className="text-[9px] font-mono">{timeAgo(displayTime)}</span>
-                 <Badge variant="outline" className={`h-4 text-[7px] px-1 font-black ${severity.className}`}>
-                    {severity.label}
-                 </Badge>
-              </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
+  // Clinical relative time
+  const getRelativeTime = (dateStr: string | null) => {
+    if (!dateStr) return "recent";
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+      if (diffInMinutes < 1) return "now";
+      if (diffInMinutes < 60) return `${diffInMinutes}m`;
+      const diffInHours = Math.floor(diffInMinutes / 60);
+      if (diffInHours < 24) return `${diffInHours}h`;
+      return date.toLocaleDateString();
+    } catch (e) {
+      return "recent";
+    }
+  };
 
   return (
-    <Card className="group border-none bg-background/50 hover:bg-muted/30 transition-all duration-200 cursor-pointer overflow-hidden border-b border-border/20 rounded-none first:rounded-t-lg last:rounded-b-lg">
-      <CardContent className="p-3 relative z-10">
-        <div className="flex items-start gap-3">
-          {/* Compact Severity indicator */}
-          <div className={`mt-1.5 w-1 h-3 rounded-full shrink-0 ${severity.color} bg-current opacity-60`} />
-          
-          <div className="flex-1 min-w-0">
+    <Card className={cn(
+      "group relative overflow-hidden transition-all duration-300 border-border/10",
+      "bg-card hover:bg-accent/5 hover:border-primary/20 shadow-sm",
+      isCompact ? "rounded-none border-b py-3 px-4 h-auto" : "rounded-lg border h-full",
+      className
+    )}>
+      <div className={cn("p-0 relative flex flex-col h-full uppercase-none", isCompact ? "" : "p-4.5")}>
+        <div className="flex flex-col h-full justify-between gap-3">
+          <div className="space-y-3">
             {/* Metadata Line */}
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">
-                {signal.source}
-              </span>
-              <span className="text-[10px] text-muted-foreground/40">•</span>
-              <span className="text-[10px] text-muted-foreground font-mono">
-                {timeAgo(displayTime)}
-              </span>
-              {signal.aiCategory && (
-                <div className="ml-auto flex items-center gap-1 text-[9px] font-bold text-violet-400/80 uppercase tracking-tighter">
-                  <Sparkles className="w-2 h-2" />
-                  {signal.aiCategory}
-                </div>
-              )}
+            <div className="flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                 <span className={cn(
+                   "text-[10px] font-black uppercase tracking-widest",
+                   signal.score >= 8 ? "text-red-500" : signal.score >= 5 ? "text-amber-500" : "text-blue-500"
+                 )}>
+                   {signal.source.split(' ')[0]}
+                 </span>
+                 <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tabular-nums">
+                    {getRelativeTime(signal.publishedAt)}
+                 </span>
+               </div>
+               
+               {isCompact && (
+                 <a href={signal.url} target="_blank" rel="noopener noreferrer">
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/30 hover:text-primary transition-all" />
+                 </a>
+               )}
             </div>
 
-            {/* Title */}
-            <a
-              href={signal.url}
-              target="_blank"
+            {/* Title: Dynamic Informational Portals */}
+            <a 
+              href={signal.url} 
+              target="_blank" 
               rel="noopener noreferrer"
-              className="group/link block"
+              className="block group/title"
             >
-              <h3 className="text-xs sm:text-sm font-semibold leading-tight text-foreground transition-colors group-hover/link:text-primary">
+              <h3 className={cn(
+                "font-extrabold leading-tight text-foreground transition-colors group-hover/title:text-primary",
+                isCompact ? "text-[13px] pr-8" : "text-[15px] line-clamp-2 italic tracking-tight"
+              )}>
                 {signal.title}
               </h3>
             </a>
 
-            {/* AI Engineering Highlights (The 'Why it Matters' Summary) */}
-            {(signal.aiSummary || signal.summary) && (
-              <div className="mt-3 group/ai">
-                <div className="flex items-center gap-1.5 mb-1.5 opacity-60 group-hover/ai:opacity-100 transition-opacity">
-                  <BrainCircuit className="w-3 h-3 text-violet-400" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400/80">Why it matters</span>
-                </div>
-                <p className="text-[11px] leading-relaxed text-muted-foreground/90 font-medium italic border-l-2 border-violet-500/20 pl-3">
-                  {signal.aiSummary || signal.summary}
-                </p>
+            {/* AI Summary: Adaptive Briefing */}
+            {!isCompact && (signal.aiSummary || signal.summary) && (
+              <div className="p-3 bg-accent/10 rounded-md border border-border/10 relative group/brief overflow-hidden">
+                 <div className="flex items-center gap-2 mb-1.5 opacity-40">
+                    <Sparkles className="w-3 h-3 text-primary" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Analysis</span>
+                 </div>
+                 <p className="text-[12px] text-muted-foreground leading-relaxed font-semibold">
+                    {signal.aiSummary || signal.summary}
+                 </p>
               </div>
             )}
-
-            {/* Processing State logic */}
-            {signal.score >= 7 && !signal.aiProcessed && !signal.aiFailed && (
-              <div className="mt-2 flex items-center gap-2 opacity-50">
-                <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">Analyzing Intelligence...</span>
-              </div>
-            )}
-
-            {/* Footer Mini Stats */}
-            <div className="flex items-center mt-2.5 gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
-               <div className="flex items-center gap-1 text-[9px] font-mono">
-                <Zap className="w-2.5 h-2.5 text-amber-500" />
-                <span>{signal.score} XP</span>
-              </div>
-              <Badge variant="outline" className={`h-4 text-[8px] px-1 font-black ${severity.className}`}>
-                S-{severity.label}
-              </Badge>
-            </div>
           </div>
-          
-          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+
+          {!isCompact && (
+            <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/10">
+               <div className="flex items-center gap-2.5 min-w-0">
+                  <Badge variant="outline" className="h-4.5 text-[8.5px] font-black tracking-widest uppercase px-1.5 bg-accent/20 border-border/10 text-muted-foreground/60 rounded-sm shrink-0">
+                    {signal.aiCategory?.split('|')[0] || 'INTEL'}
+                  </Badge>
+                  <div className={cn(
+                    "px-1.5 py-0.5 rounded text-[9px] font-black tabular-nums whitespace-nowrap shrink-0",
+                    signal.score >= 8 ? "bg-red-500 text-white" : signal.score >= 5 ? "bg-amber-500 text-white" : "bg-blue-500 text-white"
+                  )}>
+                    {signal.score} IMPACT
+                  </div>
+               </div>
+               
+               <a 
+                 href={signal.url} 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all group/link shrink-0 ml-auto"
+               >
+                 EXPLORE
+                 <ChevronRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-all" />
+               </a>
+            </div>
+          )}
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }
