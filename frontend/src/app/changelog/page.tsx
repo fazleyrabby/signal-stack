@@ -1,4 +1,5 @@
 import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 
 const changelog = [
   {
@@ -147,6 +148,7 @@ export default function ChangelogPage() {
           ))}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

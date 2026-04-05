@@ -99,20 +99,22 @@
 
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
-    width: 5px !important;
+    width: 8px !important;
   }
   ::-webkit-scrollbar-track {
-    background: transparent !important;
+    background: var(--card) !important;
+    border-radius: 9999px !important;
   }
   ::-webkit-scrollbar-thumb {
     background: var(--border) !important;
     border-radius: 9999px !important;
+    border: 2px solid var(--card) !important;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: var(--muted-foreground) !important;
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    scrollbar-color: var(--border) var(--card);
   }
 }

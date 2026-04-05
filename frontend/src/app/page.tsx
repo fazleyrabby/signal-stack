@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import useSWR from "swr";
 import {
   LayoutGrid,
@@ -55,6 +55,9 @@ function Column({
   isFullWidth: boolean;
 }) {
   const [page, setPage] = useState(1);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(true);
 
   const { data: response, isLoading, isValidating } = useSWR<SignalsResponse>(
     `${API_BASE}?limit=${PAGE_SIZE * page}&categoryId=${categoryId}&sort=created_at&order=desc`,
@@ -64,6 +67,12 @@ function Column({
 
   const signals = response?.data ?? [];
   const hasMore = signals.length === PAGE_SIZE * page;
+
+  const handleScroll = useCallback(() => {
+    if (scrollRef.current) {
+      setShowScrollIndicator(scrollRef.current.scrollTop < 10);
+    }
+  }, []);
 
   const filtered = useMemo(() => {
     let result = signals;
@@ -115,7 +124,12 @@ function Column({
         )}
 
         {hasSignals && (
-          <div className="flex-1 overflow-y-auto">
+          <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto relative">
+            {showScrollIndicator && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 animate-bounce pointer-events-none">
+                <ChevronDown className="w-5 h-5 text-primary/60" />
+              </div>
+            )}
             <div className={cn(
               "p-3 pr-4",
               layoutMode === 'grid'
