@@ -33,15 +33,20 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # We use the service name 'postgres' for the database URL inside the network
       DATABASE_URL: postgresql://signal:signal@postgres:5432/signalstack
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
-      ADMIN_API_KEY: ${ADMIN_API_KEY:-dev-admin-key}
-      FRONTEND_URL: http://localhost:3001 # Update to your VPS public URL/Domain
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      AI_ENABLED: ${AI_ENABLED:-true}
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
       NODE_ENV: production
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   # Frontend Layer (Next.js)
   frontend:
