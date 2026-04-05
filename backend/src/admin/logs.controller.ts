@@ -2,12 +2,15 @@ import {
   Controller,
   Get,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { AdminGuard } from './admin.guard';
 
 @Controller('api/admin')
+@UseGuards(AdminGuard)
 export class LogsController {
   private logPath = join(process.cwd(), 'logs/app.log');
 

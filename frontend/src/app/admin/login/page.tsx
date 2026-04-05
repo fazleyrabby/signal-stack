@@ -15,13 +15,18 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const router = useRouter();
 
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
     // Check if already logged in by checking for access token cookie
     const cookies = document.cookie;
     if (cookies.includes('signalstack_access_token')) {
       router.replace("/admin");
     }
   }, [router]);
+
+  if (!mounted) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

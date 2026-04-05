@@ -30,8 +30,10 @@ export function Header({
   isFullWidth = false
 }: HeaderProps) {
   const [theme, setTheme] = useState<Theme>("dark");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const saved = localStorage.getItem("signalstack_theme") as Theme;
     const initial = (saved && ["light", "dark"].includes(saved)) ? saved : "dark";
     setTheme(initial);
