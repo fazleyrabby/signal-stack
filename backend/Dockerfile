@@ -10,4 +10,4 @@ RUN npm run build
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx drizzle-kit push && node dist/src/main.js"]
+CMD ["node", "dist/src/main.js"]
