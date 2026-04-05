@@ -30,13 +30,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copy required files for production
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/.next/server ./.next/server
-
 EXPOSE 3001
 
 ENV PORT=3001
 ENV NODE_ENV=production
 
-CMD ["node", "node_modules/next/dist/bin-next", "start"]
+CMD ["npm", "run", "start"]
