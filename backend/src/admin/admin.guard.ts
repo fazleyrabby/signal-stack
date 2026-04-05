@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -12,16 +13,30 @@ export class AdminGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
+    const jwtSecret = this.configService.get<string>('JWT_SECRET') || 'signalstack-jwt-secret-change-in-production';
+
+    // Try access token from cookie first
+    const accessToken = request.cookies?.signalstack_access_token;
+
+    if (accessToken) {
+      try {
+        const decoded = jwt.verify(accessToken, jwtSecret) as { role: string };
+        if (decoded.role === 'admin') {
+          return true;
+        }
+      } catch {
+        // Token expired or invalid — continue to check header fallback
+      }
+    }
+
+    // Fallback: allow x-admin-key header for API clients/scripts
     const apiKey = this.configService.get<string>('ADMIN_API_KEY') || 'dev-admin-key';
     const clientKey = request.headers['x-admin-key'];
-
-    console.log(`🛡️ Admin Guard Check [${request.method} ${request.url}] - Received Header: [${clientKey ? 'PRESENT' : 'MISSING'}]`);
 
     if (clientKey === apiKey) {
       return true;
     }
 
-    console.warn(`🚨 Admin Guard: INVALID KEY REJECTED. Method: ${request.method}, URL: ${request.url}`);
-    throw new UnauthorizedException('Invalid Admin Key');
+    throw new UnauthorizedException('Invalid or expired session');
   }
 }

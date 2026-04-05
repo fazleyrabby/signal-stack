@@ -10,12 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Edit2, ArrowLeft, Loader2, Database } from "lucide-react";
 import Link from "next/link";
-import { getAdminKey } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const fetcher = (url: string) => fetch(url, {
-  headers: { "x-admin-key": getAdminKey() || "" }
-}).then((r) => r.json());
+const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => r.json());
 
 interface Category {
   slug: string;
@@ -44,19 +41,15 @@ export default function CategoriesAdmin() {
       if (editingCategory) {
         await fetch(`${API_BASE}/api/admin/categories/${editingCategory.slug}`, {
           method: "PUT",
-          headers: { 
-            "Content-Type": "application/json",
-            "x-admin-key": getAdminKey() || ""
-          },
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(payload),
         });
       } else {
         await fetch(`${API_BASE}/api/admin/categories`, {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "x-admin-key": getAdminKey() || ""
-          },
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(payload),
         });
       }
@@ -72,7 +65,7 @@ export default function CategoriesAdmin() {
     if (!confirm("Are you sure? This may orphan many signals.")) return;
     await fetch(`${API_BASE}/api/admin/categories/${slug}`, { 
       method: "DELETE",
-      headers: { "x-admin-key": getAdminKey() || "" }
+      credentials: "include"
     });
     mutate(`${API_BASE}/api/admin/categories`);
   }

@@ -52,12 +52,10 @@ export async function fetchStats(): Promise<SignalStats> {
   return res.json();
 }
 
-export async function triggerBackup(apiKey: string) {
+export async function triggerBackup() {
   const res = await fetch(`${API_BASE}/api/admin/backup`, {
     method: 'POST',
-    headers: {
-      'x-admin-key': apiKey,
-    },
+    credentials: 'include',
   });
   if (!res.ok) throw new Error("Failed to trigger backup");
   return res.json();

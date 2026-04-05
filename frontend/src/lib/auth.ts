@@ -1,21 +1,33 @@
-import Cookies from "js-cookie";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-export const ADMIN_KEY_COOKIE = "signalstack_admin_auth";
-
-export function getAdminKey(): string | null {
-  if (typeof window === "undefined") return null;
-  return Cookies.get(ADMIN_KEY_COOKIE) || null;
+export async function loginAdmin(apiKey: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/api/admin/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apiKey }),
+    credentials: "include",
+  });
+  return res.ok;
 }
 
-export function setAdminKey(key: string) {
-  // Store for 7 days
-  Cookies.set(ADMIN_KEY_COOKIE, key, { expires: 7, path: '/' });
+export async function logoutAdmin(): Promise<void> {
+  await fetch(`${API_BASE}/api/admin/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
 }
 
-export function clearAdminKey() {
-  Cookies.remove(ADMIN_KEY_COOKIE, { path: '/' });
+export async function refreshSession(): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/api/admin/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return res.ok;
 }
 
-export function isAdminAuthenticated(): boolean {
-  return !!getAdminKey();
+export async function verifyAdminSession(): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/api/admin/categories`, {
+    credentials: "include",
+  });
+  return res.ok;
 }
