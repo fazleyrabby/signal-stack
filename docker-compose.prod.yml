@@ -26,12 +26,12 @@ services:
 
   app:
     build: ./backend
-    container_name: signalstack-app
+    container_name: signalstack-backend
     restart: unless-stopped
     ports:
       - "3000:3000"
     env_file:
-      - .env
+      - ./backend/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,9 +41,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        NEXT_PUBLIC_API_URL: "https://api.fazleyrabbi.xyz"
-    container_name: signalstack-frontend-1
+    container_name: signalstack-frontend
     restart: unless-stopped
     ports:
       - "3001:3001"
