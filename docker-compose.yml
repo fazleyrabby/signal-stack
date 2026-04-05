@@ -34,15 +34,14 @@ services:
     restart: unless-stopped
     ports:
       - '3001:3001'
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    # Removing volume mount to stop sync-corruption with Next.js 16 cache
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3000
       PORT: 3001
     depends_on:
       - app
-    command: npm run dev
+    # Running from the internal build ONLY
+    command: npm start
 
   postgres:
     image: postgres:16-alpine
