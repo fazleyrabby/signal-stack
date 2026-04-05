@@ -8,17 +8,19 @@
 
 ---
 
-## Key Phase 3 & 4 Enhancements
-
-### 🧠 AI Intelligence Tier (Automated Executive Summaries)
-SignalStack now features an automated analytical layer that processes every incoming news signal.
-- **Executive Summaries**: AI distills entire news articles into a single, high-impact sentence.
-- **Semantic Scoring**: Automated impact assessment (1-10) based on geopolitical and tech relevance.
-- **Automatic Classification**: Signals are categorized into *Cyber, Outage, Geopolitics, Finance, Tech, Policy* automatically.
-- **High-Availability Failover**: 
-  - Primary: **Groq** (Llama 3.3 for sub-second inference).
-  - Secondary: **OpenRouter** (for deep reasoning if Groq rate-limits).
-  - Tertiary: Pattern-matching fallback for 100% uptime.
+### 🧠 Phase 5 Intelligence Tier (Rate-Limited Background Processing)
+SignalStack now features a production-grade, asynchronous AI enrichment pipeline designed for reliability and cost-efficiency.
+- **Asynchronous Processing**: Ingestion no longer blocks on AI. Signals are scored via keywords first, and high-impact items (score ≥ 7) are enqueued for deep analysis.
+- **Rate-Limited Execution**:
+    - **Smoothing**: Processes 1 job every ~1.5 seconds to prevent API bursts.
+    - **Concurrency**: Managed by 2 parallel background workers.
+    - **Daily Quota**: Automatically pauses AI analysis after 150 requests to stay within free-tier limits.
+- **Strategic Failover & Cooldowns**:
+    - **Primary**: **Groq** (⚡ Sub-second inference).
+    - **Secondary**: **OpenRouter** (🧠 Comprehensive failover).
+    - **429 Mitigation**: If a provider returns a rate limit error, the system enters a **60s Cooldown** for that provider.
+- **Executive Summaries**: AI distills entire news articles into a single, high-impact sentence (max 200 chars).
+- **Safe Fallback**: If all AI providers fail or are paused, the system remains 100% functional via high-fidelity keyword scoring.
 
 ### 📰 The SignalStack Terminal (UI Overhaul)
 The dashboard has been upgraded to a pro-grade analytical terminal:

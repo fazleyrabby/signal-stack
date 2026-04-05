@@ -9,13 +9,15 @@ export class GroqProvider {
   private readonly apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
   private readonly model = 'llama-3.3-70b-versatile';
 
+  public lastError: number | null = null;
+
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('GROQ_API_KEY');
   }
 
   async summarize(title: string, content: string): Promise<string | null> {
+    this.lastError = null;
     if (!this.apiKey) {
-      logEvent('warn', 'groq_provider_missing_key', {});
       return null;
     }
 
@@ -42,15 +44,16 @@ export class GroqProvider {
             Authorization: `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
           },
-          timeout: 5000,
+          timeout: 5000, 
         }
       );
 
       const result = response.data?.choices?.[0]?.message?.content?.trim();
       return result ? this.cleanResponse(result) : null;
     } catch (error: any) {
+      this.lastError = error.response?.status || 500;
       logEvent('warn', 'groq_provider_error', { 
-        status: error.response?.status, 
+        status: this.lastError, 
         message: error.message 
       });
       return null;
