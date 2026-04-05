@@ -108,16 +108,26 @@ The dashboard is a pro-grade analytical terminal:
 
 ## 🛡 Admin Portal
 
-Access at `/admin`. Protected by API key authentication.
+Access at `/admin`. Protected by JWT-based session authentication with HTTP-only cookies.
 
 | Page | Description |
 |---|---|
-| `/admin/login` | API key authentication |
-| `/admin` | Dashboard — feed health, stats, manual backup trigger |
+| `/admin/login` | JWT session authentication (API key exchange) |
+| `/admin` | Dashboard — feed health, stats, manual backup trigger, logout |
 | `/admin/categories` | Manage intelligence categories (Geopolitics, Technology) |
 | `/admin/sources` | Manage RSS feed sources per category |
+| `/changelog` | View full project changelog |
+
+**Authentication Flow**:
+1. User enters `ADMIN_API_KEY` at `/admin/login`
+2. Backend validates key and issues JWT tokens (15m access + 7d refresh)
+3. Tokens stored as HTTP-only, secure cookies — never exposed to JavaScript
+4. Middleware checks for valid access token on all `/admin/*` routes
+5. Auto-refresh extends sessions up to 7 days
+6. Logout clears both cookies server-side
 
 **Default Admin Key**: `dev-admin-key` (configure via `ADMIN_API_KEY` in `.env`)
+**JWT Secret**: Configure via `JWT_SECRET` in `.env` (required for production)
 
 ### System Backup
 - **Automated**: Runs daily at **Midnight** via cron.

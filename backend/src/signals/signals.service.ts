@@ -111,4 +111,8 @@ export class SignalsService {
   async getStats() {
     return this.repository.getStats();
   }
+
+  async getUniqueSources(categoryId?: string) {
+    return this.repository.getUniqueSources(categoryId);
+  }
 }
