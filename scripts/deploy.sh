@@ -30,9 +30,11 @@ info "Pulling latest from git..."
 git clean -fd --quiet 2>/dev/null || true
 git fetch origin
 git stash push -m "auto-stash before deploy" --quiet 2>/dev/null || true
-git merge origin/main --no-edit || {
-  git checkout --theirs docker-compose.prod.yml
-  git add docker-compose.prod.yml
+git merge origin/main --no-edit 2>/dev/null || {
+  git checkout --theirs . 2>/dev/null || true
+  git checkout --theirs docker-compose.prod.yml 2>/dev/null || true
+  git checkout --theirs backend/Dockerfile 2>/dev/null || true
+  git add . 2>/dev/null || true
   git commit -m "resolve deploy conflict" 2>/dev/null || true
 }
 git stash pop --quiet 2>/dev/null || true
