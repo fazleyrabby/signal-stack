@@ -29,6 +29,8 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: "postgresql://signal:signal@postgres:5432/signalstack"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
       JWT_SECRET: "Ycf+9NJKyalh4HnXMrHkdJ79JgqDvwooPvtKUzWPllM="
       ADMIN_API_KEY: "dev-admin-key"
       NODE_ENV: "production"
