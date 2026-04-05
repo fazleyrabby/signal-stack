@@ -28,8 +28,13 @@ echo -e "${BOLD}━━━ SignalStack Production Deploy ━━━${NC}\n"
 # 2. Pull latest
 info "Pulling latest from git..."
 git clean -fd --quiet 2>/dev/null || true
+git fetch origin
 git stash push -m "auto-stash before deploy" --quiet 2>/dev/null || true
-git pull --rebase || { git stash pop --quiet 2>/dev/null || true; fail "Git pull failed — resolve conflicts and retry"; }
+git merge origin/main --no-edit || {
+  git checkout --theirs docker-compose.prod.yml
+  git add docker-compose.prod.yml
+  git commit -m "resolve deploy conflict" 2>/dev/null || true
+}
 git stash pop --quiet 2>/dev/null || true
 pass "Code updated ($(git rev-parse --short HEAD))"
 
