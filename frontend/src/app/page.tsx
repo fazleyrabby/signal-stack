@@ -120,8 +120,8 @@ function Column({
               "p-3 pr-4",
               layoutMode === 'grid'
                 ? isFullWidth
-                  ? "columns-2 xl:columns-3 gap-4"
-                  : "columns-2 gap-4"
+                  ? "columns-1 sm:columns-2 xl:columns-3 2xl:columns-4 gap-4"
+                  : "columns-1 sm:columns-2 xl:columns-3 gap-4"
                 : "flex flex-col space-y-3"
             )}>
               {filtered.map((signal) => (
@@ -186,7 +186,7 @@ export default function SignalsDashboard() {
 
       <div className={cn(
         "mx-auto px-4 sm:px-6 w-full py-4 transition-all duration-500 overflow-hidden flex flex-col flex-1",
-        isFullWidth ? "max-w-full" : "max-w-[1400px]"
+        isFullWidth ? "max-w-full" : "max-w-[1400px] 2xl:max-w-[1800px]"
       )}>
         <div className="flex flex-col gap-4 h-full">
           <StatsBar stats={stats} />
