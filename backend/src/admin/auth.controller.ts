@@ -16,21 +16,24 @@ export class AuthController {
     }
 
     const tokens = await this.authService.login(apiKey);
+    const domain = process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
 
     res.cookie('signalstack_access_token', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 15 * 60 * 1000,
       path: '/',
+      domain,
     });
 
     res.cookie('signalstack_refresh_token', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/admin/auth/refresh',
+      domain,
     });
 
     return { success: true };
@@ -47,6 +50,7 @@ export class AuthController {
     }
 
     const tokens = await this.authService.refresh(token);
+    const domain = process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
 
     res.cookie('signalstack_access_token', tokens.accessToken, {
       httpOnly: true,
@@ -54,6 +58,7 @@ export class AuthController {
       sameSite: 'lax',
       maxAge: 15 * 60 * 1000,
       path: '/',
+      domain,
     });
 
     res.cookie('signalstack_refresh_token', tokens.refreshToken, {
@@ -62,6 +67,7 @@ export class AuthController {
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/admin/auth/refresh',
+      domain,
     });
 
     return { success: true };
@@ -69,8 +75,9 @@ export class AuthController {
 
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('signalstack_access_token', { path: '/' });
-    res.clearCookie('signalstack_refresh_token', { path: '/api/admin/auth/refresh' });
+    const domain = process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
+    res.clearCookie('signalstack_access_token', { path: '/', domain });
+    res.clearCookie('signalstack_refresh_token', { path: '/api/admin/auth/refresh', domain });
     return { success: true };
   }
 }
