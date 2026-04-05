@@ -1,5 +1,4 @@
 # SignalStack Production Deployment
-# Optimized for Proxmox VPS — fully isolated, zero volume mounts for app code
 # Usage: docker compose -f docker-compose.prod.yml up -d --build
 
 services:
@@ -31,10 +30,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://signal:signal@postgres:5432/signalstack
-      - JWT_SECRET=Ycf+9NJKyalh4HnXMrHkdJ79JgqDvwooPvtKUzWPllM=
-      - ADMIN_API_KEY=dev-admin-key
-      - NODE_ENV=production
+      DATABASE_URL: postgresql://signal:signal@postgres:5432/signalstack
+      JWT_SECRET: Ycf+9NJKyalh4HnXMrHkdJ79JgqDvwooPvtKUzWPllM=
+      ADMIN_API_KEY: dev-admin-key
+      NODE_ENV: production
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,7 +44,7 @@ services:
     build:
       context: ./frontend
       args:
-        - NEXT_PUBLIC_API_URL=https://api.fazleyrabbi.xyz
+        NEXT_PUBLIC_API_URL: https://api.fazleyrabbi.xyz
     container_name: signalstack-frontend-1
     restart: unless-stopped
     ports:
