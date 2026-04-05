@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { RawSignal, ScoredSignal } from '../common/types';
 import { generateHash } from '../common/hash.util';
 import { sources } from '../database/schema';
-import { AIService } from './ai.service';
 import { logEvent } from '../common/logger';
 
 // --- Classical Scoring Rules (Fallback) ---
@@ -53,32 +52,12 @@ function getSeverity(score: number): 'low' | 'medium' | 'high' {
 
 @Injectable()
 export class ScorerService {
-  constructor(private readonly aiService: AIService) {}
+  constructor() {}
 
   async score(raw: RawSignal, source: typeof sources.$inferSelect): Promise<ScoredSignal> {
     const text = `${raw.title} ${raw.content || ''}`.toLowerCase();
     
-    // 1. Semantic AI Scoring (Primary)
-    const aiAnalysis = await this.aiService.analyzeSignal(raw.title, raw.content || '');
-    
-    if (aiAnalysis) {
-      logEvent('info', 'ai_scoring_success', { 
-        title: raw.title.slice(0, 50),
-        score: aiAnalysis.score,
-        category: aiAnalysis.aiCategory
-      });
-
-      return {
-        ...raw,
-        score: aiAnalysis.score + source.trustScore, // Combine AI intelligence with source reliability
-        severity: getSeverity(aiAnalysis.score + source.trustScore),
-        summary: aiAnalysis.summary,
-        aiCategory: aiAnalysis.aiCategory,
-        hash: generateHash(raw.title, raw.url),
-      };
-    }
-
-    // 2. Fallback: Classical Keyword Scoring
+    // 1. Fallback: Classical Keyword Scoring
     let score = 0;
 
     for (const rule of KEYWORD_RULES) {

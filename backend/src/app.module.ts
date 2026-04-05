@@ -7,6 +7,7 @@ import { FeedModule } from './feed/feed.module';
 import { ScorerModule } from './scorer/scorer.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { AdminModule } from './admin/admin.module';
+import { AIModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AdminModule } from './admin/admin.module';
     ScorerModule,
     AlertsModule,
     AdminModule,
+    AIModule,
   ],
 })
 export class AppModule {}
