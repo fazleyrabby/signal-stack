@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { loginAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,14 @@ export default function AdminLogin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    // Check if already logged in by checking for access token cookie
+    const cookies = document.cookie;
+    if (cookies.includes('signalstack_access_token')) {
+      router.replace("/admin");
+    }
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
