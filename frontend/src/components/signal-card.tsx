@@ -93,30 +93,30 @@ export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
             )}
           </div>
 
-          {!isCompact && (
-            <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/10">
-               <div className="flex items-center gap-2.5 min-w-0">
-                  <Badge variant="outline" className="h-4.5 text-[8.5px] font-black tracking-widest uppercase px-1.5 bg-accent/20 border-border/10 text-muted-foreground/60 rounded-sm shrink-0">
-                    {signal.aiCategory?.split('|')[0] || 'INTEL'}
-                  </Badge>
-                  <div className={cn(
-                    "px-1.5 py-0.5 rounded text-[9px] font-black tabular-nums whitespace-nowrap shrink-0",
-                    signal.score >= 8 ? "bg-red-500 text-white" : signal.score >= 5 ? "bg-amber-500 text-white" : "bg-blue-500 text-white"
-                  )}>
-                    {signal.score} IMPACT
-                  </div>
-               </div>
-               
-               <a 
-                 href={signal.url} 
-                 target="_blank" 
-                 rel="noopener noreferrer"
-                 className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all group/link shrink-0 ml-auto"
-               >
-                 EXPLORE
-                 <ChevronRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-all" />
-               </a>
-            </div>
+           {!isCompact && (
+             <div className="flex items-center justify-between gap-2 flex-wrap mt-auto pt-3 border-t border-border/10">
+                <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                   <Badge variant="outline" className="h-4.5 text-[8.5px] font-black tracking-widest uppercase px-1.5 bg-accent/20 border-border/10 text-muted-foreground/60 rounded-sm shrink-0">
+                     {signal.aiCategory?.split('|')[0] || 'INTEL'}
+                   </Badge>
+                   <div className={cn(
+                     "px-1.5 py-0.5 rounded text-[9px] font-black tabular-nums whitespace-nowrap shrink-0",
+                     signal.score >= 8 ? "bg-red-500 text-white" : signal.score >= 5 ? "bg-amber-500 text-white" : "bg-blue-500 text-white"
+                   )}>
+                     {signal.score} IMPACT
+                   </div>
+                </div>
+                
+                <a 
+                  href={signal.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all group/link shrink-0"
+                >
+                  EXPLORE
+                  <ChevronRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-all" />
+                </a>
+             </div>
           )}
         </div>
       </div>
