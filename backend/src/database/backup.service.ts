@@ -44,16 +44,25 @@ export class BackupService implements OnModuleInit {
     }
 
     try {
-      // Create temporary backup file to avoid partial corruption
+      // Diagnostic: Check if pg_dump exists
+      try {
+        await execAsync('pg_dump --version');
+      } catch (e) {
+        this.logger.error('❌ CRITICAL: pg_dump is not installed in the container environment. Rebuild recommended.');
+        throw new Error('pg_dump binary not found');
+      }
+
+      // Create temporary backup file
       const tempFile = `${this.backupPath}.tmp`;
       
-      // pg_dump command using the connection string
-      // --no-owner and --no-privileges to make it portable
-      // --clean to include DROP TABLE statements
       const command = `pg_dump "${databaseUrl}" --no-owner --no-privileges --clean -f "${tempFile}"`;
       
       this.logger.log(`🛰️ Executing pg_dump...`);
-      await execAsync(command);
+      const { stderr } = await execAsync(command);
+
+      if (stderr && stderr.includes('error')) {
+        this.logger.warn(`⚠️ pg_dump warning: ${stderr}`);
+      }
 
       // Successfully dumped, rename to target file
       if (fs.existsSync(tempFile)) {
@@ -66,8 +75,9 @@ export class BackupService implements OnModuleInit {
         };
       }
     } catch (error) {
-      this.logger.error(`❌ Backup failed: ${error.message}`);
-      throw error;
+      const detail = error.stderr || error.message;
+      this.logger.error(`❌ Backup failed: ${detail}`);
+      throw new Error(`Database backup failed: ${detail}`);
     }
   }
 }
