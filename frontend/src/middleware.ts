@@ -4,13 +4,16 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Protect /admin routes (except /login)
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-    // Note: We can't check localStorage in Middleware (server-side),
-    // so we look for a cookie. SignalStack uses bit-simple cookies for auth.
-    const adminKey = request.cookies.get("signalstack_admin_auth")?.value;
+  // Allow login page
+  if (pathname === "/admin/login") {
+    return NextResponse.next();
+  }
 
-    if (!adminKey) {
+  // Protect all other /admin routes
+  if (pathname.startsWith("/admin")) {
+    const accessToken = request.cookies.get("signalstack_access_token")?.value;
+
+    if (!accessToken) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/login";
       return NextResponse.redirect(url);

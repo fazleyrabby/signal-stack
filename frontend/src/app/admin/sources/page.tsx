@@ -14,12 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Trash2, Edit2, Plus, Rss, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
-import { getAdminKey } from "@/lib/auth";
-
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const fetcher = (url: string) => fetch(url, {
-  headers: { "x-admin-key": getAdminKey() || "" }
-}).then((r) => r.json());
+const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => r.json());
 
 interface Source {
   id: string;
@@ -59,19 +55,15 @@ export default function SourcesAdmin() {
       if (editingSource) {
         await fetch(`${API_BASE}/api/admin/sources/${editingSource.id}`, {
           method: "PUT",
-          headers: { 
-            "Content-Type": "application/json",
-            "x-admin-key": getAdminKey() || ""
-          },
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(payload),
         });
       } else {
         await fetch(`${API_BASE}/api/admin/sources`, {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "x-admin-key": getAdminKey() || ""
-          },
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(payload),
         });
       }
@@ -87,7 +79,7 @@ export default function SourcesAdmin() {
     if (!confirm("Are you sure?")) return;
     await fetch(`${API_BASE}/api/admin/sources/${id}`, { 
       method: "DELETE",
-      headers: { "x-admin-key": getAdminKey() || "" }
+      credentials: "include"
     });
     mutate(`${API_BASE}/api/admin/sources`);
   }
@@ -95,10 +87,8 @@ export default function SourcesAdmin() {
   async function toggleActive(source: Source) {
     await fetch(`${API_BASE}/api/admin/sources/${source.id}`, {
       method: "PUT",
-      headers: { 
-        "Content-Type": "application/json",
-        "x-admin-key": getAdminKey() || ""
-      },
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ isActive: !source.isActive }),
     });
     mutate(`${API_BASE}/api/admin/sources`);

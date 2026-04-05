@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { setAdminKey } from "@/lib/auth";
+import { loginAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -20,19 +20,16 @@ export default function AdminLogin() {
     setIsSubmitting(true);
     setError("");
 
-    // Simple check to see if the key works by calling the categories endpoint
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/admin/categories`, {
-        headers: { "x-admin-key": key }
-      });
+      const success = await loginAdmin(key);
 
-      if (response.ok) {
-        setAdminKey(key);
+      if (success) {
         router.push("/admin");
+        router.refresh();
       } else {
         setError("Invalid Admin Key. Please check your system configuration.");
       }
-    } catch (err) {
+    } catch {
       setError("Unable to connect to the Admin Hub.");
     } finally {
       setIsSubmitting(false);
