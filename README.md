@@ -32,7 +32,6 @@ Access the system at [http://localhost:3001](http://localhost:3001).
 ## 🛡 Authentication
 
 The administrative portal (`/admin`) is protected by **Basic Auth**.
-- **Default Key**: `dev-admin-key`
 - Configure your own in `backend/.env` using `ADMIN_API_KEY`.
 
 ## 📜 License
