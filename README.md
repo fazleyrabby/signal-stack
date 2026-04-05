@@ -2,7 +2,8 @@
 
 SignalStack is a high-performance, backend-driven signal intelligence system. It monitors high-trust RSS streams, processes them through a dedicated scoring engine, and surfaces critical events in a real-time dashboard.
 
-<img width="1405" height="761" alt="CleanShot 2026-04-05 at 02 36 23" src="https://github.com/user-attachments/assets/03d678e4-7678-4cbf-95fe-0be7edd269b6" />
+<img width="3650" height="2184" alt="CleanShot 2026-04-05 at 18 14 45@2x" src="https://github.com/user-attachments/assets/daf97e33-6f15-491e-b56d-f1939c0034a8" />
+
 
 
 ## 🏗 Project Structure
