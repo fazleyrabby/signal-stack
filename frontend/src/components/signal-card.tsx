@@ -73,7 +73,7 @@ export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
             >
               <h3 className={cn(
                 "font-extrabold leading-tight text-foreground transition-colors group-hover/title:text-primary",
-                isCompact ? "text-[13px] pr-8" : "text-[15px] line-clamp-2 italic tracking-tight"
+                isCompact ? "text-[13px] pr-8" : "text-[15px] line-clamp-2 tracking-tight"
               )}>
                 {signal.title}
               </h3>

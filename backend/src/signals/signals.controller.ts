@@ -36,6 +36,11 @@ export class SignalsController {
     });
   }
 
+  @Get('signals/sources')
+  async getSources(@Query('categoryId') categoryId?: string) {
+    return this.signalsService.getUniqueSources(categoryId);
+  }
+
   @Get('signals/stats')
   async getStats() {
     return this.signalsService.getStats();

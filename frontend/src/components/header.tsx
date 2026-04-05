@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 type Theme = "light" | "dark";
 
@@ -51,8 +52,8 @@ export function Header({
         isFullWidth ? "max-w-full" : "max-w-[1400px]"
       )}>
         {/* 1. Branding: Adaptive Identity */}
-        <div className="flex items-center gap-3 shrink-0">
-           <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20 transition-transform hover:scale-105 active:scale-95 duration-300">
+        <Link href="/" className="flex items-center gap-3 shrink-0 group">
+           <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20 transition-transform group-hover:scale-105 group-active:scale-95 duration-300">
               <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 12h2" />
                 <path d="M6 8v8" />
@@ -70,7 +71,7 @@ export function Header({
                  STACK
               </span>
            </div>
-        </div>
+        </Link>
 
         <div className="flex-1 max-w-sm hidden lg:block">
            {showSearch && (

@@ -159,4 +159,18 @@ export class SignalsRepository {
       topSource: topSourceResult[0]?.source || 'N/A',
     };
   }
+
+  async getUniqueSources(categoryId?: string): Promise<{ source: string; count: number }[]> {
+    const results = await this.db
+      .select({
+        source: signals.source,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(signals)
+      .where(categoryId ? eq(signals.categoryId, categoryId) : undefined)
+      .groupBy(signals.source)
+      .orderBy(desc(sql`count(*)`));
+
+    return results.map(r => ({ source: r.source, count: r.count }));
+  }
 }
