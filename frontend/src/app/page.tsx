@@ -19,7 +19,7 @@ import { StatsBar } from "@/components/stats-bar";
 import { Column } from "@/components/column";
 import { cn } from "@/lib/utils";
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/signals`;
+const API_BASE = '/api/signals';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 interface StatsData {

@@ -15,7 +15,7 @@ import { SignalCard } from "@/components/signal-card";
 import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/signals`;
+const API_BASE = '/api/signals';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const PAGE_SIZE = 20;

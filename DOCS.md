@@ -230,6 +230,40 @@ docker compose up -d --build frontend  # Rebuild frontend only
 
 ---
 
+## 🚀 Load Testing (Performance & Scaling)
+
+SignalStack includes a production-grade **k6** load testing script to verify system stability under heavy traffic.
+
+### 1. Prerequisites
+- [k6](https://k6.io/) installed locally (`brew install k6`)
+- Access to the target URL (local or public)
+
+### 2. Available Scenarios
+The test script (`scripts/loadtest.js`) supports 5 standard scenarios:
+- **smoke**: 10 users for 30s (sanity check)
+- **load**: Ramping to 500 users over 5 minutes (standard load)
+- **stress**: Ramping to 2000 users over 10 minutes (breaking point)
+- **spike**: Sudden burst of 3000 users (recovery test)
+- **soak**: Sustained 200 users for 30 minutes (memory leak check)
+
+### 3. Running Tests
+
+```bash
+# Smoke test (against local dev)
+k6 run scripts/loadtest.js
+
+# Stress test (against your public domain)
+k6 run -e BASE_URL=https://your-domain.com -e SCENARIO=stress scripts/loadtest.js
+```
+
+### 4. Performance Baseline
+On a standard **2-CPU / 4GB RAM VPS**:
+- **p(95) Latency**: ~300ms - 600ms (Healthy)
+- **CPU Saturation**: ~80% @ 500 Virtual Users
+- **Bottleneck**: Next.js Server-Side Rendering (SSR) is the primary CPU consumer.
+
+---
+
 ## Architecture
 
 ```
