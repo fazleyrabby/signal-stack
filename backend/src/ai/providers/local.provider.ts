@@ -6,7 +6,7 @@ import { logEvent } from '../../common/logger';
 @Injectable()
 export class LocalProvider {
   private readonly timeout = 8000;
-  private readonly maxTokens = 80;
+  private readonly maxTokens = 30;
 
   public lastError: number | null = null;
   private enabled: boolean;
@@ -71,12 +71,18 @@ export class LocalProvider {
   }
 
   private buildPrompt(title: string, content: string): string {
-    const trimmedContent = content.slice(0, 500);
-    return `Summarize why this matters in one sentence. Max 30 words, no fluff, no repetition, plain English.\n\nTitle: ${title}\nContent: ${trimmedContent}\n\nSummary:`;
+    const trimmedContent = content.slice(0, 200);
+    return `Q: Summarize this in one short sentence:\nTitle: ${title}\nContent: ${trimmedContent}\nA:`;
   }
 
   private cleanResponse(text: string): string {
-    let cleaned = text.replace(/<\|.*?\|>/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-    return cleaned.slice(0, 200);
+    const cleaned = text
+      .replace(/<\|.*?\|>/g, ' ')
+      .replace(/<.*?>/g, '')
+      .replace(/\n/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const words = cleaned.split(' ').slice(0, 15).join(' ');
+    return words.slice(0, 100);
   }
 }
