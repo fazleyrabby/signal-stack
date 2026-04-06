@@ -28,19 +28,20 @@ export class LocalProvider {
       const prompt = this.buildPrompt(title, content);
 
       const response = await axios.post(
-        `${this.baseUrl}/completion`,
+        `${this.baseUrl}/v1/chat/completions`,
         {
-          prompt,
-          n_predict: this.maxTokens,
+          model: 'qwen.gguf',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: this.maxTokens,
           temperature: 0.2,
-          cache_prompt: true,
         },
         {
           timeout: this.timeout,
         }
       );
 
-      const result = response.data?.content?.trim();
+      const message = response.data?.choices?.[0]?.message;
+      const result = (message?.content || message?.reasoning_content || '').trim();
       return result ? this.cleanResponse(result) : null;
     } catch (error: any) {
       this.lastError = error.response?.status || 500;
@@ -60,8 +61,8 @@ export class LocalProvider {
     const start = Date.now();
     try {
       await axios.post(
-        `${this.baseUrl}/completion`,
-        { prompt: 'Hi', n_predict: 1 },
+        `${this.baseUrl}/v1/chat/completions`,
+        { model: 'qwen.gguf', messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 },
         { timeout: 5000 }
       );
       return { status: 'healthy', latency: Date.now() - start };
@@ -72,17 +73,17 @@ export class LocalProvider {
 
   private buildPrompt(title: string, content: string): string {
     const trimmedContent = content.slice(0, 200);
-    return `Q: Summarize this in one short sentence:\nTitle: ${title}\nContent: ${trimmedContent}\nA:`;
+    return `Summarize in max 15 words: "${title} - ${trimmedContent}"`;
   }
 
   private cleanResponse(text: string): string {
-    const cleaned = text
-      .replace(/<\|.*?\|>/g, ' ')
-      .replace(/<.*?>/g, '')
-      .replace(/\n/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    let cleaned = text;
+    try { cleaned = text.replace(/<\|.*?\|>/g, ' '); } catch {}
+    try { cleaned = cleaned.replace(/<.*?>/g, ''); } catch {}
+    try { cleaned = cleaned.replace(/\n/g, ' '); } catch {}
+    try { cleaned = cleaned.replace(/\s+/g, ' '); } catch {}
+    try { cleaned = cleaned.trim(); } catch {}
     const words = cleaned.split(' ').slice(0, 15).join(' ');
-    return words.slice(0, 100);
+    return words.slice(0, 80);
   }
 }
