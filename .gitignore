@@ -70,3 +70,4 @@ report.md
 # --- Local AI Models ---
 models/
 !models/.gitkeepreport.md
+.opencode-ignore

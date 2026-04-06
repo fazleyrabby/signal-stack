@@ -1,0 +1,9 @@
+{
+  "plugins": [
+    "opencode-morph-plugin",
+    "opencode-shell-strategy",
+    "opencode-ignore",
+    "opencode-context-analysis-plugin",
+    "opencode-swarm-plugin"
+  ]
+}
