@@ -34,15 +34,26 @@ Access the system at [http://localhost:3001](http://localhost:3001).
 To run zero-cost local AI inference with llama.cpp:
 
 ```bash
-# 1. Download Qwen3.5-0.8B model (~507MB)
+# 1. Download Qwen2.5-0.5B model (~497MB) - recommended for clean summaries
 mkdir -p models
-curl -L -o models/qwen.gguf "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf"
+curl -L -o models/qwen.gguf "https://huggingface.co/unsloth/Qwen2.5-0.5B-GGUF/resolve/main/Qwen2.5-0.5B-Q4_K_M.gguf"
 
 # 2. Start llama.cpp
 docker compose up -d llama
 
 # 3. Enable local AI (edit .env)
 LOCAL_AI_ENABLED=true
+```
+
+The AI pipeline uses fallback: `Local (llama.cpp) → Groq → OpenRouter`
+
+## 🔔 Discord Alerts
+
+Discord alerts can be filtered to only send tech-related signals:
+
+```env
+DISCORD_WEBHOOK_URL=your-webhook-url
+DISCORD_FILTER_TECH=true  # Only send aiCategory === 'Tech'
 ```
 
 ## 🛡 Authentication
