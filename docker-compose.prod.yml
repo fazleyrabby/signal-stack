@@ -44,12 +44,13 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        NEXT_PUBLIC_API_URL: "https://api.fazleyrabbi.xyz"
     container_name: signalstack-frontend
     restart: always
     ports:
       - "3001:3001"
+    environment:
+      API_BACKEND_URL: "http://signalstack-app:3000"
+      NODE_ENV: "production"
     depends_on:
       - app
 
