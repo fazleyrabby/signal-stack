@@ -33,6 +33,7 @@ services:
       -c 512
       -t 2
       --batch-size 32
+      --ubatch-size 32
       --host 0.0.0.0
       --port 8080
     deploy:

@@ -22,7 +22,7 @@ export class AIService {
     private readonly configService: ConfigService,
   ) {}
 
-  async processSignal(id: string, title: string, content: string | null) {
+  async processSignal(id: string, title: string, content: string | null, score: number = 5) {
     const textContent = content || '';
     const trimmedContent = this.trimContent(textContent);
     let summary: string | null = null;
@@ -31,15 +31,30 @@ export class AIService {
 
     const localAiEnabled = this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
 
-    if (localAiEnabled && !this.isCooldown('local')) {
-      summary = await this.local.summarize(title, trimmedContent);
+    // Step 7: Smart skip for low scores - go directly to Groq
+    const useLocalFirst = localAiEnabled && score >= 8 && !this.isCooldown('local');
+
+    if (useLocalFirst) {
+      // Step 6: Timeout protection - 4 second max for local
+      try {
+        summary = await Promise.race([
+          this.local.summarize(title, trimmedContent),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000))
+        ]);
+      } catch {
+        summary = null;
+      }
+      
       if (summary) {
         provider = 'local';
       }
     }
 
+    // Fallback to Groq (primary if local skipped or failed)
     if (!summary && !this.isCooldown('groq')) {
-      logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'groq' });
+      if (useLocalFirst) {
+        logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'groq' });
+      }
       fallbackUsed = true;
       summary = await this.groq.summarize(title, trimmedContent);
       if (summary) {
@@ -49,6 +64,7 @@ export class AIService {
       }
     }
 
+    // Final fallback to OpenRouter
     if (!summary && !this.isCooldown('openrouter')) {
       logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'openrouter' });
       fallbackUsed = true;

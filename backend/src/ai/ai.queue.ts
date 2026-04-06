@@ -10,6 +10,7 @@ interface AIJob {
   id: string;
   title: string;
   content: string | null;
+  score?: number;
   retryCount?: number;
 }
 
@@ -71,7 +72,7 @@ export class AIQueue implements OnModuleInit {
 
   private async processJob(job: AIJob) {
     try {
-      await this.aiService.processSignal(job.id, job.title, job.content);
+      await this.aiService.processSignal(job.id, job.title, job.content, job.score);
       await this.redis.markProcessed(job.id);
     } catch (error: any) {
       logEvent('error', 'ai_queue_job_failed', { 

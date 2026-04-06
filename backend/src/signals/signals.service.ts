@@ -49,6 +49,7 @@ export class SignalsService {
           id: inserted.id,
           title: inserted.title,
           content: inserted.content,
+          score: inserted.score,
         });
       }
     }
