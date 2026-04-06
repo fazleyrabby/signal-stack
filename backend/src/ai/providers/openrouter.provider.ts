@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 import { logEvent } from '../../common/logger';
 
 @Injectable()
@@ -22,9 +21,18 @@ export class OpenRouterProvider {
     }
 
     try {
-      const response = await axios.post(
-        this.apiUrl,
-        {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://signalstack.now',
+          'X-Title': 'SignalStack',
+        },
+        body: JSON.stringify({
           model: this.model,
           messages: [
             {
@@ -38,24 +46,24 @@ export class OpenRouterProvider {
           ],
           temperature: 0.1,
           max_tokens: 150,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://signalstack.now',
-            'X-Title': 'SignalStack',
-          },
-          timeout: 5000,
-        }
-      );
+        }),
+        signal: controller.signal,
+      });
 
-      const result = response.data?.choices?.[0]?.message?.content?.trim();
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        this.lastError = res.status;
+        return null;
+      }
+
+      const data = await res.json();
+      const result = data?.choices?.[0]?.message?.content?.trim();
       return result ? this.cleanResponse(result) : null;
     } catch (error: any) {
-      this.lastError = error.response?.status || 500;
+      this.lastError = error.name === 'AbortError' ? 408 : 500;
       logEvent('warn', 'openrouter_provider_error', { 
-        status: error.response?.status, 
+        status: this.lastError, 
         message: error.message 
       });
       return null;
@@ -73,11 +81,23 @@ export class OpenRouterProvider {
 
     const start = Date.now();
     try {
-      await axios.post(
-        this.apiUrl,
-        { model: this.model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 },
-        { headers: { Authorization: `Bearer ${this.apiKey}`, 'HTTP-Referer': 'https://signalstack.now', 'X-Title': 'SignalStack' }, timeout: 5000 }
-      );
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${this.apiKey}`, 
+          'HTTP-Referer': 'https://signalstack.now', 
+          'X-Title': 'SignalStack' 
+        },
+        body: JSON.stringify({ model: this.model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return { status: 'healthy', latency: Date.now() - start };
     } catch (error: any) {
       return { status: 'unhealthy', error: error.message };

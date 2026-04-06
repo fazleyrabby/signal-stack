@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import Parser from 'rss-parser';
-import axios from 'axios';
 import pLimit from 'p-limit';
 import { eq } from 'drizzle-orm';
 import { RawSignal, ScoredSignal } from '../common/types';
@@ -80,17 +79,23 @@ export class FeedService {
     logEvent('info', 'feed_fetch_start', { source: source.name, url: source.url });
 
     try {
-      // Fetch with timeout
-      const response = await axios.get(source.url, {
-        timeout: FEED_TIMEOUT,
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FEED_TIMEOUT);
+
+      const res = await fetch(source.url, {
         headers: {
           'User-Agent': 'SignalStack/1.0',
           Accept: 'application/rss+xml, application/xml, text/xml',
         },
-        responseType: 'text',
+        signal: controller.signal,
       });
 
-      const feed = await this.parser.parseString(response.data);
+      clearTimeout(timeoutId);
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const text = await res.text();
+      const feed = await this.parser.parseString(text);
       const signals: ScoredSignal[] = [];
 
       for (const item of feed.items || []) {

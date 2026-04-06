@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 import { logEvent } from '../../common/logger';
 
 @Injectable()
@@ -22,9 +21,16 @@ export class GroqProvider {
     }
 
     try {
-      const response = await axios.post(
-        this.apiUrl,
-        {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           model: this.model,
           messages: [
             {
@@ -38,20 +44,22 @@ export class GroqProvider {
           ],
           temperature: 0.1,
           max_tokens: 150,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          timeout: 5000, 
-        }
-      );
+        }),
+        signal: controller.signal,
+      });
 
-      const result = response.data?.choices?.[0]?.message?.content?.trim();
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        this.lastError = res.status;
+        return null;
+      }
+
+      const data = await res.json();
+      const result = data?.choices?.[0]?.message?.content?.trim();
       return result ? this.cleanResponse(result) : null;
     } catch (error: any) {
-      this.lastError = error.response?.status || 500;
+      this.lastError = error.name === 'AbortError' ? 408 : 500;
       logEvent('warn', 'groq_provider_error', { 
         status: this.lastError, 
         message: error.message 
@@ -71,11 +79,19 @@ export class GroqProvider {
 
     const start = Date.now();
     try {
-      await axios.post(
-        this.apiUrl,
-        { model: this.model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 },
-        { headers: { Authorization: `Bearer ${this.apiKey}` }, timeout: 5000 }
-      );
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.apiKey}` },
+        body: JSON.stringify({ model: this.model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return { status: 'healthy', latency: Date.now() - start };
     } catch (error: any) {
       return { status: 'unhealthy', error: error.message };
