@@ -18,6 +18,6 @@ import { DatabaseModule } from '../database/database.module';
     GroqProvider, 
     OpenRouterProvider
   ],
-  exports: [AIQueue],
+  exports: [AIQueue, AIService],
 })
 export class AIModule {}

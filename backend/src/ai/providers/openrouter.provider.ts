@@ -65,4 +65,22 @@ export class OpenRouterProvider {
   private cleanResponse(text: string): string {
     return text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
   }
+
+  async checkHealth(): Promise<{ status: string; latency?: number; error?: string }> {
+    if (!this.apiKey) {
+      return { status: 'no_api_key' };
+    }
+
+    const start = Date.now();
+    try {
+      await axios.post(
+        this.apiUrl,
+        { model: this.model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 },
+        { headers: { Authorization: `Bearer ${this.apiKey}`, 'HTTP-Referer': 'https://signalstack.now', 'X-Title': 'SignalStack' }, timeout: 5000 }
+      );
+      return { status: 'healthy', latency: Date.now() - start };
+    } catch (error: any) {
+      return { status: 'unhealthy', error: error.message };
+    }
+  }
 }
