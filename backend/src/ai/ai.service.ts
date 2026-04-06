@@ -104,4 +104,22 @@ export class AIService {
     logEvent('warn', 'ai_provider_cooldown', { provider, durationMs });
     this.cooldowns.set(provider, Date.now() + durationMs);
   }
+
+  async getHealth() {
+    const localEnabled = this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
+    
+    const [local, groq, openrouter] = await Promise.all([
+      localEnabled ? this.local.checkHealth() : Promise.resolve({ status: 'disabled' }),
+      this.groq.checkHealth(),
+      this.openRouter.checkHealth(),
+    ]);
+
+    return {
+      local,
+      groq,
+      openrouter,
+      localEnabled,
+      pipeline: localEnabled ? 'local → groq → openrouter' : 'groq → openrouter',
+    };
+  }
 }

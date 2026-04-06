@@ -9,12 +9,22 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { AIService } from '../ai/ai.service';
 import { AdminGuard } from './admin.guard';
 
 @Controller('api/admin')
 @UseGuards(AdminGuard)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly aiService: AIService,
+  ) {}
+
+  // --- AI Health Check ---
+  @Get('ai/health')
+  async getAIHealth() {
+    return this.aiService.getHealth();
+  }
 
   // --- Categories ---
 

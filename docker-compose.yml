@@ -14,7 +14,7 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       ADMIN_API_KEY: ${ADMIN_API_KEY}
       FRONTEND_URL: http://localhost:3001
-      NODE_ENV: production
+      NODE_ENV: development
       LOCAL_AI_ENABLED: ${LOCAL_AI_ENABLED:-false}
       LOCAL_AI_URL: ${LOCAL_AI_URL:-http://llama:8080}
     depends_on:
@@ -35,7 +35,8 @@ services:
     environment:
       API_BACKEND_URL: http://signalstack-app:3000
       PORT: 3001
-      NODE_ENV: production
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3000
     depends_on:
       - app
 

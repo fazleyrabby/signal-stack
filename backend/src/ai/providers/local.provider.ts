@@ -52,6 +52,24 @@ export class LocalProvider {
     }
   }
 
+  async checkHealth(): Promise<{ status: string; latency?: number; error?: string }> {
+    if (!this.enabled) {
+      return { status: 'disabled' };
+    }
+
+    const start = Date.now();
+    try {
+      await axios.post(
+        `${this.baseUrl}/completion`,
+        { prompt: 'Hi', n_predict: 1 },
+        { timeout: 5000 }
+      );
+      return { status: 'healthy', latency: Date.now() - start };
+    } catch (error: any) {
+      return { status: 'unhealthy', error: error.message };
+    }
+  }
+
   private buildPrompt(title: string, content: string): string {
     const trimmedContent = content.slice(0, 500);
     return `Summarize why this matters in one sentence. Max 30 words, no fluff, no repetition, plain English.\n\nTitle: ${title}\nContent: ${trimmedContent}\n\nSummary:`;
