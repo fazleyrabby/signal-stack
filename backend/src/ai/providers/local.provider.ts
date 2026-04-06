@@ -72,19 +72,19 @@ export class LocalProvider {
   }
 
   private buildPrompt(title: string, content: string): string {
-    const trimmedContent = content.slice(0, 200);
-    return `Summarize in max 15 words: "${title} - ${trimmedContent}"`;
+    const trimmedContent = content.slice(0, 150);
+    return `Title: ${title}\nContent: ${trimmedContent}\n\nShort summary:`;
   }
 
   private cleanResponse(text: string): string {
     let cleaned = text;
-    try { cleaned = cleaned.replace(/<\|.*?\|>/g, ' '); } catch {}
-    try { cleaned = cleaned.replace(/<.*?>/g, ''); } catch {}
-    try { cleaned = cleaned.replace(/<think>/g, ''); } catch {}
-    try { cleaned = cleaned.replace(/</think>/g, ''); } catch {}
-    try { cleaned = cleaned.replace(/\n/g, ' '); } catch {}
-    try { cleaned = cleaned.replace(/\s+/g, ' '); } catch {}
-    try { cleaned = cleaned.trim(); } catch {}
+    cleaned = cleaned.replace(/<\|.*?\|>/g, ' ');
+    cleaned = cleaned.replace(/<.*?>/g, '');
+    cleaned = cleaned.replace(/<think>/g, '');
+    cleaned = cleaned.replace(/<\/.*?>/g, '');
+    cleaned = cleaned.replace(/\n/g, ' ');
+    cleaned = cleaned.replace(/\s+/g, ' ');
+    cleaned = cleaned.trim();
     const words = cleaned.split(' ').slice(0, 15).join(' ');
     return words.slice(0, 80);
   }
