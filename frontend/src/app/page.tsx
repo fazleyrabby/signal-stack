@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import {
   LayoutGrid,
@@ -11,6 +11,8 @@ import {
   ChevronDown,
   ChevronUp,
   BarChart3,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { StatsBar } from "@/components/stats-bar";
@@ -35,6 +37,30 @@ export default function SignalsDashboard() {
   const [isFullWidth, setIsFullWidth] = useState(false);
   const [mobileTab, setMobileTab] = useState<'geopolitics' | 'technology'>('geopolitics');
   const [showControls, setShowControls] = useState(true);
+  
+  // Section visibility states
+  const [showGeopolitics, setShowGeopolitics] = useState(true);
+  const [showTechnology, setShowTechnology] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load persistence from localStorage
+  useEffect(() => {
+    const savedGeo = localStorage.getItem("signalstack_show_geopolitics");
+    const savedTech = localStorage.getItem("signalstack_show_technology");
+    
+    if (savedGeo !== null) setShowGeopolitics(savedGeo === "true");
+    if (savedTech !== null) setShowTechnology(savedTech === "true");
+    
+    setIsLoaded(true);
+  }, []);
+
+  // Save persistence to localStorage
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("signalstack_show_geopolitics", String(showGeopolitics));
+      localStorage.setItem("signalstack_show_technology", String(showTechnology));
+    }
+  }, [showGeopolitics, showTechnology, isLoaded]);
 
   const { data: statsResponse } = useSWR<StatsData>(
     `${API_BASE}/stats`,
@@ -43,6 +69,16 @@ export default function SignalsDashboard() {
   );
 
   const stats = statsResponse || { total: 0, high: 0, low: 0, last24h: 0, topSource: 'Scanning...' };
+
+  const toggleGeopolitics = () => {
+    if (showGeopolitics && !showTechnology) return; // Prevent hiding both
+    setShowGeopolitics(!showGeopolitics);
+  };
+
+  const toggleTechnology = () => {
+    if (showTechnology && !showGeopolitics) return; // Prevent hiding both
+    setShowTechnology(!showTechnology);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden relative">
@@ -94,8 +130,32 @@ export default function SignalsDashboard() {
               </button>
             </div>
 
-            {/* Layout + Fullscreen Controls */}
-            <div className="flex items-center justify-end gap-2 shrink-0">
+            {/* Layout + Fullscreen + Visibility Controls */}
+            <div className="flex items-center justify-end gap-3 shrink-0">
+              {/* Section Visibility Toggles */}
+              <div className="hidden md:flex items-center gap-2 mr-auto bg-accent/10 p-1 rounded-lg border border-border/5">
+                <button
+                  onClick={toggleGeopolitics}
+                  className={cn(
+                    "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[9px] font-black tracking-widest transition-all",
+                    showGeopolitics ? "bg-violet-600/20 text-violet-400 border border-violet-500/20" : "text-muted-foreground opacity-40 hover:opacity-100"
+                  )}
+                >
+                  {showGeopolitics ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  GEOPOLITICS
+                </button>
+                <button
+                  onClick={toggleTechnology}
+                  className={cn(
+                    "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[9px] font-black tracking-widest transition-all",
+                    showTechnology ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/20" : "text-muted-foreground opacity-40 hover:opacity-100"
+                  )}
+                >
+                  {showTechnology ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  TECHNOLOGY
+                </button>
+              </div>
+
               <div className="flex items-center bg-accent/20 rounded-lg p-0.5 border border-border/10">
                 <button
                   className={cn("p-1.5 rounded-md transition-all", layoutMode === 'list' && "bg-background text-primary shadow-sm")}
@@ -144,23 +204,30 @@ export default function SignalsDashboard() {
 
           {/* Column Content */}
           <div className="flex-1 overflow-hidden">
-            <div className="hidden md:grid grid-cols-2 gap-6 h-full">
-              <Column
-                title="World Geopolitics"
-                icon={Globe2}
-                categoryId="geopolitics"
-                layoutMode={layoutMode}
-                searchQuery={searchQuery}
-                isFullWidth={isFullWidth}
-              />
-              <Column
-                title="Technology Intelligence"
-                icon={Cpu}
-                categoryId="technology"
-                layoutMode={layoutMode}
-                searchQuery={searchQuery}
-                isFullWidth={isFullWidth}
-              />
+            <div className={cn(
+              "hidden md:grid gap-6 h-full transition-all duration-500",
+              showGeopolitics && showTechnology ? "grid-cols-2" : "grid-cols-1"
+            )}>
+              {showGeopolitics && (
+                <Column
+                  title="World Geopolitics"
+                  icon={Globe2}
+                  categoryId="geopolitics"
+                  layoutMode={layoutMode}
+                  searchQuery={searchQuery}
+                  isFullWidth={isFullWidth || !showTechnology}
+                />
+              )}
+              {showTechnology && (
+                <Column
+                  title="Technology Intelligence"
+                  icon={Cpu}
+                  categoryId="technology"
+                  layoutMode={layoutMode}
+                  searchQuery={searchQuery}
+                  isFullWidth={isFullWidth || !showGeopolitics}
+                />
+              )}
             </div>
 
             <div className="md:hidden h-full">

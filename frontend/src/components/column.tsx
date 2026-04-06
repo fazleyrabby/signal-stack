@@ -371,7 +371,7 @@ export function Column({
               "p-3 pr-4",
               layoutMode === 'grid'
                 ? isFullWidth
-                  ? "columns-1 sm:columns-2 xl:columns-3 2xl:columns-4 gap-4"
+                  ? "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-6 gap-4"
                   : "columns-1 sm:columns-2 xl:columns-3 gap-4"
                 : "flex flex-col space-y-3"
             )}>

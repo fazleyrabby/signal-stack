@@ -54,8 +54,8 @@ export class FeedScheduler implements OnModuleInit {
 
         stored++;
 
-        // Alert if critical (>= 7)
-        if (signal.score >= 7) {
+        // Alert if critical (>= 7) and technology category only
+        if (signal.score >= 7 && signal.categoryId === 'technology') {
           await this.discordService.sendAlert(signal);
           alerted++;
         }
