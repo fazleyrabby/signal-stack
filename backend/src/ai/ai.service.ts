@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { LocalProvider } from './providers/local.provider';
 import { GroqProvider } from './providers/groq.provider';
 import { OpenRouterProvider } from './providers/openrouter.provider';
 import { DATABASE_CONNECTION } from '../database/database.module';
@@ -11,57 +12,71 @@ import { logEvent } from '../common/logger';
 @Injectable()
 export class AIService {
   private readonly cooldowns = new Map<string, number>();
-  private readonly retryLimit = 1;
+  private readonly maxContentLength = 500;
 
   constructor(
+    private readonly local: LocalProvider,
     private readonly groq: GroqProvider,
     private readonly openRouter: OpenRouterProvider,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
     private readonly configService: ConfigService,
   ) {}
 
-  /**
-   * Resilience-focused signal processing with provider-aware logic.
-   */
   async processSignal(id: string, title: string, content: string | null) {
     const textContent = content || '';
+    const trimmedContent = this.trimContent(textContent);
     let summary: string | null = null;
     let fallbackUsed = false;
+    let provider = 'none';
 
-    // 1. Try Groq (Primary)
-    if (!this.isCooldown('groq')) {
-      summary = await this.groq.summarize(title, textContent);
-      if (!summary && this.groq.lastError === 429) {
+    const localAiEnabled = this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
+
+    if (localAiEnabled && !this.isCooldown('local')) {
+      summary = await this.local.summarize(title, trimmedContent);
+      if (summary) {
+        provider = 'local';
+      }
+    }
+
+    if (!summary && !this.isCooldown('groq')) {
+      logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'groq' });
+      fallbackUsed = true;
+      summary = await this.groq.summarize(title, trimmedContent);
+      if (summary) {
+        provider = 'groq';
+      } else if (this.groq.lastError === 429) {
         this.setCooldown('groq', 60000);
       }
     }
 
-    // 2. Fallback to OpenRouter (Secondary)
     if (!summary && !this.isCooldown('openrouter')) {
-      logEvent('info', 'ai_pipeline_fallback', { signalId: id });
+      logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'openrouter' });
       fallbackUsed = true;
-      summary = await this.openRouter.summarize(title, textContent);
-      if (!summary && this.openRouter.lastError === 429) {
+      summary = await this.openRouter.summarize(title, trimmedContent);
+      if (summary) {
+        provider = 'openrouter';
+      } else if (this.openRouter.lastError === 429) {
         this.setCooldown('openrouter', 60000);
       }
     }
 
-    // 3. Final Reconciliation
     if (summary) {
       await this.db
         .update(signals)
         .set({
           aiSummary: summary,
+          aiProvider: provider,
           aiProcessed: true,
           aiFailed: false,
         })
         .where(eq(signals.id, id));
       
-      logEvent('info', 'ai_processing_success', { signalId: id, provider: fallbackUsed ? 'openrouter' : 'groq' });
+      logEvent('info', 'ai_processing_success', { signalId: id, provider, fallbackUsed });
     } else {
       await this.db
         .update(signals)
         .set({
+          aiProvider: 'failed',
           aiProcessed: false,
           aiFailed: true,
         })
@@ -69,6 +84,10 @@ export class AIService {
       
       logEvent('error', 'ai_processing_failed', { signalId: id, reason: 'capacity_exhausted' });
     }
+  }
+
+  private trimContent(content: string): string {
+    return content.slice(0, this.maxContentLength);
   }
 
   private isCooldown(provider: string): boolean {
