@@ -64,6 +64,7 @@ OPENROUTER_API_KEY=sk-or-v1-your-openrouter-key
 
 # --- Alerts ---
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/your-webhook
+DISCORD_FILTER_TECH=true  # Only send tech-related signals to Discord
 
 # --- AI Toggle ---
 AI_ENABLED=true
@@ -101,11 +102,12 @@ Create the models directory and download a quantized Qwen model:
 ```bash
 mkdir -p models
 
-# Qwen3.5-0.8B (recommended - better quality, still lightweight)
-curl -L -o models/qwen.gguf "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf"
+# Qwen2.5-0.5B (recommended - smaller, no reasoning tags, faster inference)
+curl -L -o models/qwen.gguf "https://huggingface.co/unsloth/Qwen2.5-0.5B-GGUF/resolve/main/Qwen2.5-0.5B-Q4_K_M.gguf"
 ```
 
-> **Note**: ~507MB model file. First download may take a few minutes.
+> **Note**: ~497MB model file. First download may take a few minutes.
+> **Why Qwen2.5?** The 2.5 version outputs clean summaries directly without thinking/reasoning tags that pollute the output.
 
 #### 2. Start Local AI
 
@@ -273,6 +275,12 @@ cd backend && npm run test:ai
 ```
 
 ### Discord Webhook Test
+
+The Discord alerts now support **tech-only filtering**:
+- Only signals with `aiCategory === 'Tech'` are sent to Discord
+- Configure via `DISCORD_FILTER_TECH=true` in environment
+- Non-tech signals are logged but skipped
+
 ```bash
 cd backend && npm run test:discord
 ```
@@ -341,7 +349,23 @@ On a standard **2-CPU / 4GB RAM VPS**:
                                               ┌──────────┐ ┌────────┐ ┌──────────┐
                                               │ Discard  │ │  DB    │ │  Alert   │
                                               │ (< 5)    │ │ (≥ 5)  │ │  (≥ 7)  │
-                                              └──────────┘ └───┬────┘ └──────────┘
+                                              └──────────┘
+
+---
+
+### AI Provider Chain
+
+The AI pipeline follows this fallback chain:
+
+```
+Local (llama.cpp/Qwen) → Groq → OpenRouter
+```
+
+- **Local**: Zero-cost, ~3s inference, limited by timeout (8s)
+- **Groq**: Fastest, sub-second latency
+- **OpenRouter**: Ultimate fallback, comprehensive model coverage
+- **Provider Tracking**: Each signal stores `ai_provider` to identify which AI processed it
+- **Health Check**: Visit `/admin/ai/health` to see all provider statuses └───┬────┘ └──────────┘
                                                                │
                                                     ┌──────────┴──────────┐
                                                     ▼                     ▼
