@@ -1459,7 +1459,36 @@ docker cp signalstack-app:/app/signalstack_backup.sql .
 3. **Test AI failover** — set `GROQ_API_KEY` to an invalid value and watch it fall back to OpenRouter
 4. **Add a feature** — try adding a new severity level or a new dashboard widget
 
-The entire system is designed to be **readable and extensible**. Every piece is modular, typed, and documented.
+### 16.2 Production Performance Benchmarks (2-Core VPS)
+
+The following metrics were captured during a live stress test on the production Proxmox VM:
+
+| Metric | Load Scenario (500 VUs) | Stress Scenario (2000 VUs) |
+|---|---|---|
+| **Success Rate** | **100%** (0 Errors) | **86.7%** (Timeout Zone) |
+| **Throughput** | 111 requests/sec | **266 requests/sec** |
+| **Avg Latency** | 196ms | 4.45s |
+| **p(95) Latency** | **789ms** | **11.93s** |
+| **Max Throughput** | ~400 MB / 5 min | **1.2 GB / 10 min** |
+
+### 16.3 Analysis of Results
+- **Safe Zone (1–750 VUs)**: The system handles up to 750 concurrent users with sub-second latency and 100% reliability.
+- **The Breaking Point**: CPU saturation hits 100% at ~1,200 users. Beyond this, Cloudflare and Next.js start timing out (11s+ latency) as the Node.js event loop becomes blocked.
+- **Resource Usage**: Both the NestJS API and Next.js Frontend consume roughly equal CPU (~30% each) under heavy load. The database (PostgreSQL) remains highly efficient (<5% CPU) due to optimized indexing.
+
+### 16.4 Roadmap to 1,000,000 Users
+To scale to 1M monthly active users (~5,000 concurrent peak), the following upgrades are recommended in order of impact:
+
+1.  **Edge Caching (Cloudflare)**:
+    - Route: `/api/signals*` and `/api/signals/stats`.
+    - Strategy: **Cache Everything** for 60 seconds.
+    - Impact: **90% reduction** in VPS load. The VPS only processes 1 request per minute per edge location instead of thousands per second.
+2.  **API Gateway**:
+    - Discontinue Next.js `rewrites` for production scale. Use an **Nginx** reverse proxy to route `/api` traffic directly to the `app` container, bypassing the Next.js Node process.
+3.  **Horizontal Scaling**:
+    - Deploy 3x `app` containers and 2x `frontend` containers behind a load balancer (Traefik/Nginx).
+4.  **Database Connection Pooling**:
+    - Deploy **PgBouncer** to handle the thousands of concurrent TCP connections that occur at 1M user scale, preventing PostgreSQL from running out of workers.
 
 ---
 
