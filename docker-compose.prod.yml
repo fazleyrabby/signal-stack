@@ -65,6 +65,7 @@ services:
       LOCAL_AI_ENABLED: ${LOCAL_AI_ENABLED:-false}
       LOCAL_AI_URL: ${LOCAL_AI_URL:-http://llama:8080}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      DISCORD_FILTER_TECH: ${DISCORD_FILTER_TECH:-false}
     depends_on:
       postgres:
         condition: service_healthy
