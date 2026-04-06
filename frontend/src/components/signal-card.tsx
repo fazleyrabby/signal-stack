@@ -4,6 +4,9 @@ import { cn } from "@/lib/utils";
 import { 
   Sparkles,
   ChevronRight,
+  Cpu,
+  Zap,
+  Globe,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -14,6 +17,14 @@ interface SignalCardProps {
   isCompact: boolean;
   className?: string;
 }
+
+// AI provider display config
+const PROVIDER_CONFIG: Record<string, { label: string; color: string; icon: typeof Cpu }> = {
+  local: { label: 'LOCAL', color: 'text-emerald-400', icon: Cpu },
+  groq: { label: 'GROQ', color: 'text-violet-400', icon: Zap },
+  openrouter: { label: 'OPENROUTER', color: 'text-cyan-400', icon: Globe },
+  failed: { label: 'FAILED', color: 'text-red-400/50', icon: Sparkles },
+};
 
 export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
   // Clinical relative time
@@ -83,13 +94,23 @@ export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
             {!isCompact && (signal.aiSummary || signal.summary) && (
               <div className="p-3 bg-accent/10 rounded-md border border-border/10 relative group/brief overflow-hidden">
                  <div className="flex items-center gap-2 mb-1.5 opacity-40">
-                    <Sparkles className="w-3 h-3 text-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Analysis</span>
-                 </div>
+                     <Sparkles className="w-3 h-3 text-primary" />
+                     <span className="text-[9px] font-black uppercase tracking-widest">Analysis</span>
+                     {signal.aiProvider && PROVIDER_CONFIG[signal.aiProvider] && (() => {
+                       const cfg = PROVIDER_CONFIG[signal.aiProvider!];
+                       const Icon = cfg.icon;
+                       return (
+                         <span className={cn("flex items-center gap-1 text-[8px] font-black uppercase tracking-widest ml-auto", cfg.color)}>
+                           <Icon className="w-2.5 h-2.5" />
+                           {cfg.label}
+                         </span>
+                       );
+                     })()}
+                  </div>
                  <p className="text-[12px] text-muted-foreground leading-relaxed font-semibold">
-                    {signal.aiSummary || signal.summary}
-                 </p>
-              </div>
+                     {signal.aiSummary || signal.summary}
+                  </p>
+               </div>
             )}
           </div>
 
@@ -99,6 +120,14 @@ export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
                    <Badge variant="outline" className="h-4.5 text-[8.5px] font-black tracking-widest uppercase px-1.5 bg-accent/20 border-border/10 text-muted-foreground/60 rounded-sm shrink-0">
                      {signal.aiCategory?.split('|')[0] || 'INTEL'}
                    </Badge>
+                   {signal.aiProvider && PROVIDER_CONFIG[signal.aiProvider] && (
+                      <Badge variant="outline" className={cn(
+                        "h-4.5 text-[8px] font-black tracking-widest uppercase px-1.5 border-border/10 rounded-sm shrink-0",
+                        PROVIDER_CONFIG[signal.aiProvider].color
+                      )}>
+                        {PROVIDER_CONFIG[signal.aiProvider].label}
+                      </Badge>
+                    )}
                    <div className={cn(
                      "px-1.5 py-0.5 rounded text-[9px] font-black tabular-nums whitespace-nowrap shrink-0",
                      signal.score >= 8 ? "bg-red-500 text-white" : signal.score >= 5 ? "bg-amber-500 text-white" : "bg-blue-500 text-white"

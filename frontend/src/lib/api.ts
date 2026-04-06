@@ -14,6 +14,7 @@ export interface Signal {
   summary?: string;
   aiCategory?: string;
   aiSummary: string | null;
+  aiProvider: string | null;
   aiProcessed: boolean;
   aiFailed: boolean;
 }
