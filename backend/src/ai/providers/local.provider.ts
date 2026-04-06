@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 import { logEvent } from '../../common/logger';
 
 @Injectable()
@@ -26,25 +25,34 @@ export class LocalProvider {
 
     try {
       const prompt = this.buildPrompt(title, content);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-      const response = await axios.post(
-        `${this.baseUrl}/v1/chat/completions`,
-        {
+      const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           model: 'qwen.gguf',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: this.maxTokens,
           temperature: 0.2,
-        },
-        {
-          timeout: this.timeout,
-        }
-      );
+        }),
+        signal: controller.signal,
+      });
 
-      const message = response.data?.choices?.[0]?.message;
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        this.lastError = response.status;
+        return null;
+      }
+
+      const data = await response.json();
+      const message = data?.choices?.[0]?.message;
       const result = (message?.content || message?.reasoning_content || '').trim();
       return result ? this.cleanResponse(result) : null;
     } catch (error: any) {
-      this.lastError = error.response?.status || 500;
+      this.lastError = error.name === 'AbortError' ? 408 : 500;
       logEvent('warn', 'local_provider_error', {
         status: this.lastError,
         message: error.message,
@@ -60,11 +68,19 @@ export class LocalProvider {
 
     const start = Date.now();
     try {
-      await axios.post(
-        `${this.baseUrl}/v1/chat/completions`,
-        { model: 'qwen.gguf', messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 },
-        { timeout: 5000 }
-      );
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'qwen.gguf', messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return { status: 'healthy', latency: Date.now() - start };
     } catch (error: any) {
       return { status: 'unhealthy', error: error.message };

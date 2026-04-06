@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 import { ScoredSignal } from '../common/types';
 import { logEvent } from '../common/logger';
 
@@ -49,28 +48,34 @@ export class DiscordService {
           : signal.severity === 'medium' ? 0xffa500
           : 0x00ff00;
 
-        await axios.post(this.webhookUrl!, {
-          embeds: [
-            {
-              title: signal.title.slice(0, 256),
-              url: signal.url,
-              description: signal.content?.slice(0, 200) || '',
-              color,
-              fields: [
-                { name: 'Source', value: signal.source, inline: true },
-                { name: 'Score', value: String(signal.score), inline: true },
-                {
-                  name: 'Severity',
-                  value: signal.severity.toUpperCase(),
-                  inline: true,
-                },
-              ],
-              timestamp:
-                signal.publishedAt?.toISOString() || new Date().toISOString(),
-              footer: { text: 'SignalStack' },
-            },
-          ],
+        const res = await fetch(this.webhookUrl!, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            embeds: [
+              {
+                title: signal.title.slice(0, 256),
+                url: signal.url,
+                description: signal.content?.slice(0, 200) || '',
+                color,
+                fields: [
+                  { name: 'Source', value: signal.source, inline: true },
+                  { name: 'Score', value: String(signal.score), inline: true },
+                  {
+                    name: 'Severity',
+                    value: signal.severity.toUpperCase(),
+                    inline: true,
+                  },
+                ],
+                timestamp:
+                  signal.publishedAt?.toISOString() || new Date().toISOString(),
+                footer: { text: 'SignalStack' },
+              },
+            ],
+          }),
         });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         logEvent('info', 'alert_sent', {
           source: signal.source,

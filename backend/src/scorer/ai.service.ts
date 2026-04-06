@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 import { logEvent } from '../common/logger';
 
 export interface AIAnalysisResult {
@@ -56,7 +55,7 @@ export class AIService {
           return result;
         }
       } catch (error: any) {
-        const isRateLimit = error.response?.status === 429;
+        const isRateLimit = error.status === 429;
         logEvent('warn', isRateLimit ? 'ai_provider_rate_limit' : 'ai_provider_error', {
           provider: provider.name,
           error: error.message,
@@ -72,9 +71,18 @@ export class AIService {
   }
 
   private async executeProvider(provider: AIProvider, title: string, content: string): Promise<AIAnalysisResult | null> {
-    const response = await axios.post(
-      provider.url,
-      {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const res = await fetch(provider.url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${provider.key}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://signalstack.now',
+        'X-Title': 'SignalStack',
+      },
+      body: JSON.stringify({
         model: provider.model,
         messages: [
           {
@@ -96,19 +104,19 @@ export class AIService {
         response_format: { type: 'json_object' },
         temperature: 0.1,
         max_tokens: 250,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${provider.key}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://signalstack.now',
-          'X-Title': 'SignalStack',
-        },
-        timeout: 10000,
-      }
-    );
+      }),
+      signal: controller.signal,
+    });
 
-    const data = response.data;
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const err: any = new Error(`HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+
+    const data = await res.json();
     const contentText = data.choices[0].message.content;
     const result = JSON.parse(contentText);
 
