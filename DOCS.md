@@ -4,7 +4,7 @@
 - **Frontend**: Next.js 16 (App Router), Base UI, Lucide Icons, SWR Intelligence Polling, Tailwind CSS v4.
 - **Backend**: NestJS 11, Drizzle ORM (PostgreSQL 16), Redis, RxJS.
 - **AI Engine**: Dual-provider failover (Groq ⚡ + OpenRouter 🧠) with rate-limited background workers.
-- **Deployment**: Fully isolated multi-container Docker — zero host dependencies, zero volume mounts for app code.
+- **Deployment**: Multi-container Docker — production uses zero volume mounts; dev mounts only `src/` and `public/` for hot-reload.
 
 ---
 
@@ -29,6 +29,7 @@ docker compose up -d --build
 | Backend API | http://localhost:3000 | REST API + Feed Scheduler |
 | PostgreSQL | localhost:5433 | Database (external access) |
 | Redis | localhost:6380 | Cache + AI Queue (external access) |
+| Dozzle Logs | http://localhost:9999 | Real-time Docker log viewer |
 
 ### Local Development
 
@@ -218,6 +219,8 @@ docker compose logs -f          # All services
 docker compose logs -f app      # Backend only
 docker compose logs -f frontend # Frontend only
 ```
+
+**Dozzle** (production): Browse real-time container logs at [http://localhost:9999](http://localhost:9999) — no CLI needed.
 
 ### Rebuilding After Code Changes
 ```bash

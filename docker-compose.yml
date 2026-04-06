@@ -25,17 +25,16 @@ services:
     build: 
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3000
     restart: unless-stopped
     ports:
       - '3001:3001'
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3000
+      API_BACKEND_URL: http://signalstack-app:3000
       PORT: 3001
-      WATCHPACK_POLLING: "true"
-    command: npm run dev
+      NODE_ENV: production
     depends_on:
       - app
 
