@@ -5,7 +5,7 @@ import { logEvent } from '../../common/logger';
 
 @Injectable()
 export class LocalProvider {
-  private readonly timeout = 8000;
+  private readonly timeout = 20000;
   private readonly maxTokens = 30;
 
   public lastError: number | null = null;
