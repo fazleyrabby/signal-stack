@@ -180,6 +180,7 @@ Access at `/admin`. Protected by JWT-based session authentication with HTTP-only
 | `/admin` | Dashboard — feed health, stats, manual backup trigger, logout |
 | `/admin/categories` | Manage intelligence categories (Geopolitics, Technology) |
 | `/admin/sources` | Manage RSS feed sources per category |
+| `/admin/ai/health` | Check all AI providers health status (local, groq, openrouter) |
 | `/changelog` | View full project changelog |
 
 **Authentication Flow**:

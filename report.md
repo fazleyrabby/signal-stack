@@ -1164,6 +1164,7 @@ Smooth theme transitions are applied via a temporary CSS class to avoid triggeri
 | `POST` | `/api/admin/auth/login` | Exchange API key for JWT tokens |
 | `POST` | `/api/admin/auth/refresh` | Refresh expired access token |
 | `POST` | `/api/admin/auth/logout` | Clear auth cookies |
+| `GET` | `/api/admin/ai/health` | Check all AI providers health status (local, groq, openrouter) |
 
 **Categories CRUD:**
 
