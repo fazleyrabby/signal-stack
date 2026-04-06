@@ -34,7 +34,6 @@ services:
       JWT_SECRET: "Ycf+9NJKyalh4HnXMrHkdJ79JgqDvwooPvtKUzWPllM="
       ADMIN_API_KEY: "dev-admin-key"
       FRONTEND_URL: "https://signal.fazleyrabbi.xyz"
-      NEXT_PUBLIC_API_URL: "https://api.fazleyrabbi.xyz"
       NODE_ENV: "production"
     depends_on:
       postgres:
@@ -55,13 +54,13 @@ services:
       - app
 
   logs:
-    image: 'amir20/dozzle:latest'
+    image: amir20/dozzle:latest
     container_name: signalstack-logs
     restart: unless-stopped
     ports:
-      - '9999:8080'
+      - "9999:8080"
     volumes:
-      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 volumes:
   pgdata:
