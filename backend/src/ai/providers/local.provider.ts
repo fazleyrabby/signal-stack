@@ -78,8 +78,10 @@ export class LocalProvider {
 
   private cleanResponse(text: string): string {
     let cleaned = text;
-    try { cleaned = text.replace(/<\|.*?\|>/g, ' '); } catch {}
+    try { cleaned = cleaned.replace(/<\|.*?\|>/g, ' '); } catch {}
     try { cleaned = cleaned.replace(/<.*?>/g, ''); } catch {}
+    try { cleaned = cleaned.replace(/<think>/g, ''); } catch {}
+    try { cleaned = cleaned.replace(/</think>/g, ''); } catch {}
     try { cleaned = cleaned.replace(/\n/g, ' '); } catch {}
     try { cleaned = cleaned.replace(/\s+/g, ' '); } catch {}
     try { cleaned = cleaned.trim(); } catch {}
