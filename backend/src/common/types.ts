@@ -13,6 +13,7 @@ export interface ScoredSignal extends RawSignal {
   hash: string;
   summary?: string;
   aiCategory?: string;
+  aiProvider?: string;
 }
 
 export interface PaginatedResponse<T> {
