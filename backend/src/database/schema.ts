@@ -42,6 +42,7 @@ export const signals = pgTable(
     hash: varchar('hash', { length: 64 }).notNull().unique(),
     publishedAt: timestamp('published_at', { withTimezone: true }),
     aiSummary: text('ai_summary'),
+    aiProvider: varchar('ai_provider', { length: 20 }),
     aiProcessed: boolean('ai_processed').notNull().default(false),
     aiFailed: boolean('ai_failed').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true })

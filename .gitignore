@@ -66,3 +66,7 @@ spec.md
 spec-patch.md
 rate-limit.md
 report.md
+
+# --- Local AI Models ---
+models/
+!models/.gitkeep

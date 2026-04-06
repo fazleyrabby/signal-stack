@@ -14,6 +14,11 @@ export class FeedScheduler implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    if (process.env.DISABLE_SCHEDULER === 'true') {
+      logEvent('info', 'scheduler_is_disabled_via_env', {});
+      return;
+    }
+
     logEvent('info', 'startup_feed_trigger', {});
     // Wait a few seconds for services to properly initialize
     setTimeout(() => {
@@ -29,6 +34,9 @@ export class FeedScheduler implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async handleFeedCycle() {
+    if (process.env.DISABLE_SCHEDULER === 'true') {
+      return;
+    }
     logEvent('info', 'feed_cycle_start', {});
 
     try {

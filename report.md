@@ -443,14 +443,43 @@ This is the most sophisticated part of the system.
 ### 6.1 The Flow
 
 ```
-Signal (score ≥ 7) ──▶ AI Queue ──▶ Rate Limiter ──▶ Groq ──▶ DB
-                                         │
-                                    [429 error?]
-                                         │
-                                    60s cooldown ──▶ OpenRouter ──▶ DB
+Signal (score ≥ 7) ──▶ AI Queue ──▶ Rate Limiter ──▶ Local (llama.cpp) ──▶ Groq ──▶ OpenRouter ──▶ DB
+                                          │              │
+                                     [429 error?]    [fail]
+                                          │              │
+                                     60s cooldown ──▶ Next provider
 ```
 
-### 6.2 Rate-Limited Queue (RxJS)
+### 6.2 Local AI (llama.cpp)
+
+For zero-cost inference, SignalStack can run a local llama.cpp server:
+
+```yaml
+# docker-compose.yml
+llama:
+  image: ghcr.io/ggml-org/llama.cpp:server
+  ports:
+    - "8080:8080"
+  volumes:
+    - ./models:/models
+  command: >
+    -m /models/qwen.gguf
+    -c 1024
+    --host 0.0.0.0
+    --port 8080
+```
+
+**Model Requirements:**
+- Qwen3.5-0.8B GGUF file at `models/qwen.gguf`
+- Download: `https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf`
+
+**Environment Variables:**
+```env
+LOCAL_AI_ENABLED=true
+LOCAL_AI_URL=http://llama:8080
+```
+
+### 6.3 Rate-Limited Queue (RxJS)
 
 ```typescript
 // backend/src/ai/ai.queue.ts

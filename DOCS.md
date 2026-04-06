@@ -83,11 +83,74 @@ SignalStack features a production-grade, asynchronous AI enrichment pipeline des
   - **Concurrency**: Managed by 2 parallel background workers via RxJS.
   - **Daily Quota**: Automatically pauses AI analysis after 150 requests to stay within free-tier limits.
 - **Strategic Failover & Cooldowns**:
-  - **Primary**: **Groq** (⚡ Sub-second inference).
-  - **Secondary**: **OpenRouter** (🧠 Comprehensive failover).
+  - **Primary**: **Local (llama.cpp)** - Zero-cost local inference
+  - **Secondary**: **Groq** (⚡ Sub-second inference)
+  - **Tertiary**: **OpenRouter** (🧠 Comprehensive failover)
   - **429 Mitigation**: If a provider returns a rate limit error, the system enters a **60s Cooldown** for that provider.
 - **Executive Summaries**: AI distills entire news articles into a single, high-impact sentence (max 200 chars).
 - **Safe Fallback**: If all AI providers fail or are paused, the system remains 100% functional via high-fidelity keyword scoring.
+
+### Local AI Setup (llama.cpp)
+
+For zero-cost AI inference, run a local llama.cpp server with a lightweight GGUF model.
+
+#### 1. Download a Model
+
+Create the models directory and download a quantized Qwen model:
+
+```bash
+mkdir -p models
+
+# Qwen3.5-0.8B (recommended - better quality, still lightweight)
+curl -L -o models/qwen.gguf "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf"
+```
+
+> **Note**: ~507MB model file. First download may take a few minutes.
+
+#### 2. Start Local AI
+
+```bash
+# Start infrastructure + llama.cpp
+docker compose up -d postgres redis llama
+
+# Verify it's running
+curl http://localhost:8080
+```
+
+#### 3. Enable Local AI
+
+Set the environment variable:
+
+```env
+LOCAL_AI_ENABLED=true
+LOCAL_AI_URL=http://llama:8080
+```
+
+Then restart the app:
+
+```bash
+docker compose up -d app
+```
+
+#### 4. Fallback Behavior
+
+The AI pipeline follows this chain:
+
+```
+Local (llama.cpp) → Groq → OpenRouter
+```
+
+- If local AI is disabled or fails → falls back to Groq
+- If Groq fails → falls back to OpenRouter
+- **Never crashes** — always fails gracefully
+
+#### Resource Constraints
+
+For 4GB RAM / 2 CPU VMs:
+
+- llama.cpp limited to **1GB memory**, **1 CPU**
+- Context window: 1024 tokens
+- Max output: 80 tokens
 
 ---
 

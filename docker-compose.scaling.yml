@@ -20,34 +20,10 @@ services:
     container_name: signalstack-redis
     restart: always
 
-  llama:
-    image: ghcr.io/ggml-org/llama.cpp:server
-    container_name: signalstack-llama
-    restart: always
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./models:/models
-    command: >
-      -m /models/qwen.gguf
-      -c 1024
-      -t 2
-      --batch-size 64
-      --host 0.0.0.0
-      --port 8080
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-  app:
-    build:
-      context: ./backend
-    container_name: signalstack-app
+  # --- The API Tier (Can be scaled to multiple replicas) ---
+  api:
+    build: ./backend
+    container_name: signalstack-api
     restart: always
     ports:
       - "3000:3000"
@@ -59,11 +35,26 @@ services:
       ADMIN_API_KEY: "dev-admin-key"
       FRONTEND_URL: "https://signal.fazleyrabbi.xyz"
       NODE_ENV: "production"
-      GROQ_API_KEY: ${GROQ_API_KEY}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      LOCAL_AI_ENABLED: ${LOCAL_AI_ENABLED:-false}
-      LOCAL_AI_URL: ${LOCAL_AI_URL:-http://llama:8080}
+      DISABLE_SCHEDULER: "true" # !! Important: This instance handles traffic only !!
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # --- The Background Tier (Always only 1 instance) ---
+  scheduler:
+    build: ./backend
+    container_name: signalstack-scheduler
+    restart: always
+    environment:
+      DATABASE_URL: "postgresql://signal:signal@postgres:5432/signalstack"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      ADMIN_API_KEY: "dev-admin-key"
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      NODE_ENV: "production"
+      DISABLE_SCHEDULER: "false" # !! This instance handles the cycle !!
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,27 +62,16 @@ services:
         condition: service_started
 
   frontend:
-    build:
-      context: ./frontend
+    build: ./frontend
     container_name: signalstack-frontend
     restart: always
     ports:
       - "3001:3001"
     environment:
-      API_BACKEND_URL: "http://signalstack-app:3000"
+      API_BACKEND_URL: http://api:3000
       NODE_ENV: "production"
     depends_on:
-      - app
-
-  logs:
-    image: amir20/dozzle:latest
-    container_name: signalstack-logs
-    restart: unless-stopped
-    ports:
-      - "9999:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - api
 
 volumes:
   pgdata:
-  models:
