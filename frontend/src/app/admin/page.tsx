@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                 <StatusDot status={aiHealth.groq.status} />
                 <span className="font-medium">Groq</span>
                 {aiHealth.groq.model && <span className="text-muted-foreground text-[10px]">{aiHealth.groq.model}</span>}
-                {aiHealth.tokenUsage?.groq.today.total > 0 && (
+                {aiHealth.tokenUsage?.groq?.today?.total > 0 && (
                   <span className="text-blue-400 text-[10px]">{aiHealth.tokenUsage.groq.today.total.toLocaleString()}t</span>
                 )}
               </div>
@@ -240,7 +240,7 @@ export default function AdminDashboard() {
                 <StatusDot status={aiHealth.openrouter.status} />
                 <span className="font-medium">OR</span>
                 {aiHealth.openrouter.model && <span className="text-muted-foreground text-[10px]">{aiHealth.openrouter.model}</span>}
-                {aiHealth.tokenUsage?.openrouter.today.total > 0 && (
+                {aiHealth.tokenUsage?.openrouter?.today?.total > 0 && (
                   <span className="text-blue-400 text-[10px]">{aiHealth.tokenUsage.openrouter.today.total.toLocaleString()}t</span>
                 )}
               </div>
