@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, Activity, Zap, Server } from "lucide-react";
+import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, Activity, Zap, Server, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
@@ -55,6 +55,20 @@ function StatusLabel({ status }: { status: string }) {
     <span className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border", styles)}>
       {label}
     </span>
+  );
+}
+
+function StatCard({ label, value, icon, accent }: { label: string; value: number | string | undefined; icon: React.ReactNode; accent?: string }) {
+  return (
+    <div className="flex items-center gap-3 py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
+      <div className={cn("w-9 h-9 rounded-md flex items-center justify-center", accent || "bg-primary/10")}>
+        {icon}
+      </div>
+      <div>
+        <div className="text-xl font-black tracking-tight text-foreground">{value ?? "..."}</div>
+        <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label}</div>
+      </div>
+    </div>
   );
 }
 
@@ -199,6 +213,74 @@ export default function AdminDashboard() {
               name="OpenRouter"
               icon={<Activity className="w-4 h-4 text-primary" />}
               health={aiHealth?.openrouter}
+            />
+          </div>
+        </div>
+
+        {/* Signal Stats */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <BarChart3 className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold tracking-tight uppercase text-foreground">Signal Intelligence</h2>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                {statsData ? `${statsData.last24h} signals in last 24h` : "Loading..."}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatCard
+              label="Total Signals"
+              value={statsData?.total?.toLocaleString()}
+              icon={<TrendingUp className="w-4 h-4 text-primary" />}
+            />
+            <StatCard
+              label="High Severity"
+              value={statsData?.high?.toLocaleString()}
+              icon={<AlertTriangle className="w-4 h-4 text-red-400" />}
+              accent="bg-red-500/10"
+            />
+            <StatCard
+              label="Geopolitics"
+              value={statsData?.geopolitics?.toLocaleString()}
+              icon={<Globe className="w-4 h-4 text-blue-400" />}
+              accent="bg-blue-500/10"
+            />
+            <StatCard
+              label="Technology"
+              value={statsData?.technology?.toLocaleString()}
+              icon={<Cpu className="w-4 h-4 text-emerald-400" />}
+              accent="bg-emerald-500/10"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatCard
+              label="AI Processed"
+              value={statsData?.aiProcessed?.toLocaleString()}
+              icon={<Bot className="w-4 h-4 text-violet-400" />}
+              accent="bg-violet-500/10"
+            />
+            <StatCard
+              label="AI Failed"
+              value={statsData?.aiFailed?.toLocaleString()}
+              icon={<XCircle className="w-4 h-4 text-orange-400" />}
+              accent="bg-orange-500/10"
+            />
+            <StatCard
+              label="Medium Severity"
+              value={statsData?.medium?.toLocaleString()}
+              icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
+              accent="bg-amber-500/10"
+            />
+            <StatCard
+              label="Low Severity"
+              value={statsData?.low?.toLocaleString()}
+              icon={<AlertTriangle className="w-4 h-4 text-emerald-400" />}
+              accent="bg-emerald-500/10"
             />
           </div>
         </div>
