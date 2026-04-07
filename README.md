@@ -58,8 +58,12 @@ DISCORD_FILTER_TECH=true  # Only send aiCategory === 'Tech'
 
 ## 🛡 Authentication
 
-The administrative portal (`/admin`) is protected by **Basic Auth**.
-- Configure your own in `backend/.env` using `ADMIN_API_KEY`.
+The admin portal (`/admin`) uses **email/password authentication** with bcrypt-hashed passwords and JWT sessions.
+
+- Credentials stored in a `users` table with bcrypt password hashing
+- JWT tokens issued as HTTP-only secure cookies (15m access + 7d refresh)
+- Default credentials: `admin@signalstack.local` / `changeme123`
+- Configure via `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars before first deploy
 
 ## 📜 License
 
