@@ -10,6 +10,23 @@ import type { DrizzleDB } from '../database/database.module';
 import { sources } from '../database/schema';
 
 const FEED_TIMEOUT = 10_000; // 10s per feed
+
+/** Strip HTML tags and decode common entities to plain text */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 const CONCURRENCY_LIMIT = 5;
 
 @Injectable()
@@ -137,13 +154,15 @@ export class FeedService {
     }
 
     // Content extraction priority: content:encoded > content > description > summary
-    const content: string | null =
+    const rawContent: string | null =
       (item as any)['content:encoded'] ||
       item.content ||
       (item as any).description ||
       item.contentSnippet ||
       (item as any).summary ||
       null;
+
+    const content = rawContent ? stripHtml(rawContent) : null;
 
     // Date extraction
     const dateStr =
