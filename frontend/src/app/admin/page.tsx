@@ -28,6 +28,10 @@ type AIHealth = {
   localEnabled: boolean;
   pipeline: string;
   queueSize: number;
+  tokenUsage?: {
+    groq: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
+    openrouter: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
+  };
 };
 
 function StatusDot({ status }: { status: string }) {
@@ -238,6 +242,54 @@ export default function AdminDashboard() {
               health={aiHealth?.openrouter}
             />
           </div>
+
+          {/* Token Usage */}
+          {aiHealth?.tokenUsage && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-4 rounded-lg bg-secondary/30 border border-border/40">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Groq Tokens</div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Today:</span>{" "}
+                    <span className="font-bold text-foreground">{aiHealth.tokenUsage.groq.today.total.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">All Time:</span>{" "}
+                    <span className="font-bold text-foreground">{aiHealth.tokenUsage.groq.allTime.total.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Prompt:</span>{" "}
+                    <span className="font-medium">{aiHealth.tokenUsage.groq.today.prompt.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Completion:</span>{" "}
+                    <span className="font-medium">{aiHealth.tokenUsage.groq.today.completion.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-secondary/30 border border-border/40">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">OpenRouter Tokens</div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Today:</span>{" "}
+                    <span className="font-bold text-foreground">{aiHealth.tokenUsage.openrouter.today.total.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">All Time:</span>{" "}
+                    <span className="font-bold text-foreground">{aiHealth.tokenUsage.openrouter.allTime.total.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Prompt:</span>{" "}
+                    <span className="font-medium">{aiHealth.tokenUsage.openrouter.today.prompt.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Completion:</span>{" "}
+                    <span className="font-medium">{aiHealth.tokenUsage.openrouter.today.completion.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Signal Stats */}

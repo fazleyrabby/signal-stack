@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { RedisService } from '../redis.service';
 import { logEvent } from '../../common/logger';
 
 @Injectable()
@@ -10,7 +11,10 @@ export class GroqProvider {
 
   public lastError: number | null = null;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
+  ) {
     this.apiKey = this.configService.get<string>('GROQ_API_KEY');
   }
 
@@ -56,6 +60,13 @@ export class GroqProvider {
       }
 
       const data = await res.json();
+
+      // Track token usage
+      const usage = data?.usage;
+      if (usage) {
+        await this.redisService.trackTokens('groq', usage.prompt_tokens || 0, usage.completion_tokens || 0);
+      }
+
       const result = data?.choices?.[0]?.message?.content?.trim();
       return result ? this.cleanResponse(result) : null;
     } catch (error: any) {

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { LocalProvider } from './providers/local.provider';
 import { GroqProvider } from './providers/groq.provider';
 import { OpenRouterProvider } from './providers/openrouter.provider';
+import { RedisService } from './redis.service';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 import { signals } from '../database/schema';
@@ -18,6 +19,7 @@ export class AIService {
     private readonly local: LocalProvider,
     private readonly groq: GroqProvider,
     private readonly openRouter: OpenRouterProvider,
+    private readonly redisService: RedisService,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
     private readonly configService: ConfigService,
   ) {}
@@ -126,10 +128,14 @@ export class AIService {
   async getHealth() {
     const localEnabled = this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
     
-    const [local, groq, openrouter] = await Promise.all([
+    const [local, groq, openrouter, groqToday, groqAllTime, openrouterToday, openrouterAllTime] = await Promise.all([
       localEnabled ? this.local.checkHealth() : Promise.resolve({ status: 'disabled' }),
       this.groq.checkHealth(),
       this.openRouter.checkHealth(),
+      this.redisService.getTokenUsage('groq', true),
+      this.redisService.getTokenUsage('groq', false),
+      this.redisService.getTokenUsage('openrouter', true),
+      this.redisService.getTokenUsage('openrouter', false),
     ]);
 
     return {
@@ -138,6 +144,10 @@ export class AIService {
       openrouter,
       localEnabled,
       pipeline: localEnabled ? 'local → groq → openrouter' : 'groq → openrouter',
+      tokenUsage: {
+        groq: { today: groqToday, allTime: groqAllTime },
+        openrouter: { today: openrouterToday, allTime: openrouterAllTime },
+      },
     };
   }
 }
