@@ -4,7 +4,7 @@ import { logEvent } from '../../common/logger';
 
 @Injectable()
 export class LocalProvider {
-  private readonly timeout = 8000;
+  private readonly timeout = 15000;
   private readonly maxTokens = 15;
 
   public lastError: number | null = null;
@@ -69,7 +69,7 @@ export class LocalProvider {
     const start = Date.now();
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
         method: 'POST',
