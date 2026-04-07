@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle } from "lucide-react";
+import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
@@ -182,31 +182,22 @@ export default function AdminDashboard() {
       <Header isRefreshing={false} onRefresh={() => {}} searchQuery="" onSearchChange={() => {}} />
 
       <main className="max-w-6xl mx-auto py-12 px-6 space-y-12">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-primary text-[10px] font-bold uppercase tracking-[0.2em]">
-              <ShieldCheck className="w-3 h-3" />
-              <span>Admin Access Granted</span>
-            </div>
-            <h1 className="text-4xl font-black tracking-tighter uppercase text-foreground">Admin Dashboard</h1>
-            <p className="text-muted-foreground text-sm">Manage news sources, categories, and database snapshots.</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="w-4 h-4 text-primary" />
+            <span className="text-sm font-bold uppercase text-foreground">Admin</span>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            className="gap-2 text-[10px] font-black uppercase tracking-widest"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            Logout
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="h-7 text-[10px]">
+            <LogOut className="w-3 h-3" />
           </Button>
         </div>
 
-        {/* AI Health Section - Compact */}
+        {/* AI Health Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold uppercase text-foreground">AI</span>
+              <span className="text-sm font-bold uppercase text-foreground">AI Providers</span>
               <span className="text-[10px] text-muted-foreground">
                 {aiHealth ? `${healthyCount}/${totalProviders}` : "..."}
                 {aiHealth?.queueSize ? ` · ${aiHealth.queueSize}q` : ""}
@@ -217,36 +208,36 @@ export default function AdminDashboard() {
             </Button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {aiHealth?.local && (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-secondary/30 text-xs">
-                <StatusDot status={aiHealth.local.status} />
-                <span className="font-medium">Local</span>
-                {aiHealth.local.model && <span className="text-muted-foreground text-[10px]">{aiHealth.local.model}</span>}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 border border-border/40">
+              <div className="flex items-center gap-2">
+                <StatusDot status={aiHealth?.local?.status || "unhealthy"} />
+                <div>
+                  <div className="text-sm font-bold text-foreground">Local (Qwen)</div>
+                  {aiHealth?.local?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.local.model}</div>}
+                </div>
               </div>
-            )}
-            {aiHealth?.groq && (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-secondary/30 text-xs">
-                <StatusDot status={aiHealth.groq.status} />
-                <span className="font-medium">Groq</span>
-                {aiHealth.groq.model && <span className="text-muted-foreground text-[10px]">{aiHealth.groq.model}</span>}
-                {(() => {
-                  const groqTokens = aiHealth.tokenUsage?.groq?.today?.total ?? 0;
-                  return groqTokens > 0 ? <span className="text-blue-400 text-[10px]">{groqTokens.toLocaleString()}t</span> : null;
-                })()}
+            </div>
+            <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 border border-border/40">
+              <div className="flex items-center gap-2">
+                <StatusDot status={aiHealth?.groq?.status || "unhealthy"} />
+                <div>
+                  <div className="text-sm font-bold text-foreground">Groq</div>
+                  {aiHealth?.groq?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.groq.model}</div>}
+                  {(() => { const t = aiHealth?.tokenUsage?.groq?.today?.total ?? 0; return t > 0 ? <div className="text-[10px] text-blue-400">{t.toLocaleString()} tokens</div> : null; })()}
+                </div>
               </div>
-            )}
-            {aiHealth?.openrouter && (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-secondary/30 text-xs">
-                <StatusDot status={aiHealth.openrouter.status} />
-                <span className="font-medium">OR</span>
-                {aiHealth.openrouter.model && <span className="text-muted-foreground text-[10px]">{aiHealth.openrouter.model}</span>}
-                {(() => {
-                  const orTokens = aiHealth.tokenUsage?.openrouter?.today?.total ?? 0;
-                  return orTokens > 0 ? <span className="text-blue-400 text-[10px]">{orTokens.toLocaleString()}t</span> : null;
-                })()}
+            </div>
+            <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 border border-border/40">
+              <div className="flex items-center gap-2">
+                <StatusDot status={aiHealth?.openrouter?.status || "unhealthy"} />
+                <div>
+                  <div className="text-sm font-bold text-foreground">OpenRouter</div>
+                  {aiHealth?.openrouter?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.openrouter.model}</div>}
+                  {(() => { const t = aiHealth?.tokenUsage?.openrouter?.today?.total ?? 0; return t > 0 ? <div className="text-[10px] text-blue-400">{t.toLocaleString()} tokens</div> : null; })()}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
