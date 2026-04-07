@@ -25,7 +25,8 @@ export class AdminController {
   // --- AI Health Check ---
   @Get('ai/health')
   async getAIHealth() {
-    return this.aiService.getHealth();
+    const health = await this.aiService.getHealth();
+    return { ...health, queueSize: this.aiQueue.queueSize };
   }
 
   // --- Categories ---

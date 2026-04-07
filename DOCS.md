@@ -3,7 +3,7 @@
 ## Modern Stack Overview
 - **Frontend**: Next.js 16 (App Router), Base UI, Lucide Icons, SWR Intelligence Polling, Tailwind CSS v4.
 - **Backend**: NestJS 11, Drizzle ORM (PostgreSQL 16), Redis, RxJS.
-- **AI Engine**: Dual-provider failover (Groq ⚡ + OpenRouter 🧠) with rate-limited background workers.
+- **AI Engine**: Triple-provider failover (Local llama.cpp → Groq ⚡ → OpenRouter 🧠) with rate-limited background workers.
 - **Deployment**: Multi-container Docker — production uses zero volume mounts; dev mounts only `src/` and `public/` for hot-reload.
 
 ---
@@ -55,8 +55,9 @@ Access at [http://localhost:3001](http://localhost:3001).
 Create a `.env` file at the project root for Docker Compose:
 
 ```env
-# --- Security ---
-ADMIN_API_KEY=your-secret-admin-key
+# --- Authentication ---
+ADMIN_EMAIL=admin@signalstack.local
+ADMIN_PASSWORD=changeme123
 
 # --- AI Intelligence (Failover Cluster) ---
 GROQ_API_KEY=gsk_your-groq-key
@@ -90,6 +91,8 @@ SignalStack features a production-grade, asynchronous AI enrichment pipeline des
   - **429 Mitigation**: If a provider returns a rate limit error, the system enters a **60s Cooldown** for that provider.
 - **Executive Summaries**: AI distills entire news articles into a single, high-impact sentence (max 200 chars).
 - **Safe Fallback**: If all AI providers fail or are paused, the system remains 100% functional via high-fidelity keyword scoring.
+- **Auto-Retry**: Failed signals automatically retry up to 3 times with exponential backoff (30s, 60s, 90s).
+- **Manual Retry**: Admins can re-queue all failed signals via `POST /api/admin/ai/retry` or the retry button on the dashboard.
 
 ### Local AI Setup (llama.cpp)
 
@@ -174,27 +177,58 @@ The dashboard is a pro-grade analytical terminal:
 
 ## 🛡 Admin Portal
 
-Access at `/admin`. Protected by JWT-based session authentication with HTTP-only cookies.
+Access at `/admin`. Protected by email/password authentication with bcrypt-hashed passwords and JWT sessions.
 
 | Page | Description |
 |---|---|
-| `/admin/login` | JWT session authentication (API key exchange) |
-| `/admin` | Dashboard — feed health, stats, manual backup trigger, logout |
+| `/admin/login` | Email/password authentication |
+| `/admin` | Dashboard — AI health status, feed stats, manual backup trigger, logout |
 | `/admin/categories` | Manage intelligence categories (Geopolitics, Technology) |
 | `/admin/sources` | Manage RSS feed sources per category |
-| `/admin/ai/health` | Check all AI providers health status (local, groq, openrouter) |
 | `/changelog` | View full project changelog |
 
 **Authentication Flow**:
-1. User enters `ADMIN_API_KEY` at `/admin/login`
-2. Backend validates key and issues JWT tokens (15m access + 7d refresh)
-3. Tokens stored as HTTP-only, secure cookies — never exposed to JavaScript
+1. User enters email and password at `/admin/login`
+2. Backend verifies credentials against `users` table (bcrypt hash comparison)
+3. JWT tokens issued (15m access + 7d refresh) as HTTP-only, secure cookies
 4. Middleware checks for valid access token on all `/admin/*` routes
 5. Auto-refresh extends sessions up to 7 days
 6. Logout clears both cookies server-side
 
-**Default Admin Key**: `dev-admin-key` (configure via `ADMIN_API_KEY` in `.env`)
+**Default Credentials**: `admin@signalstack.local` / `changeme123` (configure via `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars)
 **JWT Secret**: Configure via `JWT_SECRET` in `.env` (required for production)
+
+### AI Health Dashboard
+
+The admin dashboard includes a real-time AI provider health panel showing:
+- **Status** of each provider: Local (Qwen), Groq, OpenRouter
+- **Latency** measurements for healthy providers
+- **Error details** for unhealthy providers
+- **Pipeline visualization**: Shows the active fallback chain
+- Auto-refreshes every 60 seconds with manual refresh option
+- API endpoint: `GET /api/admin/ai/health`
+
+### Signal Intelligence Stats
+
+The dashboard displays 8 metric cards with live data:
+- **Total Signals** — all signals in the database
+- **High / Medium / Low Severity** — severity breakdown
+- **Geopolitics / Technology** — category counts
+- **AI Processed** — signals successfully enriched by AI
+- **AI Failed** — signals where all providers failed (with retry button)
+
+### AI Retry System
+
+Failed AI signals can be retried:
+- **Auto-retry**: Up to 3 retries with exponential backoff (30s, 60s, 90s)
+- **Manual retry**: Click the retry icon next to "AI Failed" count, or call `POST /api/admin/ai/retry`
+- Re-queues up to 50 failed signals per request
+
+### Dozzle Logs (Production)
+
+Production container logs are accessible via Dozzle at `https://logs.fazleyrabbi.xyz/`.
+- Protected by built-in username/password authentication
+- Credentials configured in `dozzle/users.yml`
 
 ### System Backup
 - **Automated**: Runs daily at **Midnight** via cron.
@@ -210,8 +244,8 @@ SignalStack monitors high-fidelity streams divided into strategic intelligence c
 
 - **World Geopolitics**: High-impact regional news and global policy shifts.
   - *Sources*: Guardian World, NYTimes, Al Jazeera, Foreign Affairs.
-- **Technology Intelligence**: Deep tech shifts, hardware breakthroughs, and software engineering signals.
-  - *Sources*: Ars Technica, The Verge, TechCrunch, MIT Tech Review, Wired.
+- **Technology & AI Intelligence**: Deep tech shifts, AI developments, hardware breakthroughs, and software engineering signals.
+  - *Sources*: Ars Technica, The Verge, TechCrunch, MIT Tech Review, Wired, OpenAI Blog, Google AI Blog, The Verge AI, VentureBeat AI, TechCrunch AI.
 
 ---
 
@@ -292,7 +326,7 @@ docker compose logs -f app      # Backend only
 docker compose logs -f frontend # Frontend only
 ```
 
-**Dozzle** (production): Browse real-time container logs at [http://localhost:9999](http://localhost:9999) — no CLI needed.
+**Dozzle** (production): Browse real-time container logs at [http://localhost:9999](http://localhost:9999) — protected by username/password authentication.
 
 ### Rebuilding After Code Changes
 ```bash
@@ -365,7 +399,7 @@ Local (llama.cpp/Qwen) → Groq → OpenRouter
 - **Groq**: Fastest, sub-second latency
 - **OpenRouter**: Ultimate fallback, comprehensive model coverage
 - **Provider Tracking**: Each signal stores `ai_provider` to identify which AI processed it
-- **Health Check**: Visit `/admin/ai/health` to see all provider statuses └───┬────┘ └──────────┘
+- **Health Check**: AI health is displayed on the admin dashboard with auto-refresh └───┬────┘ └──────────┘
                                                                │
                                                     ┌──────────┴──────────┐
                                                     ▼                     ▼
