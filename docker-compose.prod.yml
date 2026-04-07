@@ -56,7 +56,7 @@ services:
       DATABASE_URL: "postgresql://signal:signal@postgres:5432/signalstack"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
-      JWT_SECRET: "Ycf+9NJKyalh4HnXMrHkdJ79JgqDvwooPvtKUzWPllM="
+      JWT_SECRET: ${JWT_SECRET}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@signalstack.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme123}
       FRONTEND_URL: "https://signal.fazleyrabbi.xyz"

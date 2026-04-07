@@ -139,9 +139,9 @@ export class AIService {
     ]);
 
     return {
-      local,
-      groq,
-      openrouter,
+      local: localEnabled ? { ...local, model: 'Qwen2.5-0.5B' } : local,
+      groq: { ...groq, model: this.groq.modelName },
+      openrouter: { ...openrouter, model: this.openRouter.modelName },
       localEnabled,
       pipeline: localEnabled ? 'local → groq → openrouter' : 'groq → openrouter',
       tokenUsage: {

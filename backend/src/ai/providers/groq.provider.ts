@@ -10,6 +10,7 @@ export class GroqProvider {
   private readonly model = 'llama-3.3-70b-versatile';
 
   public lastError: number | null = null;
+  public modelName = 'llama-3.3-70b-versatile';
 
   constructor(
     private readonly configService: ConfigService,
