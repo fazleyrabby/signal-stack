@@ -17,7 +17,8 @@ interface AIJob {
 @Injectable()
 export class AIQueue implements OnModuleInit {
   private queue$ = new Subject<AIJob>();
-  
+  private _queueSize = 0;
+
   // High-performance Rate-Limit Configuration
   private readonly processDelay = 1500; // AI_PROCESS_DELAY=1500
   private readonly maxWorkers = 2;      // AI_MAX_WORKERS=2
@@ -67,7 +68,12 @@ export class AIQueue implements OnModuleInit {
     }
 
     logEvent('info', 'ai_queue_enqueue', { signalId: job.id });
+    this._queueSize++;
     this.queue$.next(job);
+  }
+
+  get queueSize(): number {
+    return this._queueSize;
   }
 
   private async processJob(job: AIJob) {
@@ -90,6 +96,8 @@ export class AIQueue implements OnModuleInit {
           this.enqueue({ ...job, retryCount: retries + 1 });
         }, backoff);
       }
+    } finally {
+      this._queueSize = Math.max(0, this._queueSize - 1);
     }
   }
 }

@@ -27,6 +27,7 @@ type AIHealth = {
   openrouter: ProviderHealth;
   localEnabled: boolean;
   pipeline: string;
+  queueSize: number;
 };
 
 function StatusDot({ status }: { status: string }) {
@@ -204,6 +205,7 @@ export default function AdminDashboard() {
                 <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                   {aiHealth ? `${healthyCount}/${totalProviders} online` : "Loading..."}
                   {aiHealth?.pipeline && ` \u00B7 ${aiHealth.pipeline}`}
+                  {aiHealth && aiHealth.queueSize > 0 && ` \u00B7 ${aiHealth.queueSize} in queue`}
                 </p>
               </div>
             </div>
