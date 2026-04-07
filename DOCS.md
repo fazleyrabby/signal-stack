@@ -205,6 +205,7 @@ The admin dashboard includes a real-time AI provider health panel showing:
 - **Latency** measurements for healthy providers
 - **Error details** for unhealthy providers
 - **Pipeline visualization**: Shows the active fallback chain
+- **Queue size**: Displays real-time count of pending AI jobs in the processing queue
 - Auto-refreshes every 60 seconds with manual refresh option
 - API endpoint: `GET /api/admin/ai/health`
 
