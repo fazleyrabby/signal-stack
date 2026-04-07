@@ -83,6 +83,38 @@ async function seed() {
             categoryId: 'technology',
             trustScore: 4,
         },
+
+        // 🤖 AI & Deep Tech
+        {
+            name: 'OpenAI Blog',
+            url: 'https://openai.com/blog/rss.xml',
+            categoryId: 'technology',
+            trustScore: 5,
+        },
+        {
+            name: 'Google AI Blog',
+            url: 'https://blog.google/technology/ai/rss/',
+            categoryId: 'technology',
+            trustScore: 5,
+        },
+        {
+            name: 'The Verge AI',
+            url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml',
+            categoryId: 'technology',
+            trustScore: 4,
+        },
+        {
+            name: 'VentureBeat AI',
+            url: 'https://venturebeat.com/category/ai/feed/',
+            categoryId: 'technology',
+            trustScore: 4,
+        },
+        {
+            name: 'TechCrunch AI',
+            url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
+            categoryId: 'technology',
+            trustScore: 4,
+        },
     ];
 
     for (const src of sourceData) {

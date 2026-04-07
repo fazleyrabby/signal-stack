@@ -36,6 +36,10 @@ export interface SignalStats {
   low: number;
   last24h: number;
   topSource: string;
+  geopolitics: number;
+  technology: number;
+  aiProcessed: number;
+  aiFailed: number;
 }
 
 export async function fetchSignals(

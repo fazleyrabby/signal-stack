@@ -18,12 +18,16 @@ const KEYWORD_RULES: { points: number; keywords: string[] }[] = [
     keywords: [
       'acquisition', 'merger', 'layoff', 'regulation', 'ban',
       'censorship', 'surveillance', 'leak',
+      'artificial intelligence', 'machine learning', 'neural network',
+      'large language model', 'generative ai', 'ai safety',
     ],
   },
   {
     points: 2,
     keywords: [
       'launch', 'partnership', 'funding', 'update', 'release',
+      'ai model', 'open source ai', 'gpu', 'transformer', 'fine-tuning',
+      'chatbot', 'autonomous', 'deepfake',
     ],
   },
 ];
@@ -40,6 +44,8 @@ const ENTITY_RULES: { points: number; entities: string[] }[] = [
     points: 2,
     entities: [
       'Tesla', 'SpaceX', 'Stripe', 'Palantir', 'CrowdStrike',
+      'DeepMind', 'Mistral', 'Hugging Face', 'Stability AI', 'Cohere',
+      'xAI', 'Perplexity',
     ],
   },
 ];

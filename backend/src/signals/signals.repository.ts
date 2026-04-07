@@ -122,6 +122,10 @@ export class SignalsRepository {
     low: number;
     last24h: number;
     topSource: string;
+    geopolitics: number;
+    technology: number;
+    aiProcessed: number;
+    aiFailed: number;
   }> {
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -133,6 +137,10 @@ export class SignalsRepository {
       lowResult,
       last24hResult,
       topSourceResult,
+      geopoliticsResult,
+      technologyResult,
+      aiProcessedResult,
+      aiFailedResult,
     ] = await Promise.all([
       this.db.select({ count: sql<number>`count(*)::int` }).from(signals),
       this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.severity, 'high')),
@@ -148,6 +156,10 @@ export class SignalsRepository {
         .groupBy(signals.source)
         .orderBy(desc(sql`count(*)`))
         .limit(1),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.categoryId, 'geopolitics')),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.categoryId, 'technology')),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.aiProcessed, true)),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.aiFailed, true)),
     ]);
 
     return {
@@ -157,6 +169,10 @@ export class SignalsRepository {
       low: lowResult[0]?.count || 0,
       last24h: last24hResult[0]?.count || 0,
       topSource: topSourceResult[0]?.source || 'N/A',
+      geopolitics: geopoliticsResult[0]?.count || 0,
+      technology: technologyResult[0]?.count || 0,
+      aiProcessed: aiProcessedResult[0]?.count || 0,
+      aiFailed: aiFailedResult[0]?.count || 0,
     };
   }
 
