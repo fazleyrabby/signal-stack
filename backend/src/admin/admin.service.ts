@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
-import { categories, sources } from '../database/schema';
-import { eq } from 'drizzle-orm';
+import { categories, sources, signals } from '../database/schema';
+import { eq, and } from 'drizzle-orm';
 import { BackupService } from '../database/backup.service';
 
 @Injectable()
@@ -14,6 +14,14 @@ export class AdminService {
 
   async triggerBackup() {
     return this.backupService.triggerManualBackup();
+  }
+
+  async getFailedAISignals() {
+    return this.db
+      .select({ id: signals.id, title: signals.title, content: signals.content, score: signals.score })
+      .from(signals)
+      .where(and(eq(signals.aiFailed, true), eq(signals.aiProcessed, false)))
+      .limit(50);
   }
 
   // --- Categories ---

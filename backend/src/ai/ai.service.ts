@@ -86,7 +86,7 @@ export class AIService {
           aiFailed: false,
         })
         .where(eq(signals.id, id));
-      
+
       logEvent('info', 'ai_processing_success', { signalId: id, provider, fallbackUsed });
     } else {
       await this.db
@@ -97,8 +97,10 @@ export class AIService {
           aiFailed: true,
         })
         .where(eq(signals.id, id));
-      
+
       logEvent('error', 'ai_processing_failed', { signalId: id, reason: 'capacity_exhausted' });
+      // Throw so the queue can retry
+      throw new Error('All AI providers failed');
     }
   }
 
