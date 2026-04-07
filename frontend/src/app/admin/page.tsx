@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, Activity, Zap, Server, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle } from "lucide-react";
+import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
@@ -19,6 +19,7 @@ type ProviderHealth = {
   status: "healthy" | "unhealthy" | "no_api_key" | "disabled";
   latency?: number;
   error?: string;
+  model?: string;
 };
 
 type AIHealth = {
@@ -93,6 +94,9 @@ function ProviderCard({ name, icon, health }: { name: string; icon: React.ReactN
           </div>
           {health?.latency !== undefined && (
             <span className="text-[10px] text-muted-foreground font-medium">{health.latency}ms latency</span>
+          )}
+          {health?.model && (
+            <span className="text-[10px] text-blue-400 font-medium">{health.model}</span>
           )}
           {health?.error && (
             <span className="text-[10px] text-red-400 font-medium">{health.error}</span>
@@ -197,99 +201,51 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {/* AI Health Section */}
-        <div className="space-y-4">
+        {/* AI Health Section - Compact */}
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Brain className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold tracking-tight uppercase text-foreground">AI Providers</h2>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  {aiHealth ? `${healthyCount}/${totalProviders} online` : "Loading..."}
-                  {aiHealth?.pipeline && ` \u00B7 ${aiHealth.pipeline}`}
-                  {aiHealth && aiHealth.queueSize > 0 && ` \u00B7 ${aiHealth.queueSize} in queue`}
-                </p>
-              </div>
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-primary" />
+              <span className="text-sm font-bold uppercase text-foreground">AI</span>
+              <span className="text-[10px] text-muted-foreground">
+                {aiHealth ? `${healthyCount}/${totalProviders}` : "..."}
+                {aiHealth?.queueSize ? ` · ${aiHealth.queueSize}q` : ""}
+              </span>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => refreshAI()}
-              disabled={aiLoading}
-              className="gap-2 text-[10px] font-black uppercase tracking-widest"
-            >
+            <Button variant="ghost" size="sm" onClick={() => refreshAI()} disabled={aiLoading} className="h-6 px-2">
               <RefreshCw className={cn("w-3 h-3", aiLoading && "animate-spin")} />
-              Refresh
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <ProviderCard
-              name="Local (Qwen)"
-              icon={<Server className="w-4 h-4 text-primary" />}
-              health={aiHealth?.local}
-            />
-            <ProviderCard
-              name="Groq"
-              icon={<Zap className="w-4 h-4 text-primary" />}
-              health={aiHealth?.groq}
-            />
-            <ProviderCard
-              name="OpenRouter"
-              icon={<Activity className="w-4 h-4 text-primary" />}
-              health={aiHealth?.openrouter}
-            />
+          <div className="flex flex-wrap gap-2">
+            {aiHealth?.local && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-secondary/30 text-xs">
+                <StatusDot status={aiHealth.local.status} />
+                <span className="font-medium">Local</span>
+                {aiHealth.local.model && <span className="text-muted-foreground text-[10px]">{aiHealth.local.model}</span>}
+              </div>
+            )}
+            {aiHealth?.groq && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-secondary/30 text-xs">
+                <StatusDot status={aiHealth.groq.status} />
+                <span className="font-medium">Groq</span>
+                {aiHealth.groq.model && <span className="text-muted-foreground text-[10px]">{aiHealth.groq.model}</span>}
+                {aiHealth.tokenUsage?.groq.today.total > 0 && (
+                  <span className="text-blue-400 text-[10px]">{aiHealth.tokenUsage.groq.today.total.toLocaleString()}t</span>
+                )}
+              </div>
+            )}
+            {aiHealth?.openrouter && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-secondary/30 text-xs">
+                <StatusDot status={aiHealth.openrouter.status} />
+                <span className="font-medium">OR</span>
+                {aiHealth.openrouter.model && <span className="text-muted-foreground text-[10px]">{aiHealth.openrouter.model}</span>}
+                {aiHealth.tokenUsage?.openrouter.today.total > 0 && (
+                  <span className="text-blue-400 text-[10px]">{aiHealth.tokenUsage.openrouter.today.total.toLocaleString()}t</span>
+                )}
+              </div>
+            )}
           </div>
-
-          {/* Token Usage */}
-          {aiHealth?.tokenUsage && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 rounded-lg bg-secondary/30 border border-border/40">
-                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Groq Tokens</div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Today:</span>{" "}
-                    <span className="font-bold text-foreground">{aiHealth.tokenUsage.groq.today.total.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">All Time:</span>{" "}
-                    <span className="font-bold text-foreground">{aiHealth.tokenUsage.groq.allTime.total.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Prompt:</span>{" "}
-                    <span className="font-medium">{aiHealth.tokenUsage.groq.today.prompt.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Completion:</span>{" "}
-                    <span className="font-medium">{aiHealth.tokenUsage.groq.today.completion.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 rounded-lg bg-secondary/30 border border-border/40">
-                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">OpenRouter Tokens</div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Today:</span>{" "}
-                    <span className="font-bold text-foreground">{aiHealth.tokenUsage.openrouter.today.total.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">All Time:</span>{" "}
-                    <span className="font-bold text-foreground">{aiHealth.tokenUsage.openrouter.allTime.total.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Prompt:</span>{" "}
-                    <span className="font-medium">{aiHealth.tokenUsage.openrouter.today.prompt.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Completion:</span>{" "}
-                    <span className="font-medium">{aiHealth.tokenUsage.openrouter.today.completion.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Signal Stats */}

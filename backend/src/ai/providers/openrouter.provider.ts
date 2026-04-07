@@ -10,6 +10,7 @@ export class OpenRouterProvider {
   private readonly model = 'meta-llama/llama-3.3-70b-instruct';
 
   public lastError: number | null = null;
+  public modelName = 'llama-3.3-70b-instruct';
 
   constructor(
     private readonly configService: ConfigService,

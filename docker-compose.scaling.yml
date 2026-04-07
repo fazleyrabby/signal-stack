@@ -31,8 +31,8 @@ services:
       DATABASE_URL: "postgresql://signal:signal@postgres:5432/signalstack"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
-      JWT_SECRET: "Ycf+9NJKyalh4HnXMrHkdJ79JgqDvwooPvtKUzWPllM="
-      ADMIN_API_KEY: "dev-admin-key"
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
       FRONTEND_URL: "https://signal.fazleyrabbi.xyz"
       NODE_ENV: "production"
       DISABLE_SCHEDULER: "true" # !! Important: This instance handles traffic only !!
@@ -51,7 +51,8 @@ services:
       DATABASE_URL: "postgresql://signal:signal@postgres:5432/signalstack"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
-      ADMIN_API_KEY: "dev-admin-key"
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
       NODE_ENV: "production"
       DISABLE_SCHEDULER: "false" # !! This instance handles the cycle !!
