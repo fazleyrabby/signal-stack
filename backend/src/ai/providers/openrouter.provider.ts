@@ -6,7 +6,7 @@ import { logEvent } from '../../common/logger';
 export class OpenRouterProvider {
   private readonly apiKey: string | undefined;
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
-  private readonly model = 'meta-llama/llama-3.1-405b-instruct';
+  private readonly model = 'meta-llama/llama-3.3-70b-instruct';
 
   public lastError: number | null = null;
 
@@ -86,10 +86,11 @@ export class OpenRouterProvider {
 
       const res = await fetch(this.apiUrl, {
         method: 'POST',
-        headers: { 
-          Authorization: `Bearer ${this.apiKey}`, 
-          'HTTP-Referer': 'https://signalstack.now', 
-          'X-Title': 'SignalStack' 
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://signalstack.now',
+          'X-Title': 'SignalStack'
         },
         body: JSON.stringify({ model: this.model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 }),
         signal: controller.signal,

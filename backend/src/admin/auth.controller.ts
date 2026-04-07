@@ -8,14 +8,15 @@ export class AuthController {
 
   @Post('login')
   async login(
-    @Body('apiKey') apiKey: string,
+    @Body('email') email: string,
+    @Body('password') password: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (!apiKey) {
-      throw new UnauthorizedException('API key is required');
+    if (!email || !password) {
+      throw new UnauthorizedException('Email and password are required');
     }
 
-    const tokens = await this.authService.login(apiKey);
+    const tokens = await this.authService.login(email, password);
     const domain = process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
 
     res.cookie('signalstack_access_token', tokens.accessToken, {

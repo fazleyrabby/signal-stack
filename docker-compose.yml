@@ -12,7 +12,8 @@ services:
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
       GROQ_API_KEY: ${GROQ_API_KEY}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      ADMIN_API_KEY: ${ADMIN_API_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@signalstack.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme123}
       FRONTEND_URL: http://localhost:3001
       NODE_ENV: development
       LOCAL_AI_ENABLED: ${LOCAL_AI_ENABLED:-false}

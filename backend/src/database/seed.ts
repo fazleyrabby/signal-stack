@@ -1,7 +1,8 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import * as bcrypt from 'bcrypt';
 import * as schema from './schema';
-import { categories, sources } from './schema';
+import { categories, sources, users } from './schema';
 import { eq } from 'drizzle-orm';
 
 // Manual database connection for standalone script
@@ -122,6 +123,28 @@ async function seed() {
     await db.delete(sources).where(
         eq(sources.name, 'Financial Times World')
     );
+
+    // ✅ Admin user (idempotent)
+    const adminEmail = (process.env.ADMIN_EMAIL || 'admin@signalstack.local').toLowerCase().trim();
+    const adminPassword = process.env.ADMIN_PASSWORD || 'changeme123';
+
+    const existingAdmin = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, adminEmail))
+        .limit(1);
+
+    if (existingAdmin.length === 0) {
+        const passwordHash = await bcrypt.hash(adminPassword, 12);
+        await db.insert(users).values({
+            email: adminEmail,
+            passwordHash,
+            role: 'admin',
+        });
+        console.log(`✅ Created admin user: ${adminEmail}`);
+    } else {
+        console.log(`⏭️ Admin user already exists: ${adminEmail}`);
+    }
 
     console.log('🌱 Seeding complete');
 }

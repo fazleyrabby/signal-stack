@@ -1,6 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcrypt';
+import { eq } from 'drizzle-orm';
+import { DATABASE_CONNECTION } from '../database/database.module';
+import type { DrizzleDB } from '../database/database.module';
+import { users } from '../database/schema';
 
 @Injectable()
 export class AuthService {
@@ -8,27 +13,41 @@ export class AuthService {
   private readonly accessTokenExpiry = '15m';
   private readonly refreshTokenExpiry = '7d';
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
+  ) {
     this.jwtSecret = this.configService.get<string>('JWT_SECRET') || 'signalstack-jwt-secret-change-in-production';
   }
 
-  async login(apiKey: string): Promise<{ accessToken: string; refreshToken: string }> {
-    const validKey = this.configService.get<string>('ADMIN_API_KEY') || 'dev-admin-key';
+  async login(email: string, password: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase().trim()))
+      .limit(1);
 
-    if (apiKey !== validKey) {
-      throw new UnauthorizedException('Invalid Admin Key');
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
     }
 
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const payload = { sub: user.id, email: user.email, role: user.role };
+
     const accessToken = jwt.sign(
-      { role: 'admin' },
+      payload,
       this.jwtSecret,
-      { expiresIn: this.accessTokenExpiry }
+      { expiresIn: this.accessTokenExpiry },
     );
 
     const refreshToken = jwt.sign(
-      { role: 'admin', type: 'refresh' },
+      { ...payload, type: 'refresh' },
       this.jwtSecret,
-      { expiresIn: this.refreshTokenExpiry }
+      { expiresIn: this.refreshTokenExpiry },
     );
 
     return { accessToken, refreshToken };
@@ -36,21 +55,52 @@ export class AuthService {
 
   async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     try {
-      const decoded = jwt.verify(refreshToken, this.jwtSecret) as { role: string; type: string };
+      const decoded = jwt.verify(refreshToken, this.jwtSecret) as {
+        sub: string;
+        email: string;
+        role: string;
+        type: string;
+      };
 
-      if (decoded.role !== 'admin' || decoded.type !== 'refresh') {
+      if (decoded.type !== 'refresh') {
         throw new UnauthorizedException('Invalid token');
       }
 
-      return this.login(this.configService.get<string>('ADMIN_API_KEY') || 'dev-admin-key');
-    } catch {
+      // Verify user still exists
+      const [user] = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, decoded.sub))
+        .limit(1);
+
+      if (!user) {
+        throw new UnauthorizedException('User no longer exists');
+      }
+
+      const payload = { sub: user.id, email: user.email, role: user.role };
+
+      const accessToken = jwt.sign(
+        payload,
+        this.jwtSecret,
+        { expiresIn: this.accessTokenExpiry },
+      );
+
+      const newRefreshToken = jwt.sign(
+        { ...payload, type: 'refresh' },
+        this.jwtSecret,
+        { expiresIn: this.refreshTokenExpiry },
+      );
+
+      return { accessToken, refreshToken: newRefreshToken };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
 
-  verifyAccessToken(token: string): { role: string } {
+  verifyAccessToken(token: string): { sub: string; email: string; role: string } {
     try {
-      return jwt.verify(token, this.jwtSecret) as { role: string };
+      return jwt.verify(token, this.jwtSecret) as { sub: string; email: string; role: string };
     } catch {
       throw new UnauthorizedException('Invalid or expired access token');
     }
