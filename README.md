@@ -45,7 +45,18 @@ docker compose up -d llama
 LOCAL_AI_ENABLED=true
 ```
 
-The AI pipeline uses fallback: `Local (llama.cpp) → Groq → OpenRouter`
+The AI pipeline uses fallback: `Local (llama.cpp) → Groq → OpenRouter` with auto-retry (3x exponential backoff) for failed signals.
+
+## 📊 Admin Dashboard
+
+The admin panel at `/admin` provides:
+
+- **AI Health** — real-time status of all AI providers with latency
+- **Signal Stats** — total signals, severity breakdown, category counts, AI processing metrics
+- **AI Retry** — re-queue failed AI signals with one click
+- **Source Management** — CRUD for RSS feed sources
+- **Category Management** — manage intelligence categories
+- **Database Backup** — manual and automated daily backups
 
 ## 🔔 Discord Alerts
 
