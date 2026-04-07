@@ -230,9 +230,10 @@ export default function AdminDashboard() {
                 <StatusDot status={aiHealth.groq.status} />
                 <span className="font-medium">Groq</span>
                 {aiHealth.groq.model && <span className="text-muted-foreground text-[10px]">{aiHealth.groq.model}</span>}
-                {aiHealth.tokenUsage?.groq?.today?.total > 0 && (
-                  <span className="text-blue-400 text-[10px]">{aiHealth.tokenUsage?.groq?.today?.total?.toLocaleString()}t</span>
-                )}
+                {(() => {
+                  const groqTokens = aiHealth.tokenUsage?.groq?.today?.total ?? 0;
+                  return groqTokens > 0 ? <span className="text-blue-400 text-[10px]">{groqTokens.toLocaleString()}t</span> : null;
+                })()}
               </div>
             )}
             {aiHealth?.openrouter && (
@@ -240,9 +241,10 @@ export default function AdminDashboard() {
                 <StatusDot status={aiHealth.openrouter.status} />
                 <span className="font-medium">OR</span>
                 {aiHealth.openrouter.model && <span className="text-muted-foreground text-[10px]">{aiHealth.openrouter.model}</span>}
-                {aiHealth.tokenUsage?.openrouter?.today?.total > 0 && (
-                  <span className="text-blue-400 text-[10px]">{aiHealth.tokenUsage?.openrouter?.today?.total?.toLocaleString()}t</span>
-                )}
+                {(() => {
+                  const orTokens = aiHealth.tokenUsage?.openrouter?.today?.total ?? 0;
+                  return orTokens > 0 ? <span className="text-blue-400 text-[10px]">{orTokens.toLocaleString()}t</span> : null;
+                })()}
               </div>
             )}
           </div>
