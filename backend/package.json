@@ -24,7 +24,7 @@
     "test:discord": "ts-node src/scripts/test-discord.ts",
     "test:ai": "ts-node src/scripts/test-ai.ts",
     "seed": "ts-node src/database/seed.ts",
-    "start:prod": "npx drizzle-kit push && node dist/src/main"
+    "start:prod": "npx drizzle-kit push && npx ts-node src/database/seed.ts && node dist/src/main"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -33,6 +33,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.1.1",
     "axios": "^1.14.0",
+    "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.2",
     "ioredis": "^5.10.1",
@@ -49,6 +50,7 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.0",
     "@types/ioredis": "^4.28.10",

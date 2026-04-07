@@ -1,0 +1,5 @@
+users:
+  admin:
+    name: "admin"
+    email: "admin@signalstack.local"
+    password: "$2a$10$zIq1dCbmUWsBZXxGzHkGr.6G/W5sXCQFcX0N9gtt3z1Hqu5xjeKCy"

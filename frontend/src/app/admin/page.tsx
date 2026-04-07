@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, Rss, Layers, ShieldCheck, ArrowRight, LogOut } from "lucide-react";
+import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, Activity, Zap, Server } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
@@ -15,10 +15,85 @@ import { logoutAdmin } from "@/lib/auth";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => r.json());
 
+type ProviderHealth = {
+  status: "healthy" | "unhealthy" | "no_api_key" | "disabled";
+  latency?: number;
+  error?: string;
+};
+
+type AIHealth = {
+  local: ProviderHealth;
+  groq: ProviderHealth;
+  openrouter: ProviderHealth;
+  localEnabled: boolean;
+  pipeline: string;
+};
+
+function StatusDot({ status }: { status: string }) {
+  const color =
+    status === "healthy" ? "bg-emerald-500 shadow-emerald-500/50" :
+    status === "disabled" || status === "no_api_key" ? "bg-yellow-500 shadow-yellow-500/50" :
+    "bg-red-500 shadow-red-500/50";
+
+  return <span className={cn("inline-block w-2 h-2 rounded-full shadow-sm", color)} />;
+}
+
+function StatusLabel({ status }: { status: string }) {
+  const styles =
+    status === "healthy" ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" :
+    status === "disabled" ? "text-zinc-400 bg-zinc-500/10 border-zinc-500/20" :
+    status === "no_api_key" ? "text-yellow-400 bg-yellow-500/10 border-yellow-500/20" :
+    "text-red-400 bg-red-500/10 border-red-500/20";
+
+  const label =
+    status === "healthy" ? "ONLINE" :
+    status === "disabled" ? "DISABLED" :
+    status === "no_api_key" ? "NO KEY" :
+    "OFFLINE";
+
+  return (
+    <span className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border", styles)}>
+      {label}
+    </span>
+  );
+}
+
+function ProviderCard({ name, icon, health }: { name: string; icon: React.ReactNode; health?: ProviderHealth }) {
+  const status = health?.status || "unhealthy";
+
+  return (
+    <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+          {icon}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <StatusDot status={status} />
+            <span className="text-sm font-bold tracking-tight text-foreground">{name}</span>
+          </div>
+          {health?.latency !== undefined && (
+            <span className="text-[10px] text-muted-foreground font-medium">{health.latency}ms latency</span>
+          )}
+          {health?.error && (
+            <span className="text-[10px] text-red-400 font-medium">{health.error}</span>
+          )}
+        </div>
+      </div>
+      <StatusLabel status={status} />
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [isBackingUp, setIsBackingUp] = useState(false);
   const { data: statsData } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
+  const { data: aiHealth, isValidating: aiLoading, mutate: refreshAI } = useSWR<AIHealth>(
+    `${API_BASE}/api/admin/ai/health`,
+    fetcher,
+    { refreshInterval: 60000 }
+  );
 
   const handleBackup = async () => {
     setIsBackingUp(true);
@@ -28,12 +103,12 @@ export default function AdminDashboard() {
         credentials: "include",
       });
       if (res.ok) {
-        alert("✅ SNAPSHOT_STABLE: DATA_PIPELINE_BACKUP_COMPLETE");
+        alert("Backup complete.");
       } else {
-        alert("❌ SNAPSHOT_FAILED: PIPELINE_CORRUPTION_DETECTED");
+        alert("Backup failed.");
       }
     } catch {
-      alert("❌ SNAPSHOT_FAILED: PIPELINE_CORRUPTION_DETECTED");
+      alert("Backup failed.");
     } finally {
       setIsBackingUp(false);
     }
@@ -50,6 +125,13 @@ export default function AdminDashboard() {
     { title: "Signal Categories", description: "Tune classification & routing logic.", icon: Layers, href: "/admin/categories", variant: "secondary" as const, stat: "Active" },
     { title: "Database Backup", description: "Create a full corpus security snapshot.", icon: ShieldCheck, onClick: handleBackup, loading: isBackingUp, stat: "Ready" }
   ];
+
+  const healthyCount = aiHealth
+    ? [aiHealth.local, aiHealth.groq, aiHealth.openrouter].filter(p => p.status === "healthy").length
+    : 0;
+  const totalProviders = aiHealth
+    ? [aiHealth.local, aiHealth.groq, aiHealth.openrouter].filter(p => p.status !== "disabled").length
+    : 0;
 
   return (
     <div className="min-h-screen bg-background font-sans">
@@ -75,6 +157,53 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
+        {/* AI Health Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Brain className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold tracking-tight uppercase text-foreground">AI Providers</h2>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  {aiHealth ? `${healthyCount}/${totalProviders} online` : "Loading..."}
+                  {aiHealth?.pipeline && ` \u00B7 ${aiHealth.pipeline}`}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refreshAI()}
+              disabled={aiLoading}
+              className="gap-2 text-[10px] font-black uppercase tracking-widest"
+            >
+              <RefreshCw className={cn("w-3 h-3", aiLoading && "animate-spin")} />
+              Refresh
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <ProviderCard
+              name="Local (Qwen)"
+              icon={<Server className="w-4 h-4 text-primary" />}
+              health={aiHealth?.local}
+            />
+            <ProviderCard
+              name="Groq"
+              icon={<Zap className="w-4 h-4 text-primary" />}
+              health={aiHealth?.groq}
+            />
+            <ProviderCard
+              name="OpenRouter"
+              icon={<Activity className="w-4 h-4 text-primary" />}
+              health={aiHealth?.openrouter}
+            />
+          </div>
+        </div>
+
+        {/* Module Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {modules.map((module) => (
             <Card key={module.title} className="bg-card border-border shadow-sm hover:border-primary/40 transition-all duration-500 overflow-hidden group rounded-lg">

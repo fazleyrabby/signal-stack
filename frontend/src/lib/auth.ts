@@ -1,10 +1,10 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-export async function loginAdmin(apiKey: string): Promise<boolean> {
+export async function loginAdmin(email: string, password: string): Promise<boolean> {
   const res = await fetch(`${API_BASE}/api/admin/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ apiKey }),
+    body: JSON.stringify({ email, password }),
     credentials: "include",
   });
   return res.ok;

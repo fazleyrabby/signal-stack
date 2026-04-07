@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { KeyRound, ShieldAlert, Loader2 } from "lucide-react";
 
 export default function AdminLogin() {
-  const [key, setKey] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -19,7 +20,6 @@ export default function AdminLogin() {
 
   useEffect(() => {
     setMounted(true);
-    // Check if already logged in by checking for access token cookie
     const cookies = document.cookie;
     if (cookies.includes('signalstack_access_token')) {
       router.replace("/admin");
@@ -34,12 +34,12 @@ export default function AdminLogin() {
     setError("");
 
     try {
-      const success = await loginAdmin(key);
+      const success = await loginAdmin(email, password);
 
       if (success) {
         window.location.href = "/admin";
       } else {
-        setError("Invalid Admin Key. Please check your system configuration.");
+        setError("Invalid email or password.");
       }
     } catch {
       setError("Unable to connect to the Admin Hub.");
@@ -60,9 +60,9 @@ export default function AdminLogin() {
 
         <Card className="border-border/50 shadow-2xl backdrop-blur-sm bg-card/30">
           <CardHeader>
-            <CardTitle>Restricted Access</CardTitle>
+            <CardTitle>Admin Login</CardTitle>
             <CardDescription>
-              Enter the Admin Secret Key to manage SignalStack protocols.
+              Sign in with your credentials to manage SignalStack.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -74,13 +74,25 @@ export default function AdminLogin() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="key">System Key</Label>
-                <Input 
-                  id="key" 
-                  type="password" 
-                  value={key} 
-                  onChange={(e) => setKey(e.target.value)}
-                  placeholder="••••••••••••••••"
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@signalstack.local"
+                  required
+                  className="bg-muted/50 border-border/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
                   required
                   className="bg-muted/50 border-border/50"
                 />
@@ -89,7 +101,7 @@ export default function AdminLogin() {
             <CardFooter>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Authorize Access
+                Sign In
               </Button>
             </CardFooter>
           </form>
