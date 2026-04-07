@@ -102,6 +102,7 @@ function ProviderCard({ name, icon, health }: { name: string; icon: React.ReactN
 export default function AdminDashboard() {
   const router = useRouter();
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const { data: statsData } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
   const { data: aiHealth, isValidating: aiLoading, mutate: refreshAI } = useSWR<AIHealth>(
     `${API_BASE}/api/admin/ai/health`,
@@ -125,6 +126,26 @@ export default function AdminDashboard() {
       alert("Backup failed.");
     } finally {
       setIsBackingUp(false);
+    }
+  };
+
+  const handleRetryAI = async () => {
+    setIsRetrying(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/ai/retry`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Queued ${data.queued} signals for AI retry.`);
+      } else {
+        alert("Retry failed.");
+      }
+    } catch {
+      alert("Retry failed.");
+    } finally {
+      setIsRetrying(false);
     }
   };
 
@@ -264,12 +285,27 @@ export default function AdminDashboard() {
               icon={<Bot className="w-4 h-4 text-violet-400" />}
               accent="bg-violet-500/10"
             />
-            <StatCard
-              label="AI Failed"
-              value={statsData?.aiFailed?.toLocaleString()}
-              icon={<XCircle className="w-4 h-4 text-orange-400" />}
-              accent="bg-orange-500/10"
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <StatCard
+                  label="AI Failed"
+                  value={statsData?.aiFailed?.toLocaleString()}
+                  icon={<XCircle className="w-4 h-4 text-orange-400" />}
+                  accent="bg-orange-500/10"
+                />
+              </div>
+              {(statsData?.aiFailed ?? 0) > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRetryAI}
+                  disabled={isRetrying}
+                  className="h-full text-[9px] font-black uppercase tracking-wider px-3"
+                >
+                  <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
+                </Button>
+              )}
+            </div>
             <StatCard
               label="Medium Severity"
               value={statsData?.medium?.toLocaleString()}

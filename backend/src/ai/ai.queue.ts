@@ -81,11 +81,14 @@ export class AIQueue implements OnModuleInit {
         retry: (job.retryCount || 0) < 1 
       });
 
-      // 3. Resilience: Simple single retry after delay
-      if ((job.retryCount || 0) < 1) {
+      // 3. Resilience: Retry up to 3 times with exponential backoff
+      const retries = job.retryCount || 0;
+      if (retries < 3) {
+        const backoff = (retries + 1) * 30000; // 30s, 60s, 90s
+        logEvent('info', 'ai_queue_retry_scheduled', { jobId: job.id, retry: retries + 1, backoffMs: backoff });
         setTimeout(() => {
-          this.enqueue({ ...job, retryCount: (job.retryCount || 0) + 1 });
-        }, 10000); // 10s cooldown for retry
+          this.enqueue({ ...job, retryCount: retries + 1 });
+        }, backoff);
       }
     }
   }

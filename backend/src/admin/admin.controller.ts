@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AIService } from '../ai/ai.service';
+import { AIQueue } from '../ai/ai.queue';
 import { AdminGuard } from './admin.guard';
 
 @Controller('api/admin')
@@ -18,6 +19,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly aiService: AIService,
+    private readonly aiQueue: AIQueue,
   ) {}
 
   // --- AI Health Check ---
@@ -68,6 +70,24 @@ export class AdminController {
   @Delete('sources/:id')
   async deleteSource(@Param('id') id: string) {
     return this.adminService.deleteSource(id);
+  }
+
+  // --- AI Retry ---
+
+  @Post('ai/retry')
+  async retryFailedAI() {
+    const failed = await this.adminService.getFailedAISignals();
+    let queued = 0;
+    for (const signal of failed) {
+      await this.aiQueue.enqueue({
+        id: signal.id,
+        title: signal.title,
+        content: signal.content,
+        score: signal.score,
+      });
+      queued++;
+    }
+    return { queued, total: failed.length };
   }
 
   // --- System ---
