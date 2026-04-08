@@ -29,6 +29,8 @@ const changelog = [
           "Footer component — page footer",
           "Signal skeleton component — loading state placeholders",
           "frontend/.dockerignore — excludes node_modules and .next from build context",
+          "Header: Show/Hide controls toggle button with text label",
+          "Header: SIGNAL STACK logo now visible on mobile",
         ],
       },
       {
@@ -63,6 +65,7 @@ const changelog = [
           "Build: duplicate loadMore function definition",
           "Build: signals referenced before initialization (hook ordering)",
           "Build: revalidateOnMount=false prevented initial data fetch",
+          "Build: striptags module missing from package.json",
           "Runtime: API response shape mismatch ({ data: [] } vs direct array)",
           "Runtime: stats prop shape mismatch between StatsBar and page",
           "Docker: frontend container serving blank page (stale build cache)",
@@ -75,6 +78,9 @@ const changelog = [
           "CORS: browser blocking localhost:3000 fetches from HTTPS origin",
           "Scroll: infinite scroll jumping to top on load more",
           "Scroll: CSS columns redistributing items causing scroll reset",
+          "RSS: HTML tags not being stripped properly from feed content — added striptags library",
+          "UI: Show/Hide controls button moved to header for better UX",
+          "Dev: next.config.ts default API backend changed to localhost:3000 for npm run dev",
         ],
       },
       {
