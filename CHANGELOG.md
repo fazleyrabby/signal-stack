@@ -7,6 +7,13 @@ All notable changes to SignalStack will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Dynamic LLM model selection with searchable dropdown in admin dashboard (Groq + OpenRouter)
+- `SearchableModelSelect` component with real-time filter by model name/ID
+- Backend model management API: `GET/PUT /api/admin/ai/models`, `POST /api/admin/ai/models/refresh`
+- `SettingsService` for persisting AI model configuration in database
+- `settings` table in database schema for key-value configuration storage
+- Model fetching from Groq and OpenRouter APIs with caching and static fallbacks
+- Dozzle authentication enforcement via `DOZZLE_AUTH_PROVIDER: simple`
 - Error boundary components (`error.tsx`, `global-error.tsx`, `not-found.tsx`) for all routes
 - Admin route error boundaries (`admin/error.tsx`, `admin/categories/error.tsx`, `admin/sources/error.tsx`)
 - `scripts/audit.sh` — VPS environment health check script

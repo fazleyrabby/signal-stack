@@ -206,8 +206,9 @@ The admin dashboard includes a real-time AI provider health panel showing:
 - **Error details** for unhealthy providers
 - **Pipeline visualization**: Shows the active fallback chain
 - **Queue size**: Displays real-time count of pending AI jobs in the processing queue
+- **Model selection**: Searchable dropdowns for Groq and OpenRouter models with real-time filter
 - Auto-refreshes every 60 seconds with manual refresh option
-- API endpoint: `GET /api/admin/ai/health`
+- API endpoints: `GET /api/admin/ai/health`, `GET/PUT /api/admin/ai/models`, `POST /api/admin/ai/models/refresh`
 
 ### Signal Intelligence Stats
 
@@ -228,8 +229,8 @@ Failed AI signals can be retried:
 ### Dozzle Logs (Production)
 
 Production container logs are accessible via Dozzle at `https://logs.fazleyrabbi.xyz/`.
-- Protected by built-in username/password authentication
-- Credentials configured in `dozzle/users.yml`
+- Protected by `DOZZLE_AUTH_PROVIDER: simple` with username/password authentication
+- Credentials configured in `dozzle/users.yml` (bcrypt-hashed passwords)
 
 ### System Backup
 - **Automated**: Runs daily at **Midnight** via cron.

@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../redis.service';
+import { SettingsService } from '../settings.service';
 import { logEvent } from '../../common/logger';
 
 @Injectable()
 export class OpenRouterProvider {
   private readonly apiKey: string | undefined;
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
-  private readonly model = 'meta-llama/llama-3.3-70b-instruct';
+  private defaultModel = 'meta-llama/llama-3.3-70b-instruct';
 
   public lastError: number | null = null;
   public modelName = 'llama-3.3-70b-instruct';
@@ -15,8 +16,16 @@ export class OpenRouterProvider {
   constructor(
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    private readonly settingsService: SettingsService,
   ) {
     this.apiKey = this.configService.get<string>('OPENROUTER_API_KEY');
+  }
+
+  private async getModel(): Promise<string> {
+    const config = await this.settingsService.getModelConfig();
+    const model = config.openrouterModel || this.defaultModel;
+    this.modelName = model;
+    return model;
   }
 
   async summarize(title: string, content: string): Promise<string | null> {
@@ -24,6 +33,8 @@ export class OpenRouterProvider {
     if (!this.apiKey) {
       return null;
     }
+
+    const model = await this.getModel();
 
     try {
       const controller = new AbortController();
@@ -38,7 +49,7 @@ export class OpenRouterProvider {
           'X-Title': 'SignalStack',
         },
         body: JSON.stringify({
-          model: this.model,
+          model,
           messages: [
             {
               role: 'system',
@@ -91,6 +102,7 @@ export class OpenRouterProvider {
       return { status: 'no_api_key' };
     }
 
+    const model = await this.getModel();
     const start = Date.now();
     try {
       const controller = new AbortController();
@@ -104,7 +116,7 @@ export class OpenRouterProvider {
           'HTTP-Referer': 'https://signalstack.now',
           'X-Title': 'SignalStack'
         },
-        body: JSON.stringify({ model: this.model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 }),
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 }),
         signal: controller.signal,
       });
 

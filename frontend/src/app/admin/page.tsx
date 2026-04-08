@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import useSWR from "swr";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity } from "lucide-react";
+import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
@@ -33,6 +33,20 @@ type AIHealth = {
     groq: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
     openrouter: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
   };
+};
+
+type LLMModel = {
+  id: string;
+  name: string;
+  provider: "groq" | "openrouter";
+  contextLength: number;
+};
+
+type ModelsResponse = {
+  groq: LLMModel[];
+  openrouter: LLMModel[];
+  selected: { groqModel: string; openrouterModel: string };
+  cached?: boolean;
 };
 
 function StatusDot({ status }: { status: string }) {
@@ -108,16 +122,140 @@ function ProviderCard({ name, icon, health }: { name: string; icon: React.ReactN
   );
 }
 
+function SearchableModelSelect({
+  models,
+  value,
+  onValueChange,
+  disabled,
+}: {
+  models: LLMModel[];
+  value: string;
+  onValueChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus();
+  }, [open]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch("");
+      }
+    }
+    if (open) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const filtered = models.filter((m) =>
+    m.name.toLowerCase().includes(search.toLowerCase()) ||
+    m.id.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectedModel = models.find((m) => m.id === value);
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => { setOpen(!open); setSearch(""); }}
+        className="flex w-full items-center justify-between h-7 px-2 text-xs rounded-md border border-input bg-transparent hover:bg-input/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        <span className="truncate text-left">
+          {selectedModel?.name || "Select model"}
+        </span>
+        <ChevronDown className={cn("w-3 h-3 text-muted-foreground shrink-0 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover shadow-md overflow-hidden">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-border">
+            <Search className="w-3 h-3 text-muted-foreground shrink-0" />
+            <input
+              ref={inputRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search models..."
+              className="w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto p-1">
+            {filtered.length === 0 ? (
+              <div className="text-xs text-muted-foreground text-center py-3">No models found</div>
+            ) : (
+              filtered.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => {
+                    onValueChange(m.id);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs text-left hover:bg-accent hover:text-accent-foreground transition-colors",
+                    m.id === value && "bg-accent/50"
+                  )}
+                >
+                  <span className="truncate">{m.name}</span>
+                  {m.id === value && <Check className="w-3 h-3 shrink-0 text-primary" />}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isUpdatingModel, setIsUpdatingModel] = useState(false);
   const { data: statsData } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
   const { data: aiHealth, isValidating: aiLoading, mutate: refreshAI } = useSWR<AIHealth>(
     `${API_BASE}/api/admin/ai/health`,
     fetcher,
     { refreshInterval: 60000 }
   );
+  const { data: modelsData, mutate: refreshModels } = useSWR<ModelsResponse>(
+    `${API_BASE}/api/admin/ai/models`,
+    fetcher
+  );
+
+  const handleModelChange = async (provider: 'groq' | 'openrouter', modelId: string | null) => {
+    if (!modelId) return;
+    setIsUpdatingModel(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/ai/models`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, modelId }),
+        credentials: 'include',
+      });
+      await Promise.all([refreshModels(), refreshAI()]);
+    } catch (err) {
+      console.error('Failed to update model:', err);
+    } finally {
+      setIsUpdatingModel(false);
+    }
+  };
+
+  const handleRefreshModels = async () => {
+    await fetch(`${API_BASE}/api/admin/ai/models/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    await refreshModels();
+  };
 
   const handleBackup = async () => {
     setIsBackingUp(true);
@@ -202,10 +340,18 @@ export default function AdminDashboard() {
                 {aiHealth ? `${healthyCount}/${totalProviders}` : "..."}
                 {aiHealth?.queueSize ? ` · ${aiHealth.queueSize}q` : ""}
               </span>
+              {modelsData?.cached && <span className="text-[8px] text-yellow-500">cached</span>}
             </div>
-            <Button variant="ghost" size="sm" onClick={() => refreshAI()} disabled={aiLoading} className="h-6 px-2">
-              <RefreshCw className={cn("w-3 h-3", aiLoading && "animate-spin")} />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => refreshModels()} className="h-6 px-2">
+                <RefreshCw className={cn("w-3 h-3", !modelsData && "animate-spin")} />
+                <span className="ml-1 text-[9px]">Refresh Models</span>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => refreshAI()} disabled={aiLoading} className="h-6 px-2">
+                <RefreshCw className={cn("w-3 h-3", aiLoading && "animate-spin")} />
+                <span className="ml-1 text-[9px]">Refresh Status</span>
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -218,25 +364,54 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 border border-border/40">
-              <div className="flex items-center gap-2">
-                <StatusDot status={aiHealth?.groq?.status || "unhealthy"} />
-                <div>
-                  <div className="text-sm font-bold text-foreground">Groq</div>
-                  {aiHealth?.groq?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.groq.model}</div>}
-                  {(() => { const t = aiHealth?.tokenUsage?.groq?.today?.total ?? 0; return t > 0 ? <div className="text-[10px] text-blue-400">{t.toLocaleString()} tokens</div> : null; })()}
+            <div className="py-2 px-3 rounded-lg bg-secondary/30 border border-border/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={aiHealth?.groq?.status || "unhealthy"} />
+                  <div>
+                    <div className="text-sm font-bold text-foreground">Groq</div>
+                    {aiHealth?.groq?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.groq.model}</div>}
+                    {(() => { const t = aiHealth?.tokenUsage?.groq?.today?.total ?? 0; return t > 0 ? <div className="text-[10px] text-blue-400">{t.toLocaleString()} tokens</div> : null; })()}
+                  </div>
                 </div>
+                <StatusLabel status={aiHealth?.groq?.status || "unhealthy"} />
               </div>
+              {modelsData?.groq && (
+                <SearchableModelSelect
+                  models={modelsData.groq}
+                  value={modelsData.selected.groqModel || ''}
+                  onValueChange={(v) => handleModelChange('groq', v)}
+                  disabled={isUpdatingModel}
+                />
+              )}
             </div>
-            <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 border border-border/40">
-              <div className="flex items-center gap-2">
-                <StatusDot status={aiHealth?.openrouter?.status || "unhealthy"} />
-                <div>
-                  <div className="text-sm font-bold text-foreground">OpenRouter</div>
-                  {aiHealth?.openrouter?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.openrouter.model}</div>}
-                  {(() => { const t = aiHealth?.tokenUsage?.openrouter?.today?.total ?? 0; return t > 0 ? <div className="text-[10px] text-blue-400">{t.toLocaleString()} tokens</div> : null; })()}
+            <div className="py-2 px-3 rounded-lg bg-secondary/30 border border-border/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={aiHealth?.openrouter?.status || "unhealthy"} />
+                  <div>
+                    <div className="text-sm font-bold text-foreground">OpenRouter</div>
+                    {aiHealth?.openrouter?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.openrouter.model}</div>}
+                    {(() => { const t = aiHealth?.tokenUsage?.openrouter?.today?.total ?? 0; return t > 0 ? <div className="text-[10px] text-blue-400">{t.toLocaleString()} tokens</div> : null; })()}
+                  </div>
                 </div>
+                <StatusLabel status={aiHealth?.openrouter?.status || "unhealthy"} />
               </div>
+              {modelsData?.openrouter && (
+                <SearchableModelSelect
+                  models={modelsData.openrouter}
+                  value={modelsData.selected.openrouterModel || ''}
+                  onValueChange={(v) => handleModelChange('openrouter', v)}
+                  disabled={isUpdatingModel}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="text-[10px] text-muted-foreground bg-secondary/20 px-3 py-2 rounded border border-border/30 flex items-start gap-2">
+            <Lightbulb className="w-3 h-3 text-yellow-500 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold text-foreground">Recommended for summarization:</span> Groq: <span className="text-blue-400">llama-3.3-70b-versatile</span> (quality) or <span className="text-blue-400">llama-3.1-8b-instant</span> (fast) · OpenRouter: <span className="text-blue-400">gemma-4-26b-a4b-it:free</span> or <span className="text-blue-400">qwen3-next-80b-a3b-instruct:free</span>
             </div>
           </div>
         </div>
