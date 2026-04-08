@@ -67,6 +67,8 @@ services:
       LOCAL_AI_URL: ${LOCAL_AI_URL:-http://llama:8080}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
       DISCORD_FILTER_TECH: ${DISCORD_FILTER_TECH:-false}
+    volumes:
+      - backups:/app/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,3 +107,4 @@ services:
 volumes:
   pgdata:
   models:
+  backups:
