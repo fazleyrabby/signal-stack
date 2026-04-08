@@ -12,9 +12,11 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build argument for API URL
+# Build arguments for API URLs
 ARG NEXT_PUBLIC_API_URL
+ARG API_BACKEND_URL=http://signalstack-app:3000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV API_BACKEND_URL=${API_BACKEND_URL}
 
 # Build Next.js app
 RUN npm run build
@@ -35,5 +37,6 @@ EXPOSE 3001
 
 ENV PORT=3001
 ENV NODE_ENV=production
+ENV API_BACKEND_URL=http://signalstack-app:3000
 
 CMD ["npm", "run", "start"]
