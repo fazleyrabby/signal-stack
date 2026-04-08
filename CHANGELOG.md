@@ -14,6 +14,12 @@ All notable changes to SignalStack will be documented in this file.
 - `settings` table in database schema for key-value configuration storage
 - Model fetching from Groq and OpenRouter APIs with caching and static fallbacks
 - Dozzle authentication enforcement via `DOZZLE_AUTH_PROVIDER: simple`
+- Persistent backup volume (`backups:`) so database backups survive container rebuilds
+
+### Fixed
+- Database backups lost on container rebuild — moved from `/app/` to `/app/backups/` on a named Docker volume
+
+### Added
 - Error boundary components (`error.tsx`, `global-error.tsx`, `not-found.tsx`) for all routes
 - Admin route error boundaries (`admin/error.tsx`, `admin/categories/error.tsx`, `admin/sources/error.tsx`)
 - `scripts/audit.sh` — VPS environment health check script

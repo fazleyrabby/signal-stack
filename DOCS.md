@@ -235,8 +235,9 @@ Production container logs are accessible via Dozzle at `https://logs.fazleyrabbi
 ### System Backup
 - **Automated**: Runs daily at **Midnight** via cron.
 - **Manual**: Triggerable from the Admin Dashboard.
-- **Output**: `backend/signalstack_backup.sql`
+- **Output**: `/app/backups/signalstack_backup.sql` (persisted to a Docker named volume `backups:`)
 - **Requires**: `postgresql-client` (included in Docker image).
+- **Persistence**: Backups survive container rebuilds via Docker volume mount.
 
 ---
 
