@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import Parser from 'rss-parser';
 import pLimit from 'p-limit';
+import striptags from 'striptags';
 import { eq } from 'drizzle-orm';
 import { RawSignal, ScoredSignal } from '../common/types';
 import { ScorerService } from '../scorer/scorer.service';
@@ -13,11 +14,7 @@ const FEED_TIMEOUT = 10_000; // 10s per feed
 
 /** Strip HTML tags and decode common entities to plain text */
 function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
+  return striptags(html)
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')

@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const API_BACKEND = process.env.API_BACKEND_URL || 'http://signalstack-app:3000';
+const API_BACKEND = process.env.API_BACKEND_URL || 'http://localhost:3000';
 
 const nextConfig: NextConfig = {
   async rewrites() {

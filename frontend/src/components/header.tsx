@@ -5,6 +5,8 @@ import {
   Search, 
   Sun,
   Moon,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -19,6 +21,8 @@ interface HeaderProps {
   onSearchChange?: (value: string) => void;
   showSearch?: boolean;
   isFullWidth?: boolean;
+  showControls?: boolean;
+  onToggleControls?: () => void;
 }
 
 export function Header({ 
@@ -27,7 +31,9 @@ export function Header({
   searchQuery, 
   onSearchChange, 
   showSearch = true,
-  isFullWidth = false
+  isFullWidth = false,
+  showControls = true,
+  onToggleControls
 }: HeaderProps) {
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
@@ -65,14 +71,14 @@ export function Header({
                 <path d="M22 12h0" />
               </svg>
            </div>
-           <div className="hidden sm:flex flex-col leading-none select-none">
-              <span className="text-[12px] font-black tracking-[0.35em] uppercase text-foreground">
-                 SIGNAL
-              </span>
-              <span className="text-[12px] font-black tracking-[0.35em] uppercase bg-gradient-to-r from-violet-400 to-indigo-500 bg-clip-text text-transparent">
-                 STACK
-              </span>
-           </div>
+            <div className="flex flex-col leading-none select-none">
+               <span className="text-[12px] font-black tracking-[0.35em] uppercase text-foreground">
+                  SIGNAL
+               </span>
+               <span className="text-[12px] font-black tracking-[0.35em] uppercase bg-gradient-to-r from-violet-400 to-indigo-500 bg-clip-text text-transparent">
+                  STACK
+               </span>
+            </div>
         </Link>
 
         <div className="flex-1 max-w-sm hidden lg:block">
@@ -102,6 +108,23 @@ export function Header({
               <Moon className="w-4 h-4 text-indigo-500 drop-shadow-[0_0_8px_rgba(99,102,241,0.2)]" />
             )}
           </button>
+
+          {onToggleControls && (
+            <button
+              onClick={onToggleControls}
+              className="flex items-center gap-2 px-3 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 shadow-sm"
+              title={showControls ? "Hide controls" : "Show controls"}
+            >
+              <span className="text-[10px] font-bold tracking-wide text-muted-foreground">
+                {showControls ? "Hide" : "Show"}
+              </span>
+              {showControls ? (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+          )}
 
           <div className="flex items-center gap-4 border-l border-border/10 pl-4 hidden md:flex h-6">
              <div className="flex flex-col items-end leading-none">

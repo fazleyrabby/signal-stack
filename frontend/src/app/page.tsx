@@ -87,6 +87,8 @@ export default function SignalsDashboard() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         isFullWidth={isFullWidth}
+        showControls={showControls}
+        onToggleControls={() => setShowControls(!showControls)}
       />
 
       <div className={cn(
@@ -170,37 +172,8 @@ export default function SignalsDashboard() {
                   <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
               </div>
-
-              <button
-                className={cn(
-                  "flex items-center justify-center h-8 w-8 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all",
-                  isFullWidth && "bg-primary/20 border-primary/20 text-primary shadow-[0_0_15px_-5px_rgba(var(--primary),0.3)]"
-                )}
-                onClick={() => setIsFullWidth(!isFullWidth)}
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-              </button>
             </div>
           </div>
-
-          {/* Toggle Bar */}
-          <button
-            onClick={() => setShowControls(!showControls)}
-            className={cn(
-              "flex items-center justify-center gap-1.5 w-full h-7 shrink-0 rounded-md border border-border/10 bg-card/20 hover:bg-card/40 transition-all duration-300 mb-2",
-              !showControls && "mb-2"
-            )}
-          >
-            <BarChart3 className="w-3 h-3 text-muted-foreground/50" />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50">
-              {showControls ? 'Hide Controls' : 'Show Controls'}
-            </span>
-            {showControls ? (
-              <ChevronUp className="w-3 h-3 text-muted-foreground/50" />
-            ) : (
-              <ChevronDown className="w-3 h-3 text-muted-foreground/50" />
-            )}
-          </button>
 
           {/* Column Content */}
           <div className="flex-1 overflow-hidden">
