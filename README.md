@@ -52,6 +52,7 @@ The AI pipeline uses fallback: `Local (llama.cpp) → Groq → OpenRouter` with 
 The admin panel at `/admin` provides:
 
 - **AI Health** — real-time status of all AI providers with latency
+- **Model Selection** — searchable dropdowns to switch Groq/OpenRouter models on the fly
 - **Signal Stats** — total signals, severity breakdown, category counts, AI processing metrics
 - **AI Retry** — re-queue failed AI signals with one click
 - **Source Management** — CRUD for RSS feed sources

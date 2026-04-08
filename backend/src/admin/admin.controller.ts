@@ -12,6 +12,9 @@ import { AdminService } from './admin.service';
 import { AIService } from '../ai/ai.service';
 import { AIQueue } from '../ai/ai.queue';
 import { AdminGuard } from './admin.guard';
+import { SettingsService } from '../ai/settings.service';
+import { fetchGroqModels, fetchOpenRouterModels, STATIC_FREE_MODELS } from '../ai/models';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('api/admin')
 @UseGuards(AdminGuard)
@@ -20,6 +23,8 @@ export class AdminController {
     private readonly adminService: AdminService,
     private readonly aiService: AIService,
     private readonly aiQueue: AIQueue,
+    private readonly settingsService: SettingsService,
+    private readonly configService: ConfigService,
   ) {}
 
   // --- AI Health Check ---
@@ -27,6 +32,76 @@ export class AdminController {
   async getAIHealth() {
     const health = await this.aiService.getHealth();
     return { ...health, queueSize: this.aiQueue.queueSize };
+  }
+
+  // --- LLM Models ---
+  @Get('ai/models')
+  async getAvailableModels() {
+    const config = await this.settingsService.getModelConfig();
+    
+    // Try to get cached models first
+    const cached = await this.settingsService.getCachedModels();
+    
+    if (cached) {
+      return {
+        groq: cached.groq,
+        openrouter: cached.openrouter,
+        selected: config,
+        cached: true,
+      };
+    }
+
+    // Fetch fresh models if no cache
+    const groqKey = this.configService.get<string>('GROQ_API_KEY');
+    const openrouterKey = this.configService.get<string>('OPENROUTER_API_KEY');
+
+    const [groqModels, openrouterModels] = await Promise.all([
+      groqKey ? fetchGroqModels(groqKey) : Promise.resolve(STATIC_FREE_MODELS.groq),
+      openrouterKey ? fetchOpenRouterModels(openrouterKey) : Promise.resolve(STATIC_FREE_MODELS.openrouter),
+    ]);
+
+    // Cache the results
+    await this.settingsService.setCachedModels({
+      groq: groqModels.length > 0 ? groqModels : STATIC_FREE_MODELS.groq,
+      openrouter: openrouterModels.length > 0 ? openrouterModels : STATIC_FREE_MODELS.openrouter,
+      fetchedAt: Date.now(),
+    });
+
+    return {
+      groq: groqModels.length > 0 ? groqModels : STATIC_FREE_MODELS.groq,
+      openrouter: openrouterModels.length > 0 ? openrouterModels : STATIC_FREE_MODELS.openrouter,
+      selected: config,
+    };
+  }
+
+  @Post('ai/models/refresh')
+  async refreshModelsCache() {
+    const groqKey = this.configService.get<string>('GROQ_API_KEY');
+    const openrouterKey = this.configService.get<string>('OPENROUTER_API_KEY');
+
+    const [groqModels, openrouterModels] = await Promise.all([
+      groqKey ? fetchGroqModels(groqKey) : Promise.resolve(STATIC_FREE_MODELS.groq),
+      openrouterKey ? fetchOpenRouterModels(openrouterKey) : Promise.resolve(STATIC_FREE_MODELS.openrouter),
+    ]);
+
+    await this.settingsService.setCachedModels({
+      groq: groqModels.length > 0 ? groqModels : STATIC_FREE_MODELS.groq,
+      openrouter: openrouterModels.length > 0 ? openrouterModels : STATIC_FREE_MODELS.openrouter,
+      fetchedAt: Date.now(),
+    });
+
+    return { success: true };
+  }
+
+  @Put('ai/models')
+  async updateModelConfig(@Body() body: { provider: 'groq' | 'openrouter'; modelId: string }) {
+    const { provider, modelId } = body;
+    if (provider === 'groq') {
+      await this.settingsService.setModelConfig({ groqModel: modelId });
+    } else if (provider === 'openrouter') {
+      await this.settingsService.setModelConfig({ openrouterModel: modelId });
+    }
+    return { success: true };
   }
 
   // --- Categories ---
