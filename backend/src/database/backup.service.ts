@@ -11,11 +11,15 @@ const execAsync = promisify(exec);
 @Injectable()
 export class BackupService implements OnModuleInit {
   private readonly logger = new Logger(BackupService.name);
-  private readonly backupPath = path.join(process.cwd(), 'signalstack_backup.sql');
+  private readonly backupDir = path.join(process.cwd(), 'backups');
+  private readonly backupPath = path.join(process.cwd(), 'backups', 'signalstack_backup.sql');
 
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
+    if (!fs.existsSync(this.backupDir)) {
+      fs.mkdirSync(this.backupDir, { recursive: true });
+    }
     this.logger.log('💾 Backup Service initialized');
   }
 
