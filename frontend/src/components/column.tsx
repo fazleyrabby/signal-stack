@@ -12,6 +12,7 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { SignalCard } from "@/components/signal-card";
+import { SignalDetailModal } from "@/components/signal-detail-modal";
 import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
 
@@ -69,20 +70,20 @@ function ColumnControlBar({
   return (
     <>
       <div className="flex items-center gap-1.5 p-1.5 bg-card/30 border border-border/5 rounded-lg">
-        <div className="flex items-center gap-0.5">
-          {['all', 'high', 'medium', 'low'].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={cn(
-                "h-6 px-2 text-[9px] font-black uppercase tracking-wider rounded-md transition-all",
-                filter === f ? "bg-primary text-primary-foreground shadow-md" : "opacity-50 hover:opacity-100 hover:bg-accent/30"
-              )}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+         <div className="flex items-center gap-0.5">
+           {['all', 'high', 'medium', 'low'].map((f) => (
+             <button
+               key={f}
+               onClick={() => setFilter(f)}
+               className={cn(
+                 "h-6 px-2 text-[11px] font-black uppercase tracking-wider rounded-md transition-all",
+                 filter === f ? "bg-primary text-primary-foreground shadow-md" : "opacity-50 hover:opacity-100 hover:bg-accent/30"
+               )}
+             >
+               {f}
+             </button>
+           ))}
+         </div>
 
         <div className="w-px h-4 bg-border/20 mx-1" />
 
@@ -94,15 +95,15 @@ function ColumnControlBar({
             sourceFilter && "bg-primary/20 border-primary/20 text-primary"
           )}
         >
-          <Filter className="w-3 h-3" />
-          <span className="max-w-[60px] truncate">{sourceFilter || 'Source'}</span>
-        </button>
+           <Filter className="w-3 h-3" />
+           <span className="max-w-[60px] truncate">{sourceFilter || 'Source'}</span>
+         </button>
 
-        <button
-          ref={sortBtnRef}
-          onClick={() => { setShowSortDropdown(!showSortDropdown); setShowSourceDropdown(false); }}
-          className="flex items-center gap-1 h-6 px-2 bg-accent/20 border border-border/10 rounded-md hover:bg-accent/40 transition-all text-[9px] font-bold uppercase tracking-wider"
-        >
+         <button
+           ref={sortBtnRef}
+           onClick={() => { setShowSortDropdown(!showSortDropdown); setShowSourceDropdown(false); }}
+           className="flex items-center gap-1 h-6 px-2 bg-accent/20 border border-border/10 rounded-md hover:bg-accent/40 transition-all text-[11px] font-bold uppercase tracking-wider"
+         >
           <ArrowUpDown className="w-3 h-3" />
           <span className="max-w-[50px] truncate">{sortOptions.find(s => s.id === sortBy)?.label || 'Sort'}</span>
         </button>
@@ -164,28 +165,28 @@ function SourceDropdown({
       className="fixed bg-popover border border-border/40 rounded-lg shadow-xl z-[100] w-48 max-h-56 overflow-y-auto"
       style={{ top: pos.top, left: pos.left }}
     >
-      <button
-        onClick={() => { setSourceFilter(''); onClose(); }}
-        className={cn(
-          "w-full text-left px-3 py-2 text-[9px] font-bold uppercase tracking-widest hover:bg-accent/40 transition-colors",
-          !sourceFilter ? "text-primary bg-accent/20" : "text-muted-foreground"
-        )}
-      >
-        All Sources
-      </button>
-      {sources.map((s) => (
-        <button
-          key={s.source}
-          onClick={() => { setSourceFilter(s.source); onClose(); }}
-          className={cn(
-            "w-full text-left px-3 py-2 text-[9px] font-bold uppercase tracking-widest hover:bg-accent/40 transition-colors flex justify-between items-center",
-            sourceFilter === s.source ? "text-primary bg-accent/20" : "text-muted-foreground"
-          )}
-        >
-          <span className="truncate">{s.source}</span>
-          <span className="text-[8px] text-muted-foreground/50 ml-2">{s.count}</span>
-        </button>
-      ))}
+       <button
+         onClick={() => { setSourceFilter(''); onClose(); }}
+         className={cn(
+           "w-full text-left px-3 py-2 text-[11px] font-bold uppercase tracking-widest hover:bg-accent/40 transition-colors",
+           !sourceFilter ? "text-primary bg-accent/20" : "text-muted-foreground"
+         )}
+       >
+         All Sources
+       </button>
+       {sources.map((s) => (
+         <button
+           key={s.source}
+           onClick={() => { setSourceFilter(s.source); onClose(); }}
+           className={cn(
+             "w-full text-left px-3 py-2 text-[11px] font-bold uppercase tracking-widest hover:bg-accent/40 transition-colors flex justify-between items-center",
+             sourceFilter === s.source ? "text-primary bg-accent/20" : "text-muted-foreground"
+           )}
+         >
+           <span className="truncate">{s.source}</span>
+           <span className="text-[8px] text-muted-foreground/50 ml-2">{s.count}</span>
+         </button>
+       ))}
     </div>
   );
 }
@@ -222,18 +223,18 @@ function SortDropdown({
       className="fixed bg-popover border border-border/40 rounded-lg shadow-xl z-[100] w-40"
       style={{ top: pos.top, left: pos.left }}
     >
-      {sortOptions.map((s) => (
-        <button
-          key={s.id}
-          onClick={() => { setSortBy(s.id); onClose(); }}
-          className={cn(
-            "w-full text-left px-3 py-2 text-[9px] font-bold uppercase tracking-widest hover:bg-accent/40 transition-colors",
-            sortBy === s.id ? "text-primary bg-accent/20" : "text-muted-foreground"
-          )}
-        >
-          {s.label}
-        </button>
-      ))}
+       {sortOptions.map((s) => (
+         <button
+           key={s.id}
+           onClick={() => { setSortBy(s.id); onClose(); }}
+           className={cn(
+             "w-full text-left px-3 py-2 text-[11px] font-bold uppercase tracking-widest hover:bg-accent/40 transition-colors",
+             sortBy === s.id ? "text-primary bg-accent/20" : "text-muted-foreground"
+           )}
+         >
+           {s.label}
+         </button>
+       ))}
     </div>
   );
 }
@@ -265,6 +266,7 @@ export function Column({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
+  const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
 
   const sortParam = sortBy === 'published_at' ? 'published_at' : sortBy === 'score' ? 'score' : 'created_at';
   const orderParam = sortBy === 'oldest' ? 'asc' : 'desc';
@@ -318,17 +320,17 @@ export function Column({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center gap-2 mb-2 px-1 shrink-0">
-        <div className="p-1 rounded-md bg-primary/10 text-primary">
-          <Icon className="w-3.5 h-3.5" />
-        </div>
-        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
-          {title}
-        </h2>
-        <span className="text-[9px] font-mono text-muted-foreground/30 ml-auto tabular-nums bg-accent/20 px-2 py-0.5 rounded-full">
-          {isLoading ? '--' : filtered.length} / {isLoading ? '--' : signals.length}
-        </span>
-      </div>
+       <div className="flex items-center gap-2 mb-2 px-1 shrink-0">
+         <div className="p-1 rounded-md bg-primary/10 text-primary">
+           <Icon className="w-3.5 h-3.5" />
+         </div>
+         <h2 className="text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+           {title}
+         </h2>
+         <span className="text-[11px] font-mono text-muted-foreground/30 ml-auto tabular-nums bg-accent/20 px-2 py-0.5 rounded-full">
+           {isLoading ? '--' : filtered.length} / {isLoading ? '--' : signals.length}
+         </span>
+       </div>
 
       <ColumnControlBar
         filter={filter}
@@ -367,20 +369,21 @@ export function Column({
                 <ChevronDown className="w-4 h-4 text-primary/60" />
               </div>
             )}
-            <div className={cn(
-              "p-3 pr-4",
-              layoutMode === 'grid'
-                ? isFullWidth
-                  ? "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-6 gap-4"
-                  : "columns-1 sm:columns-2 xl:columns-3 gap-4"
-                : "flex flex-col space-y-3"
-            )}>
-              {filtered.map((signal) => (
-                <div key={signal.id} className="break-inside-avoid mb-4">
-                  <SignalCard signal={signal} isCompact={layoutMode === 'list'} />
-                </div>
-              ))}
-            </div>
+             <div className={cn(
+               "p-3 pr-4",
+               layoutMode === 'grid'
+                 ? isFullWidth
+                   ? "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-6 gap-4"
+                   : "columns-1 sm:columns-2 xl:columns-3 gap-4"
+                 : "flex flex-col space-y-3"
+             )}>
+               {filtered.map((signal) => (
+                 <div key={signal.id} className="break-inside-avoid mb-4 cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => setSelectedSignal(signal)}>
+                   <SignalCard signal={signal} isCompact={layoutMode === 'list'} />
+                 </div>
+               ))}
+             </div>
 
             {hasMore && (
               <div className="flex justify-center py-4">
@@ -406,7 +409,11 @@ export function Column({
             )}
           </div>
         )}
-      </div>
-    </div>
-  );
-}
+       </div>
+       
+       {/* Signal Detail Modal */}
+       <SignalDetailModal signal={selectedSignal} onOpenChange={setSelectedSignal} />
+       
+     </div>
+   );
+ }

@@ -84,18 +84,18 @@ export function Header({
             </div>
         </Link>
 
-        <div className="flex-1 max-w-sm hidden lg:block">
-           {showSearch && (
-             <div className="relative group">
-               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-               <Input 
-                 placeholder="Search live insights..." 
-                 value={searchQuery}
-                 className="w-full bg-accent/10 border-border/10 pl-10 h-9 text-[13px] font-bold tracking-tight rounded-xl focus:ring-1 focus:ring-primary/20 transition-all font-sans"
-                 onChange={(e) => onSearchChange?.(e.target.value)}
-               />
-             </div>
-           )}
+        <div className="flex-1 max-w-sm block">
+            {showSearch && (
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                <Input 
+                  placeholder="Search live insights..." 
+                  value={searchQuery}
+                  className="w-full bg-accent/10 border-border/10 pl-10 h-9 text-[13px] font-bold tracking-tight rounded-xl focus:ring-1 focus:ring-primary/20 transition-all font-sans"
+                  onChange={(e) => onSearchChange?.(e.target.value)}
+                />
+              </div>
+            )}
         </div>
 
         {/* 2. Tactical Display Selector */}

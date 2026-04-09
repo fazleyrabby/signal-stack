@@ -26,7 +26,18 @@ All notable changes to SignalStack will be documented in this file.
 - Dozzle authentication enforcement via `DOZZLE_AUTH_PROVIDER: simple`
 - Persistent backup volume (`backups:`) so database backups survive container rebuilds
 
+### Changed
+- **Local AI optimized for low-resource VPS**: context window 1024→512, max_tokens 15→60, output cap 80→150 chars, directive prompt format for better small-model compliance
+- **Production defaults**: `LOCAL_AI_ENABLED=true`, `DISCORD_FILTER_TECH=true`, llama batch-size aligned to 64 across dev/prod
+
+### Added
+- **Signal Detail Modal**: click any card to view full title, AI summary, content preview, metadata, and direct link to original article
+- **Severity color stripes**: left border on signal cards (red/amber/blue) for instant visual scanning
+- **Mobile search**: search input now visible on all screen sizes
+- **UX font improvements**: minimum font sizes bumped for accessibility
+
 ### Fixed
+- **Signal detail modal**: fixed type mismatch on close handler, fixed "Read Original" button not navigating (Button doesn't support href)
 - **HTML in Discord embeds**: RSS content with encoded HTML entities (`&lt;p&gt;`, `&lt;a href="..."&gt;`) now properly stripped — entities are decoded before tag stripping, and `<script>`/`<style>` blocks are fully removed
 - Database backups lost on container rebuild — moved from `/app/` to `/app/backups/` on a named Docker volume
 

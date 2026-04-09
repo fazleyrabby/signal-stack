@@ -35,9 +35,9 @@ export function StatsBar({ stats }: StatsBarProps) {
         )}>
           <div className="flex items-center justify-between">
              <div className="flex flex-col gap-0">
-                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  {item.label}
-                </span>
+                 <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
+                   {item.label}
+                 </span>
                 <span className="text-md md:text-lg font-black tracking-tight tabular-nums text-foreground leading-none">
                   {typeof item.value === 'number' ? item.value.toLocaleString() : item.value}
                 </span>

@@ -44,58 +44,57 @@ export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
     }
   };
 
+  // Severity-based left border
+  const severityBorderClass = signal.score >= 8 ? "border-l-2 border-l-red-500"
+    : signal.score >= 5 ? "border-l-2 border-l-amber-500"
+    : "border-l-2 border-l-blue-500";
+
   return (
     <Card className={cn(
       "group relative overflow-hidden transition-all duration-300 border-border/10",
       "bg-card hover:bg-accent/5 hover:border-primary/20 shadow-sm",
       isCompact ? "rounded-none border-b py-3 px-4 h-auto" : "rounded-lg border h-full",
+      severityBorderClass, // Add severity border
       className
     )}>
       <div className={cn("p-0 relative flex flex-col h-full uppercase-none", isCompact ? "" : "p-4.5")}>
         <div className="flex flex-col h-full justify-between gap-3">
           <div className="space-y-3">
             {/* Metadata Line */}
-            <div className="flex items-center justify-between">
-               <div className="flex items-center gap-3">
-                 <span className={cn(
-                   "text-[10px] font-black uppercase tracking-widest",
-                   signal.score >= 8 ? "text-red-500" : signal.score >= 5 ? "text-amber-500" : "text-blue-500"
-                 )}>
-                   {signal.source.split(' ')[0]}
-                 </span>
-                 <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tabular-nums">
-                    {getRelativeTime(signal.publishedAt)}
-                 </span>
-               </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className={cn(
+                    "text-[11px] font-black uppercase tracking-widest",
+                    signal.score >= 8 ? "text-red-500" : signal.score >= 5 ? "text-amber-500" : "text-blue-500"
+                  )}>
+                    {signal.source.split(' ')[0]}
+                  </span>
+                  <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tabular-nums">
+                     {getRelativeTime(signal.publishedAt)}
+                  </span>
+                </div>
                
-               {isCompact && (
-                 <a href={signal.url} target="_blank" rel="noopener noreferrer">
-                    <ChevronRight className="w-4 h-4 text-muted-foreground/30 hover:text-primary transition-all" />
-                 </a>
-               )}
+                {isCompact && (
+                  <div className="w-4 h-4 text-muted-foreground/30 hover:text-primary transition-all">
+                    <ChevronRight />
+                  </div>
+                )}
             </div>
 
             {/* Title: Dynamic Informational Portals */}
-            <a 
-              href={signal.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="block group/title"
-            >
-              <h3 className={cn(
-                "font-extrabold leading-tight text-foreground transition-colors group-hover/title:text-primary",
-                isCompact ? "text-[13px] pr-8" : "text-[15px] line-clamp-2 tracking-tight"
-              )}>
-                {signal.title}
-              </h3>
-            </a>
+            <h3 className={cn(
+              "font-extrabold leading-tight text-foreground transition-colors group-hover/title:text-primary block group/title",
+              isCompact ? "text-[13px] pr-8 line-clamp-1" : "text-[15px] line-clamp-2 tracking-tight"
+            )}>
+              {signal.title}
+            </h3>
 
             {/* AI Summary: Adaptive Briefing */}
             {!isCompact && (signal.aiSummary || signal.summary) && (
               <div className="p-3 bg-accent/10 rounded-md border border-border/10 relative group/brief overflow-hidden">
                  <div className="flex items-center gap-2 mb-1.5 opacity-40">
                      <Sparkles className="w-3 h-3 text-primary" />
-                     <span className="text-[9px] font-black uppercase tracking-widest">Analysis</span>
+                     <span className="text-[11px] font-black uppercase tracking-widest">Analysis</span>
                      {signal.aiProvider && PROVIDER_CONFIG[signal.aiProvider] && (() => {
                        const cfg = PROVIDER_CONFIG[signal.aiProvider!];
                        const Icon = cfg.icon;
@@ -128,23 +127,23 @@ export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
                         {PROVIDER_CONFIG[signal.aiProvider].label}
                       </Badge>
                     )}
-                   <div className={cn(
-                     "px-1.5 py-0.5 rounded text-[9px] font-black tabular-nums whitespace-nowrap shrink-0",
-                     signal.score >= 8 ? "bg-red-500 text-white" : signal.score >= 5 ? "bg-amber-500 text-white" : "bg-blue-500 text-white"
-                   )}>
-                     {signal.score} IMPACT
-                   </div>
+                    <div className={cn(
+                      "px-1.5 py-0.5 rounded text-[11px] font-black tabular-nums whitespace-nowrap shrink-0",
+                      signal.score >= 8 ? "bg-red-500 text-white" : signal.score >= 5 ? "bg-amber-500 text-white" : "bg-blue-500 text-white"
+                    )}>
+                      {signal.score} IMPACT
+                    </div>
                 </div>
                 
-                <a 
-                  href={signal.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all group/link shrink-0"
-                >
-                  EXPLORE
-                  <ChevronRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-all" />
-                </a>
+                 <a 
+                   href={signal.url} 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all group/link shrink-0"
+                 >
+                   EXPLORE
+                   <ChevronRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-all" />
+                 </a>
              </div>
           )}
         </div>
