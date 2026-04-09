@@ -43,6 +43,12 @@ export interface SignalStats {
   highPending: number;
 }
 
+export interface VisitorStats {
+  total: number;
+  today: number;
+  realtime: number;
+}
+
 export async function fetchSignals(
   params?: Record<string, string>
 ): Promise<SignalsResponse> {
@@ -64,5 +70,16 @@ export async function triggerBackup() {
     credentials: 'include',
   });
   if (!res.ok) throw new Error("Failed to trigger backup");
+  return res.json();
+}
+
+export async function fetchVisitorStats(): Promise<VisitorStats> {
+  const res = await fetch(`${API_BASE}/api/visitors/stats`);
+  if (!res.ok) throw new Error("Failed to fetch visitors");
+  return res.json();
+}
+
+export async function trackVisit() {
+  const res = await fetch(`${API_BASE}/api/visitors`, { method: 'POST' });
   return res.json();
 }

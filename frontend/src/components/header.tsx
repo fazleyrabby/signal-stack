@@ -7,6 +7,7 @@ import {
   Moon,
   ChevronUp,
   ChevronDown,
+  Users,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ interface HeaderProps {
   isFullWidth?: boolean;
   showControls?: boolean;
   onToggleControls?: () => void;
+  visitorCount?: number;
 }
 
 export function Header({ 
@@ -33,7 +35,8 @@ export function Header({
   showSearch = true,
   isFullWidth = false,
   showControls = true,
-  onToggleControls
+  onToggleControls,
+  visitorCount
 }: HeaderProps) {
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
@@ -129,10 +132,21 @@ export function Header({
           <div className="flex items-center gap-4 border-l border-border/10 pl-4 hidden md:flex h-6">
              <div className="flex flex-col items-end leading-none">
                 <div className="flex items-center gap-2">
-                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-[pulse_2s_infinite]" />
-                   <span className="text-[10px] font-black tracking-widest text-emerald-500 uppercase">Live UPLINK</span>
+                   {visitorCount !== undefined && visitorCount > 0 ? (
+                     <>
+                       <Users className="w-3 h-3 text-emerald-500" />
+                       <span className="text-[10px] font-black tracking-widest text-emerald-500">{visitorCount}</span>
+                     </>
+                   ) : (
+                     <>
+                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-[pulse_2s_infinite]" />
+                       <span className="text-[10px] font-black tracking-widest text-emerald-500 uppercase">Live UPLINK</span>
+                     </>
+                   )}
                 </div>
-                <span className="text-[8px] font-black text-muted-foreground/30 uppercase tracking-widest mt-1">Protocol synced</span>
+                <span className="text-[8px] font-black text-muted-foreground/30 uppercase tracking-widest mt-1">
+                  {visitorCount !== undefined ? "viewers" : "Protocol synced"}
+                </span>
              </div>
           </div>
         </div>
