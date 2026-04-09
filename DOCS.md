@@ -149,6 +149,50 @@ Local (llama.cpp) → Groq → OpenRouter
 - If Groq fails → falls back to OpenRouter
 - **Never crashes** — always fails gracefully
 
+#### Environment-Based AI Routing
+
+SignalStack supports environment-based routing to control AI provider usage across different environments:
+
+| Environment | Behavior |
+|---|---|
+| **Development/Local** | Uses only local AI (llama.cpp) - no external API calls |
+| **Production** | Full chain: `Local → Groq → OpenRouter` with fallback |
+
+**Environment Variables:**
+
+```env
+# Required for production external AI
+NODE_ENV=production
+AI_EXTERNAL_ENABLED=true
+
+# Optional - defaults apply if not set
+# LOCAL_AI_ENABLED=true (must be true for any AI processing)
+# AI_PROCESS_DELAY=1500     # ms between requests (default: 1500)
+# AI_MAX_WORKERS=2            # parallel workers (default: 2)
+# AI_DAILY_LIMIT=150        # daily request limit (default: 150)
+```
+
+**Logic:**
+
+1. **Local/Development Mode** (`NODE_ENV !== "production"` OR `AI_EXTERNAL_ENABLED=false`):
+   - Always tries local AI first
+   - If local fails after 2 retries → marks signal as failed
+   - Never calls Groq or OpenRouter
+
+2. **Production Mode** (`NODE_ENV = "production"` AND `AI_EXTERNAL_ENABLED=true`):
+   - Tries `Local → Groq → OpenRouter` chain
+   - Respects cooldowns and retry logic
+   - Logs provider used per signal
+
+**Provider Tracking:**
+
+Each signal stores `ai_provider` in the database:
+- `local` - processed by llama.cpp
+- `groq` - processed by Groq
+- `openrouter` - processed by OpenRouter
+- `none` - not processed (legacy data)
+- `failed` - all providers failed
+
 #### Resource Constraints
 
 For 4GB RAM / 2 CPU VMs:

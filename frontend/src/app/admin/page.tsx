@@ -220,7 +220,7 @@ export default function AdminDashboard() {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
-  const { data: statsData } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
+  const { data: statsData, mutate: refreshStats } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
   const { data: aiHealth, isValidating: aiLoading, mutate: refreshAI } = useSWR<AIHealth>(
     `${API_BASE}/api/admin/ai/health`,
     fetcher,
