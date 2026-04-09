@@ -7,6 +7,12 @@ All notable changes to SignalStack will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Environment-based AI routing**: Local-only mode for development (no external API calls)
+- **AI provider breakdown** endpoint: `GET /api/signals/ai-providers`
+- **High severity retry** endpoint: `POST /api/admin/ai/retry/high`
+- **High Pending** counter in dashboard stats
+- **AI Provider cards** in admin dashboard showing provider usage
+- New environment variables: `AI_EXTERNAL_ENABLED`, `AI_PROCESS_DELAY`, `AI_MAX_WORKERS`, `AI_DAILY_LIMIT`
 - Dynamic LLM model selection with searchable dropdown in admin dashboard (Groq + OpenRouter)
 - `SearchableModelSelect` component with real-time filter by model name/ID
 - Backend model management API: `GET/PUT /api/admin/ai/models`, `POST /api/admin/ai/models/refresh`
