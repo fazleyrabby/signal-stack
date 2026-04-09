@@ -483,39 +483,30 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <StatCard
               label="Total Signals"
               value={statsData?.total?.toLocaleString()}
               icon={<TrendingUp className="w-4 h-4 text-primary" />}
             />
             <StatCard
-              label="High Severity"
+              label="High"
               value={statsData?.high?.toLocaleString()}
               icon={<AlertTriangle className="w-4 h-4 text-red-400" />}
               accent="bg-red-500/10"
             />
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <StatCard
-                  label="High Pending"
-                  value={statsData?.highPending?.toLocaleString()}
-                  icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
-                  accent="bg-amber-500/10"
-                />
-              </div>
-              {(statsData?.highPending ?? 0) > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRetryHigh}
-                  disabled={isRetrying}
-                  className="h-full text-[9px] font-black uppercase tracking-wider px-3"
-                >
-                  <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
-                </Button>
-              )}
-            </div>
+            <StatCard
+              label="Medium"
+              value={statsData?.medium?.toLocaleString()}
+              icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
+              accent="bg-amber-500/10"
+            />
+            <StatCard
+              label="Low"
+              value={statsData?.low?.toLocaleString()}
+              icon={<AlertTriangle className="w-4 h-4 text-emerald-400" />}
+              accent="bg-emerald-500/10"
+            />
             <StatCard
               label="Geopolitics"
               value={statsData?.geopolitics?.toLocaleString()}
@@ -523,53 +514,44 @@ export default function AdminDashboard() {
               accent="bg-blue-500/10"
             />
             <StatCard
-              label="Technology"
+              label="Tech"
               value={statsData?.technology?.toLocaleString()}
               icon={<Cpu className="w-4 h-4 text-emerald-400" />}
               accent="bg-emerald-500/10"
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <StatCard
               label="AI Processed"
               value={statsData?.aiProcessed?.toLocaleString()}
               icon={<Bot className="w-4 h-4 text-violet-400" />}
               accent="bg-violet-500/10"
             />
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <StatCard
-                  label="AI Failed"
-                  value={statsData?.aiFailed?.toLocaleString()}
-                  icon={<XCircle className="w-4 h-4 text-orange-400" />}
-                  accent="bg-orange-500/10"
-                />
-              </div>
-              {(statsData?.aiFailed ?? 0) > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRetryAI}
-                  disabled={isRetrying}
-                  className="h-full text-[9px] font-black uppercase tracking-wider px-3"
-                >
-                  <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
-                </Button>
-              )}
-            </div>
             <StatCard
-              label="Medium Severity"
-              value={statsData?.medium?.toLocaleString()}
+              label="AI Failed"
+              value={statsData?.aiFailed?.toLocaleString()}
+              icon={<XCircle className="w-4 h-4 text-orange-400" />}
+              accent="bg-orange-500/10"
+            />
+            <StatCard
+              label="High Pending"
+              value={statsData?.highPending?.toLocaleString()}
               icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
               accent="bg-amber-500/10"
             />
-            <StatCard
-              label="Low Severity"
-              value={statsData?.low?.toLocaleString()}
-              icon={<AlertTriangle className="w-4 h-4 text-emerald-400" />}
-              accent="bg-emerald-500/10"
-            />
+            {(statsData?.highPending ?? 0) > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetryHigh}
+                disabled={isRetrying}
+                className="h-9 text-[9px] font-black uppercase tracking-wider"
+              >
+                <RefreshCw className={cn("w-3 h-3 mr-1", isRetrying && "animate-spin")} />
+                Retry
+              </Button>
+            )}
           </div>
         </div>
 
