@@ -239,6 +239,11 @@ export default function AdminDashboard() {
     `${API_BASE}/api/signals/ai-providers`,
     fetcher
   );
+  const { data: visitorStats } = useSWR<{ total: number; today: number; realtime: number }>(
+    `${API_BASE}/api/visitors/stats`,
+    fetcher,
+    { refreshInterval: 30000 }
+  );
 
   const handleModelChange = async (provider: 'groq' | 'openrouter', modelId: string | null) => {
     if (!modelId) return;
@@ -493,6 +498,18 @@ export default function AdminDashboard() {
               label="Total Signals"
               value={statsData?.total?.toLocaleString()}
               icon={<TrendingUp className="w-4 h-4 text-primary" />}
+            />
+            <StatCard
+              label="Total Today"
+              value={visitorStats?.today?.toLocaleString()}
+              icon={<Users className="w-4 h-4 text-blue-400" />}
+              accent="bg-blue-500/10"
+            />
+            <StatCard
+              label="Realtime"
+              value={visitorStats?.realtime?.toLocaleString()}
+              icon={<Users className="w-4 h-4 text-emerald-400" />}
+              accent="bg-emerald-500/10"
             />
             <StatCard
               label="High"
