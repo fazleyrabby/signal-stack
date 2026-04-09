@@ -75,7 +75,7 @@ services:
       - ./models:/models
     command: >
       -m /models/qwen.gguf
-      -c 1024
+      -c 512
       -t 2
       --batch-size 64
       --host 0.0.0.0

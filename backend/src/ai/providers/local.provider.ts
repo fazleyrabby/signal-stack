@@ -5,7 +5,7 @@ import { logEvent } from '../../common/logger';
 @Injectable()
 export class LocalProvider {
   private readonly timeout = 15000;
-  private readonly maxTokens = 15;
+  private readonly maxTokens = 60;
 
   public lastError: number | null = null;
   private enabled: boolean;
@@ -88,20 +88,21 @@ export class LocalProvider {
   }
 
   private buildPrompt(title: string, content: string): string {
-    const trimmedContent = content.slice(0, 150);
-    return `Title: ${title}\nContent: ${trimmedContent}\n\nShort summary:`;
+    const trimmedContent = content.slice(0, 200);
+    return `Summarize in 1 sentence (max 120 chars):\n${title}. ${trimmedContent}`;
   }
 
   private cleanResponse(text: string): string {
     let cleaned = text;
     cleaned = cleaned.replace(/<\|.*?\|>/g, ' ');
     cleaned = cleaned.replace(/<.*?>/g, '');
-    cleaned = cleaned.replace(/<think>/g, '');
-    cleaned = cleaned.replace(/<\/.*?>/g, '');
     cleaned = cleaned.replace(/\n/g, ' ');
     cleaned = cleaned.replace(/\s+/g, ' ');
     cleaned = cleaned.trim();
-    const words = cleaned.split(' ').slice(0, 15).join(' ');
-    return words.slice(0, 80);
+    // Cap at 150 chars, break at last word boundary
+    if (cleaned.length > 150) {
+      cleaned = cleaned.slice(0, 150).replace(/\s\S*$/, '');
+    }
+    return cleaned;
   }
 }

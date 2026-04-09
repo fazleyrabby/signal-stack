@@ -59,6 +59,17 @@ The admin panel at `/admin` provides:
 - **Category Management** — manage intelligence categories
 - **Database Backup** — manual and automated daily backups
 
+## 📰 Signal Feed
+
+The main dashboard features:
+
+- **Two-column layout** — Geopolitics and Technology streams side by side (tabbed on mobile)
+- **Grid & List modes** — dense list view or expanded card grid with severity color stripes
+- **Signal Detail Modal** — click any card for full title, AI summary, content preview, and metadata
+- **Search** — real-time filtering across all screen sizes
+- **Severity filters** — one-click All / High / Medium / Low toggles
+- **Source & sort controls** — filter by feed source, sort by newest/oldest/score
+
 ## 🔔 Discord Alerts
 
 Discord alerts send clean, HTML-free embeds with severity-based color coding (red/orange/green). RSS content is fully sanitized — HTML entities are decoded and all tags (including `<script>`/`<style>`) are stripped before sending.

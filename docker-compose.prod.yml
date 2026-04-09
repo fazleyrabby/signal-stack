@@ -32,8 +32,7 @@ services:
       -m /models/qwen.gguf
       -c 512
       -t 2
-      --batch-size 32
-      --ubatch-size 32
+      --batch-size 64
       --host 0.0.0.0
       --port 8080
     deploy:
@@ -63,10 +62,10 @@ services:
       NODE_ENV: "production"
       GROQ_API_KEY: ${GROQ_API_KEY}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      LOCAL_AI_ENABLED: ${LOCAL_AI_ENABLED:-false}
+      LOCAL_AI_ENABLED: ${LOCAL_AI_ENABLED:-true}
       LOCAL_AI_URL: ${LOCAL_AI_URL:-http://llama:8080}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
-      DISCORD_FILTER_TECH: ${DISCORD_FILTER_TECH:-false}
+      DISCORD_FILTER_TECH: ${DISCORD_FILTER_TECH:-true}
     volumes:
       - backups:/app/backups
     depends_on:

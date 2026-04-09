@@ -89,7 +89,7 @@ SignalStack features a production-grade, asynchronous AI enrichment pipeline des
   - **Secondary**: **Groq** (⚡ Sub-second inference)
   - **Tertiary**: **OpenRouter** (🧠 Comprehensive failover)
   - **429 Mitigation**: If a provider returns a rate limit error, the system enters a **60s Cooldown** for that provider.
-- **Executive Summaries**: AI distills entire news articles into a single, high-impact sentence (max 200 chars).
+- **Executive Summaries**: AI distills entire news articles into a single, high-impact sentence (max 150 chars).
 - **Safe Fallback**: If all AI providers fail or are paused, the system remains 100% functional via high-fidelity keyword scoring.
 - **Auto-Retry**: Failed signals automatically retry up to 3 times with exponential backoff (30s, 60s, 90s).
 - **Manual Retry**: Admins can re-queue all failed signals via `POST /api/admin/ai/retry` or the retry button on the dashboard.
@@ -198,8 +198,9 @@ Each signal stores `ai_provider` in the database:
 For 4GB RAM / 2 CPU VMs:
 
 - llama.cpp limited to **1GB memory**, **1 CPU**
-- Context window: 1024 tokens
-- Max output: 80 tokens
+- Context window: 512 tokens (optimized for small prompts)
+- Max output: 60 tokens (~150 char summaries)
+- Batch size: 64
 
 ---
 
@@ -210,9 +211,10 @@ The dashboard is a pro-grade analytical terminal:
 - **Widescreen Command Center**: Toggle between standard/centered and 100% viewport width for ultrawide monitoring.
 - **High-Density Modes**:
   - **List Mode**: Ultra-compact, single-line "quick titles" for scanning hundreds of events.
-  - **Grid Mode**: Expansive layout for detailed signal cards.
+  - **Grid Mode**: Expansive layout for detailed signal cards with severity color stripes (red/amber/blue left border).
+- **Signal Detail Modal**: Click any card to open a compact dialog with full title, AI summary, content preview, metadata, and a direct link to the original article.
 - **Intelligence Switcher (Mobile)**: Tactile tabs to switch between Geopolitical and Tech streams.
-- **Real-time Global Search**: Instant, server-side full-text search across titles, content, and AI summaries.
+- **Real-time Global Search**: Instant, full-text search across titles and sources — visible on all screen sizes including mobile.
 - **Severity Quick Filters**: One-click toggles for All / High / Medium / Low severity.
 - **Live Stats Bar**: Real-time signal counts, severity breakdown, and top source.
 - **Load More**: Fetch additional signals on demand without page reload.
