@@ -262,19 +262,42 @@ SignalStack tracks unique visitors with persistent storage in PostgreSQL.
 | `GET` | `/api/visitors/stats` | Get visitor stats `{ total, today, realtime }` |
 
 **Frontend Integration:**
-- Homepage header shows today's visitor count
+- Homepage header shows realtime viewer count
+- Admin dashboard shows Total Today + Realtime visitors
 - Automatically tracks visits on page load
-4. Middleware checks for valid access token on all `/admin/*` routes
-5. Auto-refresh extends sessions up to 7 days
-6. Logout clears both cookies server-side
+
+---
 
 **Default Credentials**: `admin@signalstack.local` / `changeme123` (configure via `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars)
 **JWT Secret**: Configure via `JWT_SECRET` in `.env` (required for production)
 
-### AI Health Dashboard
+### Source Health Checker
 
-The admin dashboard includes a real-time AI provider health panel showing:
-- **Status** of each provider: Local (Qwen), Groq, OpenRouter
+The admin Sources page includes a health checker button for each RSS feed:
+
+| Status | Icon | Description |
+|---|---|---|
+| Healthy | Green checkmark | HTTP 200 + valid RSS with items |
+| Error | Red X | HTTP error, timeout, or no data |
+| Checking | Spinner |正在检查中 |
+
+**API Endpoint:** `POST /api/admin/sources/:id/health`
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "code": 200,
+  "isRss": true,
+  "hasData": true,
+  "itemCount": 25
+}
+```
+
+**Actions:**
+- Toggle source active/inactive with switch in table
+- Edit source via dialog
+- Delete source (with confirmation)
 - **Latency** measurements for healthy providers
 - **Error details** for unhealthy providers
 - **Pipeline visualization**: Shows the active fallback chain
@@ -390,6 +413,7 @@ The Discord alerts now support **tech-only filtering**:
 - Only signals with `aiCategory === 'Tech'` are sent to Discord
 - Configure via `DISCORD_FILTER_TECH=true` in environment
 - Non-tech signals are logged but skipped
+- **HTML sanitization**: All RSS content is decoded from HTML entities, stripped of `<script>`/`<style>` blocks, and cleaned of all HTML tags before being sent to Discord embeds
 
 ```bash
 cd backend && npm run test:discord
@@ -508,6 +532,7 @@ SignalStack includes comprehensive error boundaries at every layer:
 
 ### Backend Error Handling
 - **Feed failures**: Logged and skipped — never crash the cycle
+- **Content sanitization**: RSS content is entity-decoded, then stripped of `<script>`/`<style>` blocks and all HTML tags to produce clean plain text
 - **AI provider failures**: Automatic failover with 60s cooldown
 - **Database errors**: Structured logging with PostgreSQL error code handling
 - **Discord webhook failures**: Logged, non-blocking

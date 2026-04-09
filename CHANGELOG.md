@@ -16,7 +16,8 @@ All notable changes to SignalStack will be documented in this file.
 - Dynamic LLM model selection with searchable dropdown in admin dashboard (Groq + OpenRouter)
 - **Visitor tracking**: Persistent visitor stats with PostgreSQL storage (`visitors` table)
 - **Visitor API**: `POST /api/visitors` (track visit), `GET /api/visitors/stats` (get stats)
-- **Visitor counter** displayed on homepage header
+- **Visitor counter** displayed on homepage header (realtime) and admin dashboard (total + realtime)
+- **Source Health Checker**: Admin can check RSS feed health status from Sources page
 - `SearchableModelSelect` component with real-time filter by model name/ID
 - Backend model management API: `GET/PUT /api/admin/ai/models`, `POST /api/admin/ai/models/refresh`
 - `SettingsService` for persisting AI model configuration in database
@@ -26,6 +27,7 @@ All notable changes to SignalStack will be documented in this file.
 - Persistent backup volume (`backups:`) so database backups survive container rebuilds
 
 ### Fixed
+- **HTML in Discord embeds**: RSS content with encoded HTML entities (`&lt;p&gt;`, `&lt;a href="..."&gt;`) now properly stripped — entities are decoded before tag stripping, and `<script>`/`<style>` blocks are fully removed
 - Database backups lost on container rebuild — moved from `/app/` to `/app/backups/` on a named Docker volume
 
 ### Added
