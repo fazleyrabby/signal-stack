@@ -13,6 +13,7 @@ import { AIService } from '../ai/ai.service';
 import { AIQueue } from '../ai/ai.queue';
 import { AdminGuard } from './admin.guard';
 import { SettingsService } from '../ai/settings.service';
+import { EmailService } from '../alerts/email.service';
 import { fetchGroqModels, fetchOpenRouterModels, STATIC_FREE_MODELS } from '../ai/models';
 import { ConfigService } from '@nestjs/config';
 
@@ -24,6 +25,7 @@ export class AdminController {
     private readonly aiService: AIService,
     private readonly aiQueue: AIQueue,
     private readonly settingsService: SettingsService,
+    private readonly emailService: EmailService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -182,18 +184,31 @@ export class AdminController {
     return { queued, total: high.length };
   }
 
-  // --- System ---
+   // --- System ---
 
-  @Post('backup')
-  async triggerBackup() {
-    console.log('🏁 Admin API: Triggering manual database backup...');
-    try {
-      const result = await this.adminService.triggerBackup();
-      console.log('✅ Admin API: Backup successful');
-      return result;
-    } catch (err) {
-      console.error(`❌ Admin API: Backup failed: ${err.message}`);
-      throw err;
-    }
-  }
+   @Post('backup')
+   async triggerBackup() {
+     console.log('🏁 Admin API: Triggering manual database backup...');
+     try {
+       const result = await this.adminService.triggerBackup();
+       console.log('✅ Admin API: Backup successful');
+       return result;
+     } catch (err) {
+       console.error(`❌ Admin API: Backup failed: ${err.message}`);
+       throw err;
+     }
+   }
+
+   // --- Email Digest ---
+   @Post('digest/test')
+   async triggerTestDigest() {
+     // Get admin email from request or config
+     const adminEmail = this.configService.get<string>('ADMIN_EMAIL') || 
+                       this.configService.get<string>('SMTP_USER');
+     if (!adminEmail) {
+       throw new Error('No admin email configured for test digest');
+     }
+     await this.emailService.sendTestDigest(adminEmail);
+     return { success: true, message: `Test digest sent to ${adminEmail}` };
+   }
 }

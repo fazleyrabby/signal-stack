@@ -120,4 +120,8 @@ export class SignalsService {
   async getAIProviderStats() {
     return this.repository.getAIProviderStats();
   }
+
+  async getTrends() {
+    return this.repository.getTrends();
+  }
 }

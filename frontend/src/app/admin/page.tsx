@@ -225,6 +225,7 @@ export default function AdminDashboard() {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
+  const [isSendingTestDigest, setIsSendingTestDigest] = useState(false);
   const { data: statsData, mutate: refreshStats } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
   const { data: aiHealth, isValidating: aiLoading, mutate: refreshAI } = useSWR<AIHealth>(
     `${API_BASE}/api/admin/ai/health`,
@@ -311,37 +312,58 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleRetryAI = async () => {
-    setIsRetrying(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/ai/retry`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        alert(`Queued ${data.queued} signals for AI retry.`);
-      } else {
-        alert("Retry failed.");
-      }
-    } catch {
-      alert("Retry failed.");
-    } finally {
-      setIsRetrying(false);
-    }
-  };
+   const handleRetryAI = async () => {
+     setIsRetrying(true);
+     try {
+       const res = await fetch(`${API_BASE}/api/admin/ai/retry`, {
+         method: "POST",
+         credentials: "include",
+       });
+       if (res.ok) {
+         const data = await res.json();
+         alert(`Queued ${data.queued} signals for AI retry.`);
+       } else {
+         alert("Retry failed.");
+       }
+     } catch {
+       alert("Retry failed.");
+     } finally {
+       setIsRetrying(false);
+     }
+   };
 
-  const handleLogout = async () => {
+   const handleTestDigest = async () => {
+     setIsSendingTestDigest(true);
+     try {
+       const res = await fetch(`${API_BASE}/api/admin/digest/test`, {
+         method: "POST",
+         credentials: "include",
+       });
+       if (res.ok) {
+         const data = await res.json();
+         alert(data.message || "Test digest sent successfully!");
+       } else {
+         alert("Failed to send test digest.");
+       }
+     } catch {
+       alert("Failed to send test digest.");
+     } finally {
+       setIsSendingTestDigest(false);
+     }
+   };
+
+   const handleLogout = async () => {
     await logoutAdmin();
     router.push("/admin/login");
     router.refresh();
   };
 
-  const modules = [
-    { title: "News Sources", description: "Manage intelligence telemetry feeds.", icon: Rss, href: "/admin/sources", variant: "default" as const, stat: statsData?.topSource || "Connecting..." },
-    { title: "Signal Categories", description: "Tune classification & routing logic.", icon: Layers, href: "/admin/categories", variant: "secondary" as const, stat: "Active" },
-    { title: "Database Backup", description: "Create a full corpus security snapshot.", icon: ShieldCheck, onClick: handleBackup, loading: isBackingUp, stat: "Ready" }
-  ];
+   const modules = [
+     { title: "News Sources", description: "Manage intelligence telemetry feeds.", icon: Rss, href: "/admin/sources", variant: "default" as const, stat: statsData?.topSource || "Connecting..." },
+     { title: "Signal Categories", description: "Tune classification & routing logic.", icon: Layers, href: "/admin/categories", variant: "secondary" as const, stat: "Active" },
+     { title: "Database Backup", description: "Create a full corpus security snapshot.", icon: ShieldCheck, onClick: handleBackup, loading: isBackingUp, stat: "Ready" },
+     { title: "Test Digest", description: "Send a test email digest of recent signals.", icon: Zap, onClick: handleTestDigest, loading: isSendingTestDigest, stat: "Ready" }
+   ];
 
   const healthyCount = aiHealth
     ? [aiHealth.local, aiHealth.groq, aiHealth.openrouter].filter(p => p.status === "healthy").length

@@ -4,14 +4,17 @@ import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, ExternalLink } from "lucide-react";
+import { Sparkles, ExternalLink, Bookmark } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
+import { toggleBookmark } from "@/lib/api";
 
 interface SignalDetailModalProps {
   signal: Signal | null;
   onOpenChange: (signal: Signal | null) => void;
+  isBookmarked?: boolean;
+  onToggleBookmark?: (signalId: string) => Promise<void>;
 }
 
 const SEVERITY_COLORS = {
@@ -46,16 +49,36 @@ export function SignalDetailModal({ signal, onOpenChange }: SignalDetailModalPro
           "border-l-4 px-6 pt-6 pb-4",
           signal.severity === "high" ? "border-l-red-500" : signal.severity === "medium" ? "border-l-amber-500" : "border-l-emerald-500"
         )}>
-          <DialogHeader className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <span className="font-semibold">{signal.source}</span>
-              <span>·</span>
-              <span>{publishedDate}</span>
-            </div>
-            <DialogTitle className="text-base font-bold leading-snug pr-6">
-              {signal.title}
-            </DialogTitle>
-          </DialogHeader>
+         <DialogHeader className="flex items-center justify-between space-y-1">
+           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+             <span className="font-semibold">{signal.source}</span>
+             <span>·</span>
+             <span>{publishedDate}</span>
+           </div>
+           <div className="flex items-center gap-2">
+             <DialogTitle className="text-base font-bold leading-snug pr-6">
+               {signal.title}
+             </DialogTitle>
+             <button
+               onClick={async () => {
+                 try {
+                   const result = await toggleBookmark(signal.id);
+                   // Force refresh of the modal to update UI
+                   onOpenChange(null);
+                   setTimeout(() => onOpenChange(signal), 100);
+                 } catch (error) {
+                   console.error('Failed to toggle bookmark:', error);
+                 }
+               }}
+               className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all"
+             >
+               BOOKMARK
+               <Bookmark 
+                 className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary transition-colors"
+               />
+             </button>
+           </div>
+         </DialogHeader>
         </div>
 
         {/* Body */}
