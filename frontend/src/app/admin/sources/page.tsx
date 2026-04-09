@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Edit2, Plus, Rss, ArrowLeft, Loader2 } from "lucide-react";
+import { Trash2, Edit2, Plus, Rss, ArrowLeft, Loader2, Activity, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -38,6 +38,8 @@ export default function SourcesAdmin() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
+  const [checkingHealth, setCheckingHealth] = useState<string | null>(null);
+  const [healthResults, setHealthResults] = useState<Record<string, any>>({});
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -82,6 +84,22 @@ export default function SourcesAdmin() {
       credentials: "include"
     });
     mutate(`${API_BASE}/api/admin/sources`);
+  }
+
+  async function handleHealthCheck(id: string) {
+    setCheckingHealth(id);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/sources/${id}/health`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const result = await res.json();
+      setHealthResults(prev => ({ ...prev, [id]: result }));
+    } catch (err) {
+      setHealthResults(prev => ({ ...prev, [id]: { status: 'error', message: 'Failed to check' } }));
+    } finally {
+      setCheckingHealth(null);
+    }
   }
 
   async function toggleActive(source: Source) {
@@ -211,13 +229,33 @@ export default function SourcesAdmin() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingSource(source); setIsDialogOpen(true); }}>
-                          <Edit2 className="w-3.5 h-3.5" />
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          onClick={() => handleHealthCheck(source.id)}
+                          disabled={checkingHealth === source.id}
+                          title="Check feed health"
+                        >
+                          {checkingHealth === source.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : healthResults[source.id]?.status === 'healthy' ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                          ) : healthResults[source.id]?.status === 'error' ? (
+                            <XCircle className="w-3.5 h-3.5 text-red-500" />
+                          ) : (
+                            <Activity className="w-3.5 h-3.5" />
+                          )}
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300" onClick={() => handleDelete(source.id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingSource(source); setIsDialogOpen(true); }}>
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300" onClick={() => handleDelete(source.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>

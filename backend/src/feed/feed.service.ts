@@ -26,7 +26,11 @@ function decodeEntities(text: string): string {
 function stripHtml(html: string): string {
   // Decode entities first so encoded tags like &lt;p&gt; become <p> and can be stripped
   const decoded = decodeEntities(html);
-  return striptags(decoded)
+  // Remove script/style tags and their content before stripping other tags
+  const sanitized = decoded
+    .replace(/<script[\s>][\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s>][\s\S]*?<\/style>/gi, '');
+  return striptags(sanitized)
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -196,5 +200,56 @@ export class FeedService {
       url,
       publishedAt,
     };
+  }
+
+  async checkSourceHealth(id: string) {
+    const source = await this.db.select().from(sources).where(eq(sources.id, id)).limit(1);
+    if (!source.length) {
+      return { status: 'error', message: 'Source not found' };
+    }
+
+    const feed = source[0];
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(feed.url, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'SignalStack/1.0' },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        return { status: 'error', code: response.status, message: `HTTP ${response.status}` };
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      const isRss = contentType.includes('xml') || contentType.includes('rss');
+      const text = await response.text();
+      const hasItems = text.includes('<item') || text.includes('<entry');
+
+      return {
+        status: 'healthy',
+        code: response.status,
+        isRss,
+        hasData: hasItems,
+        itemCount: hasItems ? (text.match(/<item/g) || text.match(/<entry/g))?.length || 0 : 0,
+      };
+    } catch (error: any) {
+      return { status: 'error', message: error.message };
+    }
+  }
+
+  async toggleSource(id: string) {
+    const source = await this.db.select().from(sources).where(eq(sources.id, id)).limit(1);
+    if (!source.length) {
+      return { success: false, message: 'Source not found' };
+    }
+
+    const feed = source[0];
+    await this.db.update(sources).set({ isActive: !feed.isActive }).where(eq(sources.id, id));
+
+    return { success: true, isActive: !feed.isActive };
   }
 }
