@@ -78,16 +78,21 @@ function StatusLabel({ status }: { status: string }) {
   );
 }
 
-function StatCard({ label, value, icon, accent }: { label: string; value: number | string | undefined; icon: React.ReactNode; accent?: string }) {
+function StatCard({ label, value, icon, accent, action }: { label: string; value: number | string | undefined; icon: React.ReactNode; accent?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
+    <div className="relative flex items-center gap-3 py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
       <div className={cn("w-9 h-9 rounded-md flex items-center justify-center", accent || "bg-primary/10")}>
         {icon}
       </div>
-      <div>
+      <div className="flex-1">
         <div className="text-xl font-black tracking-tight text-foreground">{value ?? "..."}</div>
         <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label}</div>
       </div>
+      {action && (
+        <div className="absolute top-2 right-2">
+          {action}
+        </div>
+      )}
     </div>
   );
 }
@@ -533,25 +538,23 @@ export default function AdminDashboard() {
               value={statsData?.aiFailed?.toLocaleString()}
               icon={<XCircle className="w-4 h-4 text-orange-400" />}
               accent="bg-orange-500/10"
+              action={(statsData?.aiFailed ?? 0) > 0 ? (
+                <Button variant="ghost" size="sm" onClick={handleRetryAI} disabled={isRetrying} className="h-6 w-6 rounded-full p-0">
+                  <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
+                </Button>
+              ) : undefined}
             />
             <StatCard
               label="High Pending"
               value={statsData?.highPending?.toLocaleString()}
               icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
               accent="bg-amber-500/10"
+              action={(statsData?.highPending ?? 0) > 0 ? (
+                <Button variant="ghost" size="sm" onClick={handleRetryHigh} disabled={isRetrying} className="h-6 w-6 rounded-full p-0">
+                  <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
+                </Button>
+              ) : undefined}
             />
-            {(statsData?.highPending ?? 0) > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRetryHigh}
-                disabled={isRetrying}
-                className="h-9 text-[9px] font-black uppercase tracking-wider"
-              >
-                <RefreshCw className={cn("w-3 h-3 mr-1", isRetrying && "animate-spin")} />
-                Retry
-              </Button>
-            )}
           </div>
         </div>
 
