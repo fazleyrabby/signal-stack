@@ -13,11 +13,12 @@ import {
   BarChart3,
   Eye,
   EyeOff,
+  Users,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { StatsBar } from "@/components/stats-bar";
 import { Column } from "@/components/column";
-import { cn } from "@/lib/utils";
+import { cn, fetchVisitorStats, trackVisit, type VisitorStats } from "@/lib/utils";
 
 const API_BASE = '/api/signals';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -68,6 +69,16 @@ export default function SignalsDashboard() {
     { refreshInterval: 30000 }
   );
 
+  const { data: visitorData } = useSWR<VisitorStats>(
+    '/api/visitors/stats',
+    fetcher,
+    { refreshInterval: 60000 }
+  );
+
+  useEffect(() => {
+    trackVisit();
+  }, []);
+
   const stats = statsResponse || { total: 0, high: 0, low: 0, last24h: 0, topSource: 'Scanning...' };
 
   const toggleGeopolitics = () => {
@@ -89,6 +100,7 @@ export default function SignalsDashboard() {
         isFullWidth={isFullWidth}
         showControls={showControls}
         onToggleControls={() => setShowControls(!showControls)}
+        visitorCount={visitorData?.today}
       />
 
       <div className={cn(
