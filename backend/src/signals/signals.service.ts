@@ -116,4 +116,8 @@ export class SignalsService {
   async getUniqueSources(categoryId?: string) {
     return this.repository.getUniqueSources(categoryId);
   }
+
+  async getAIProviderStats() {
+    return this.repository.getAIProviderStats();
+  }
 }

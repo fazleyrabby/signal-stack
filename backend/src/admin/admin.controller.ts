@@ -166,6 +166,22 @@ export class AdminController {
     return { queued, total: failed.length };
   }
 
+  @Post('ai/retry/high')
+  async retryHighSeverity() {
+    const high = await this.adminService.getHighSeverityUnprocessed();
+    let queued = 0;
+    for (const signal of high) {
+      await this.aiQueue.enqueue({
+        id: signal.id,
+        title: signal.title,
+        content: signal.content,
+        score: signal.score,
+      });
+      queued++;
+    }
+    return { queued, total: high.length };
+  }
+
   // --- System ---
 
   @Post('backup')

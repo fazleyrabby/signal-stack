@@ -230,6 +230,10 @@ export default function AdminDashboard() {
     `${API_BASE}/api/admin/ai/models`,
     fetcher
   );
+  const { data: providerStats } = useSWR<{ provider: string; count: number }[]>(
+    `${API_BASE}/api/signals/ai-providers`,
+    fetcher
+  );
 
   const handleModelChange = async (provider: 'groq' | 'openrouter', modelId: string | null) => {
     if (!modelId) return;
@@ -273,6 +277,27 @@ export default function AdminDashboard() {
       alert("Backup failed.");
     } finally {
       setIsBackingUp(false);
+    }
+  };
+
+  const handleRetryHigh = async () => {
+    setIsRetrying(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/ai/retry/high`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Queued ${data.queued} high severity signals.`);
+        await refreshStats();
+      } else {
+        alert('Failed to queue.');
+      }
+    } catch {
+      alert('Failed to queue.');
+    } finally {
+      setIsRetrying(false);
     }
   };
 
@@ -411,10 +436,38 @@ export default function AdminDashboard() {
           <div className="text-[10px] text-muted-foreground bg-secondary/20 px-3 py-2 rounded border border-border/30 flex items-start gap-2">
             <Lightbulb className="w-3 h-3 text-yellow-500 shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold text-foreground">Recommended for summarization:</span> Groq: <span className="text-blue-400">llama-3.3-70b-versatile</span> (quality) or <span className="text-blue-400">llama-3.1-8b-instant</span> (fast) · OpenRouter: <span className="text-blue-400">gemma-4-26b-a4b-it:free</span> or <span className="text-blue-400">qwen3-next-80b-a3b-instruct:free</span>
+              <span className="font-semibold text-foreground">Recommended for summarization:</span> <span className="text-emerald-400">Local (Qwen2.5-0.5B)</span> · <span className="text-blue-400">Groq (llama-3.1-8b-instant)</span> · <span className="text-blue-400">OpenRouter (gemma-4-26b-a4b-it:free)</span>
             </div>
           </div>
         </div>
+
+        {/* AI Provider Stats */}
+        {providerStats && providerStats.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-primary" />
+              <span className="text-sm font-bold uppercase text-foreground">AI Provider Breakdown</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {providerStats.map((stat) => {
+                const label = stat.provider === 'local' ? 'Local' : stat.provider === 'groq' ? 'Groq' : stat.provider === 'openrouter' ? 'OpenRouter' : 'None';
+                const color = stat.provider === 'local' ? 'bg-emerald-500/10' : stat.provider === 'groq' ? 'bg-blue-500/10' : stat.provider === 'openrouter' ? 'bg-violet-500/10' : 'bg-zinc-500/10';
+                const icon = stat.provider === 'local' ? <Bot className="w-3 h-3 text-emerald-400" /> : stat.provider === 'groq' ? <Bot className="w-3 h-3 text-blue-400" /> : stat.provider === 'openrouter' ? <Bot className="w-3 h-3 text-violet-400" /> : <Bot className="w-3 h-3 text-zinc-400" />;
+                return (
+                  <div key={stat.provider} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-secondary/30 border border-border/40">
+                    <div className={color + " w-7 h-7 rounded-md flex items-center justify-center"}>
+                      {icon}
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-foreground">{stat.count.toLocaleString()}</div>
+                      <div className="text-[9px] text-muted-foreground font-medium uppercase">{label}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Signal Stats */}
         <div className="space-y-4">
@@ -442,6 +495,27 @@ export default function AdminDashboard() {
               icon={<AlertTriangle className="w-4 h-4 text-red-400" />}
               accent="bg-red-500/10"
             />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <StatCard
+                  label="High Pending"
+                  value={statsData?.highPending?.toLocaleString()}
+                  icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
+                  accent="bg-amber-500/10"
+                />
+              </div>
+              {(statsData?.highPending ?? 0) > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRetryHigh}
+                  disabled={isRetrying}
+                  className="h-full text-[9px] font-black uppercase tracking-wider px-3"
+                >
+                  <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
+                </Button>
+              )}
+            </div>
             <StatCard
               label="Geopolitics"
               value={statsData?.geopolitics?.toLocaleString()}

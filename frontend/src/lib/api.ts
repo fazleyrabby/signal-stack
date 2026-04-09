@@ -40,6 +40,7 @@ export interface SignalStats {
   technology: number;
   aiProcessed: number;
   aiFailed: number;
+  highPending: number;
 }
 
 export async function fetchSignals(

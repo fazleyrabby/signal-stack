@@ -126,6 +126,7 @@ export class SignalsRepository {
     technology: number;
     aiProcessed: number;
     aiFailed: number;
+    highPending: number;
   }> {
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -141,6 +142,7 @@ export class SignalsRepository {
       technologyResult,
       aiProcessedResult,
       aiFailedResult,
+      highPendingResult,
     ] = await Promise.all([
       this.db.select({ count: sql<number>`count(*)::int` }).from(signals),
       this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.severity, 'high')),
@@ -160,6 +162,7 @@ export class SignalsRepository {
       this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.categoryId, 'technology')),
       this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.aiProcessed, true)),
       this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.aiFailed, true)),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(and(eq(signals.severity, 'high'), eq(signals.aiProcessed, false))),
     ]);
 
     return {
@@ -173,6 +176,7 @@ export class SignalsRepository {
       technology: technologyResult[0]?.count || 0,
       aiProcessed: aiProcessedResult[0]?.count || 0,
       aiFailed: aiFailedResult[0]?.count || 0,
+      highPending: highPendingResult[0]?.count || 0,
     };
   }
 
@@ -188,5 +192,19 @@ export class SignalsRepository {
       .orderBy(desc(sql`count(*)`));
 
     return results.map(r => ({ source: r.source, count: r.count }));
+  }
+
+  async getAIProviderStats(): Promise<{ provider: string; count: number }[]> {
+    const results = await this.db
+      .select({
+        provider: signals.aiProvider,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(signals)
+      .where(eq(signals.aiProcessed, true))
+      .groupBy(signals.aiProvider)
+      .orderBy(desc(sql`count(*)`));
+
+    return results.map(r => ({ provider: r.provider || 'none', count: r.count }));
   }
 }

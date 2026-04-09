@@ -20,9 +20,9 @@ export class AIQueue implements OnModuleInit {
   private _queueSize = 0;
 
   // High-performance Rate-Limit Configuration
-  private readonly processDelay = 1500; // AI_PROCESS_DELAY=1500
-  private readonly maxWorkers = 2;      // AI_MAX_WORKERS=2
-  private readonly dailyLimit = 150;    // AI_DAILY_LIMIT=150
+  private readonly processDelay = parseInt(process.env.AI_PROCESS_DELAY || '1500');
+  private readonly maxWorkers = parseInt(process.env.AI_MAX_WORKERS || '2');
+  private readonly dailyLimit = parseInt(process.env.AI_DAILY_LIMIT || '150');
 
   constructor(
     private readonly aiService: AIService,

@@ -46,6 +46,11 @@ export class SignalsController {
     return this.signalsService.getStats();
   }
 
+  @Get('signals/ai-providers')
+  async getAIProviderStats() {
+    return this.signalsService.getAIProviderStats();
+  }
+
   @Get('health')
   async getHealth() {
     return {
