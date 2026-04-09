@@ -76,6 +76,18 @@ export const settings = pgTable('settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const visitors = pgTable('visitors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: varchar('session_id', { length: 64 }).notNull().unique(),
+  ip: varchar('ip', { length: 45 }),
+  userAgent: text('user_agent'),
+  firstSeen: timestamp('first_seen', { withTimezone: true }).notNull().defaultNow(),
+  lastSeen: timestamp('last_seen', { withTimezone: true }).notNull().defaultNow(),
+  pageViews: integer('page_views').notNull().default(1),
+});
+
+export type Visitor = typeof visitors.$inferSelect;
+export type NewVisitor = typeof visitors.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Setting = typeof settings.$inferSelect;

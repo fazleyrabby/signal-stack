@@ -8,6 +8,7 @@ import { ScorerModule } from './scorer/scorer.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { AdminModule } from './admin/admin.module';
 import { AIModule } from './ai/ai.module';
+import { VisitorsModule } from './visitors/visitors.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AIModule } from './ai/ai.module';
     FeedModule,
     ScorerModule,
     AlertsModule,
+    VisitorsModule,
     AdminModule,
     AIModule,
   ],
