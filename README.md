@@ -61,7 +61,9 @@ The admin panel at `/admin` provides:
 
 ## 🔔 Discord Alerts
 
-Discord alerts can be filtered to only send tech-related signals:
+Discord alerts send clean, HTML-free embeds with severity-based color coding (red/orange/green). RSS content is fully sanitized — HTML entities are decoded and all tags (including `<script>`/`<style>`) are stripped before sending.
+
+Alerts can be filtered to only send tech-related signals:
 
 ```env
 DISCORD_WEBHOOK_URL=your-webhook-url
