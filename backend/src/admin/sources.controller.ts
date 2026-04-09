@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import { Controller, Post, Param, UseGuards } from '@nestjs/common';
 import { FeedService } from '../feed/feed.service';
+import { AdminGuard } from './admin.guard';
 
 @Controller('api/admin/sources')
+@UseGuards(AdminGuard)
 export class AdminSourcesController {
   constructor(private readonly feedService: FeedService) {}
 

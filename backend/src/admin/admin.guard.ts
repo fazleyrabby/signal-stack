@@ -22,7 +22,7 @@ export class AdminGuard implements CanActivate {
     }
 
     try {
-      const decoded = jwt.verify(accessToken, jwtSecret) as { sub: string; email: string; role: string };
+      const decoded = jwt.verify(accessToken, jwtSecret, { algorithms: ['HS256'] }) as { sub: string; email: string; role: string };
       if (decoded.role === 'admin') {
         request.user = decoded;
         return true;

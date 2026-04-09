@@ -41,13 +41,13 @@ export class AuthService {
     const accessToken = jwt.sign(
       payload,
       this.jwtSecret,
-      { expiresIn: this.accessTokenExpiry },
+      { expiresIn: this.accessTokenExpiry, algorithm: 'HS256' },
     );
 
     const refreshToken = jwt.sign(
       { ...payload, type: 'refresh' },
       this.jwtSecret,
-      { expiresIn: this.refreshTokenExpiry },
+      { expiresIn: this.refreshTokenExpiry, algorithm: 'HS256' },
     );
 
     return { accessToken, refreshToken };
@@ -55,7 +55,7 @@ export class AuthService {
 
   async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     try {
-      const decoded = jwt.verify(refreshToken, this.jwtSecret) as {
+      const decoded = jwt.verify(refreshToken, this.jwtSecret, { algorithms: ['HS256'] }) as {
         sub: string;
         email: string;
         role: string;
@@ -82,13 +82,13 @@ export class AuthService {
       const accessToken = jwt.sign(
         payload,
         this.jwtSecret,
-        { expiresIn: this.accessTokenExpiry },
+        { expiresIn: this.accessTokenExpiry, algorithm: 'HS256' },
       );
 
       const newRefreshToken = jwt.sign(
         { ...payload, type: 'refresh' },
         this.jwtSecret,
-        { expiresIn: this.refreshTokenExpiry },
+        { expiresIn: this.refreshTokenExpiry, algorithm: 'HS256' },
       );
 
       return { accessToken, refreshToken: newRefreshToken };
