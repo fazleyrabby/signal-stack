@@ -8,5 +8,6 @@ import { AlertsModule } from '../alerts/alerts.module';
 @Module({
   imports: [ScorerModule, SignalsModule, AlertsModule],
   providers: [FeedService, FeedScheduler],
+  exports: [FeedService],
 })
 export class FeedModule {}
