@@ -235,6 +235,35 @@ Access at `/admin`. Protected by email/password authentication with bcrypt-hashe
 1. User enters email and password at `/admin/login`
 2. Backend verifies credentials against `users` table (bcrypt hash comparison)
 3. JWT tokens issued (15m access + 7d refresh) as HTTP-only, secure cookies
+
+---
+
+## 👥 Visitor Tracking
+
+SignalStack tracks unique visitors with persistent storage in PostgreSQL.
+
+**Database Table:** `visitors`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | UUID | Primary key |
+| `session_id` | VARCHAR(64) | Unique session identifier (IP-based) |
+| `ip` | VARCHAR(45) | Client IP address |
+| `user_agent` | TEXT | Browser user agent |
+| `first_seen` | TIMESTAMP | First visit timestamp |
+| `last_seen` | TIMESTAMP | Last visit timestamp |
+| `page_views` | INT | Page view count |
+
+**API Endpoints:**
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/visitors` | Track a visit (called on page load) |
+| `GET` | `/api/visitors/stats` | Get visitor stats `{ total, today, realtime }` |
+
+**Frontend Integration:**
+- Homepage header shows today's visitor count
+- Automatically tracks visits on page load
 4. Middleware checks for valid access token on all `/admin/*` routes
 5. Auto-refresh extends sessions up to 7 days
 6. Logout clears both cookies server-side

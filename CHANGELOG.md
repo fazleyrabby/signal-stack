@@ -14,6 +14,9 @@ All notable changes to SignalStack will be documented in this file.
 - **AI Provider cards** in admin dashboard showing provider usage
 - New environment variables: `AI_EXTERNAL_ENABLED`, `AI_PROCESS_DELAY`, `AI_MAX_WORKERS`, `AI_DAILY_LIMIT`
 - Dynamic LLM model selection with searchable dropdown in admin dashboard (Groq + OpenRouter)
+- **Visitor tracking**: Persistent visitor stats with PostgreSQL storage (`visitors` table)
+- **Visitor API**: `POST /api/visitors` (track visit), `GET /api/visitors/stats` (get stats)
+- **Visitor counter** displayed on homepage header
 - `SearchableModelSelect` component with real-time filter by model name/ID
 - Backend model management API: `GET/PUT /api/admin/ai/models`, `POST /api/admin/ai/models/refresh`
 - `SettingsService` for persisting AI model configuration in database
