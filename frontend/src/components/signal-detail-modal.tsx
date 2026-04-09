@@ -1,16 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Sparkles, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
 
 interface SignalDetailModalProps {
   signal: Signal | null;
   onOpenChange: (signal: Signal | null) => void;
 }
+
+const SEVERITY_COLORS = {
+  high: "bg-red-500 text-white",
+  medium: "bg-amber-500 text-white",
+  low: "bg-emerald-500 text-white",
+} as const;
 
 export function SignalDetailModal({ signal, onOpenChange }: SignalDetailModalProps) {
   const handleOpenChange = (open: boolean) => {
@@ -21,76 +29,81 @@ export function SignalDetailModal({ signal, onOpenChange }: SignalDetailModalPro
     return null;
   }
 
-  const severityBadgeClass = {
-    high: "bg-red-500 text-white",
-    medium: "bg-amber-500 text-white",
-    low: "bg-green-500 text-white",
-  }[signal.severity];
-
-  const publishedDate = signal.publishedAt 
-    ? format(new Date(signal.publishedAt), "MMM d, yyyy HH:mm") 
+  const publishedDate = signal.publishedAt
+    ? format(new Date(signal.publishedAt), "MMM d, yyyy 'at' HH:mm")
     : "Unknown";
 
+  const scoreColor = signal.score >= 8 ? "text-red-500" : signal.score >= 5 ? "text-amber-500" : "text-blue-500";
+
   return (
-    <Dialog 
-      open={!!signal} 
+    <Dialog
+      open={!!signal}
       onOpenChange={handleOpenChange}
     >
-      <DialogContent className="sm:max-w-lg p-6">
-        <DialogHeader className="space-y-4">
-          <DialogTitle className="text-lg font-semibold">
-            <a 
-              href={signal.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="underline hover:text-primary transition-colors"
-            >
-              {signal.title}
-            </a>
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground space-y-3">
-            {/* AI Summary */}
-            {signal.aiSummary && (
-              <>
-                <p className="font-medium mb-1">AI Summary</p>
-                <p className="text-sm">{signal.aiSummary}</p>
-              </>
-            )}
-            
-            {/* Content Snippet */}
-            {signal.content && (
-              <>
-                <p className="font-medium mb-1">Content Preview</p>
-                <p className="text-sm line-clamp-4">{signal.content.substring(0, 300)}{signal.content.length > 300 ? "..." : ""}</p>
-              </>
-            )}
-            
-            {/* Metadata */}
-            <div className="border-t pt-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Source:</span> <span className="text-muted-foreground">{signal.source}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Score:</span> <span className="text-muted-foreground">{signal.score}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Severity:</span> 
-                  <Badge variant="secondary" className={severityBadgeClass}>
-                    {signal.severity.toUpperCase()}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="font-medium">Published:</span> <span className="text-muted-foreground">{publishedDate}</span>
-                </div>
-              </div>
+      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+        {/* Header with severity stripe */}
+        <div className={cn(
+          "border-l-4 px-6 pt-6 pb-4",
+          signal.severity === "high" ? "border-l-red-500" : signal.severity === "medium" ? "border-l-amber-500" : "border-l-emerald-500"
+        )}>
+          <DialogHeader className="space-y-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <span className="font-semibold">{signal.source}</span>
+              <span>·</span>
+              <span>{publishedDate}</span>
             </div>
-          </DialogDescription>
-        </DialogHeader>
-        
-        <DialogFooter>
+            <DialogTitle className="text-base font-bold leading-snug pr-6">
+              {signal.title}
+            </DialogTitle>
+          </DialogHeader>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 pb-4 space-y-4">
+          {/* AI Summary */}
+          {(signal.aiSummary || signal.summary) && (
+            <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Sparkles className="w-3 h-3 text-primary" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-primary/70">AI Analysis</span>
+              </div>
+              <p className="text-sm leading-relaxed">
+                {signal.aiSummary || signal.summary}
+              </p>
+            </div>
+          )}
+
+          {/* Content Snippet */}
+          {signal.content && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1.5">Content Preview</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {signal.content.substring(0, 300)}{signal.content.length > 300 ? "..." : ""}
+              </p>
+            </div>
+          )}
+
+          {/* Metadata */}
+          <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/30">
+            <Badge variant="secondary" className={cn("text-[10px] font-bold", SEVERITY_COLORS[signal.severity])}>
+              {signal.severity.toUpperCase()}
+            </Badge>
+            <span className={cn("text-sm font-bold tabular-nums", scoreColor)}>
+              {signal.score} IMPACT
+            </span>
+            {signal.aiProvider && signal.aiProvider !== "none" && (
+              <Badge variant="outline" className="text-[10px] font-bold uppercase">
+                {signal.aiProvider}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 border-t border-border/30 px-6 py-4 bg-muted/30">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => onOpenChange(null)}
           >
             Close
@@ -100,11 +113,12 @@ export function SignalDetailModal({ signal, onOpenChange }: SignalDetailModalPro
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Button className="ml-2">
+            <Button size="sm" className="gap-1.5">
               Read Original
+              <ExternalLink className="w-3 h-3" />
             </Button>
           </a>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

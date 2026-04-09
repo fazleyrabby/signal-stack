@@ -415,7 +415,7 @@ The Discord alerts now support **tech-only filtering**:
 - Only signals with `aiCategory === 'Tech'` are sent to Discord
 - Configure via `DISCORD_FILTER_TECH=true` in environment
 - Non-tech signals are logged but skipped
-- **HTML sanitization**: All RSS content is decoded from HTML entities, stripped of `<script>`/`<style>` blocks, and cleaned of all HTML tags before being sent to Discord embeds
+- **HTML sanitization**: All RSS content and titles are decoded from HTML entities (including numeric like `&#8217;` → `'`), stripped of `<script>`/`<style>` blocks, and cleaned of all HTML tags before being sent to Discord embeds
 
 ```bash
 cd backend && npm run test:discord
@@ -534,7 +534,7 @@ SignalStack includes comprehensive error boundaries at every layer:
 
 ### Backend Error Handling
 - **Feed failures**: Logged and skipped — never crash the cycle
-- **Content sanitization**: RSS content is entity-decoded, then stripped of `<script>`/`<style>` blocks and all HTML tags to produce clean plain text
+- **Content sanitization**: RSS content and titles are entity-decoded (including numeric entities like `&#8217;`), then stripped of `<script>`/`<style>` blocks and all HTML tags to produce clean plain text
 - **AI provider failures**: Automatic failover with 60s cooldown
 - **Database errors**: Structured logging with PostgreSQL error code handling
 - **Discord webhook failures**: Logged, non-blocking

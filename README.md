@@ -72,7 +72,7 @@ The main dashboard features:
 
 ## 🔔 Discord Alerts
 
-Discord alerts send clean, HTML-free embeds with severity-based color coding (red/orange/green). RSS content is fully sanitized — HTML entities are decoded and all tags (including `<script>`/`<style>`) are stripped before sending.
+Discord alerts send clean, HTML-free embeds with severity-based color coding (red/orange/green). RSS content and titles are fully sanitized — all HTML entities (including numeric like `&#8217;`) are decoded and all tags (including `<script>`/`<style>`) are stripped before sending.
 
 Alerts can be filtered to only send tech-related signals:
 

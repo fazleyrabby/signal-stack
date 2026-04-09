@@ -37,7 +37,9 @@ All notable changes to SignalStack will be documented in this file.
 - **UX font improvements**: minimum font sizes bumped for accessibility
 
 ### Fixed
-- **Signal detail modal**: fixed type mismatch on close handler, fixed "Read Original" button not navigating (Button doesn't support href)
+- **Numeric HTML entities in titles**: `&#8217;` (`'`), `&#8220;` (`"`), etc. now decoded in both titles and content — previously only named entities were handled
+- **Signal detail modal**: fixed type mismatch on close handler, fixed "Read Original" button not navigating (Button doesn't support href), improved spacing and transitions
+- **Dialog transitions**: `tw-animate-css` was installed but never imported — animations now work (fade, zoom, slide)
 - **HTML in Discord embeds**: RSS content with encoded HTML entities (`&lt;p&gt;`, `&lt;a href="..."&gt;`) now properly stripped — entities are decoded before tag stripping, and `<script>`/`<style>` blocks are fully removed
 - Database backups lost on container rebuild — moved from `/app/` to `/app/backups/` on a named Docker volume
 
