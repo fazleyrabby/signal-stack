@@ -15,6 +15,8 @@ const FEED_TIMEOUT = 10_000; // 10s per feed
 /** Strip HTML tags and decode common entities to plain text */
 function decodeEntities(text: string): string {
   return text
+    .replace(/&#(\d+);/g, (_, num) => String.fromCodePoint(Number(num)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -153,12 +155,14 @@ export class FeedService {
     item: Parser.Item,
     source: typeof sources.$inferSelect,
   ): RawSignal | null {
-    const title = item.title?.trim();
+    const rawTitle = item.title?.trim();
     const url = item.link?.trim();
 
-    if (!title || !url) {
+    if (!rawTitle || !url) {
       return null;
     }
+
+    const title = decodeEntities(rawTitle);
 
     // Content extraction priority: content:encoded > content > description > summary
     const rawContent: string | null =
