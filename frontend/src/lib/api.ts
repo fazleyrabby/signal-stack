@@ -83,3 +83,24 @@ export async function trackVisit() {
   const res = await fetch(`${API_BASE}/api/visitors`, { method: 'POST' });
   return res.json();
 }
+
+export async function fetchBookmarks(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/api/bookmarks`);
+  if (!res.ok) throw new Error("Failed to fetch bookmarks");
+  return res.json();
+}
+
+export async function toggleBookmark(signalId: string): Promise<{ bookmarked: boolean }> {
+  const res = await fetch(`${API_BASE}/api/bookmarks/${signalId}`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error("Failed to toggle bookmark");
+  return res.json();
+}
+
+export async function fetchBookmarkedSignals(params?: Record<string, string>): Promise<{ data: Signal[]; meta: Record<string, unknown> }> {
+  const searchParams = new URLSearchParams(params);
+  const res = await fetch(`${API_BASE}/api/bookmarks/signals?${searchParams.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch bookmarked signals");
+  return res.json();
+}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import useSWR from "swr";
+import { useState, useMemo, useRef, useCallback, useEffect, useLayoutEffect } from "react";
+import useSWR, { MutatorOptions, mutate } from "swr";
 import {
   LayoutGrid,
   List,
@@ -9,8 +9,10 @@ import {
   ChevronDown,
   ArrowUpDown,
   Filter,
+  Bookmark,
   LucideIcon,
 } from "lucide-react";
+import { toggleBookmark } from "@/lib/api";
 import { SignalCard } from "@/components/signal-card";
 import { SignalDetailModal } from "@/components/signal-detail-modal";
 import { cn } from "@/lib/utils";
@@ -20,6 +22,7 @@ const API_BASE = '/api/signals';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const PAGE_SIZE = 20;
+const BOOKMARKS_API_BASE = '/api/bookmarks';
 
 interface SourceInfo {
   source: string;
@@ -45,6 +48,8 @@ function ColumnControlBar({
   setShowSourceDropdown,
   showSortDropdown,
   setShowSortDropdown,
+  showBookmarks,
+  setShowBookmarks,
 }: {
   filter: string;
   setFilter: (f: string) => void;
@@ -59,6 +64,8 @@ function ColumnControlBar({
   setShowSourceDropdown: (v: boolean) => void;
   showSortDropdown: boolean;
   setShowSortDropdown: (v: boolean) => void;
+  showBookmarks: boolean;
+  setShowBookmarks: (v: boolean) => void;
 }) {
   const sortOptions = [
     { id: 'newest', label: 'Newest' },
@@ -99,14 +106,25 @@ function ColumnControlBar({
            <span className="max-w-[60px] truncate">{sourceFilter || 'Source'}</span>
          </button>
 
+          <button
+            ref={sortBtnRef}
+            onClick={() => { setShowSortDropdown(!showSortDropdown); setShowSourceDropdown(false); }}
+            className="flex items-center gap-1 h-6 px-2 bg-accent/20 border border-border/10 rounded-md hover:bg-accent/40 transition-all text-[11px] font-bold uppercase tracking-wider"
+          >
+           <ArrowUpDown className="w-3 h-3" />
+           <span className="max-w-[50px] truncate">{sortOptions.find(s => s.id === sortBy)?.label || 'Sort'}</span>
+         </button>
+
          <button
-           ref={sortBtnRef}
-           onClick={() => { setShowSortDropdown(!showSortDropdown); setShowSourceDropdown(false); }}
-           className="flex items-center gap-1 h-6 px-2 bg-accent/20 border border-border/10 rounded-md hover:bg-accent/40 transition-all text-[11px] font-bold uppercase tracking-wider"
+           onClick={() => setShowBookmarks(!showBookmarks)}
+           className={cn(
+             "flex items-center gap-1 h-6 px-2 bg-accent/20 border border-border/10 rounded-md hover:bg-accent/40 transition-all text-[11px] font-bold uppercase tracking-wider",
+             showBookmarks && "bg-primary text-primary-foreground"
+           )}
          >
-          <ArrowUpDown className="w-3 h-3" />
-          <span className="max-w-[50px] truncate">{sortOptions.find(s => s.id === sortBy)?.label || 'Sort'}</span>
-        </button>
+           <Bookmark className="w-3 h-3" />
+           <span className="max-w-[50px] truncate">Bookmarks</span>
+         </button>
       </div>
 
       {showSourceDropdown && (
@@ -153,7 +171,7 @@ function SourceDropdown({
 }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (sourceBtnRef.current) {
       const rect = sourceBtnRef.current.getBoundingClientRect();
       setPos({ top: rect.bottom + 4, left: rect.left });
@@ -204,7 +222,7 @@ function SortDropdown({
 }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (sortBtnRef.current) {
       const rect = sortBtnRef.current.getBoundingClientRect();
       setPos({ top: rect.bottom + 4, left: rect.left });
@@ -277,6 +295,14 @@ export function Column({
     { refreshInterval: 15000, revalidateOnFocus: false, keepPreviousData: true }
   );
 
+  const { data: bookmarkedIds = [], isLoading: isLoadingBookmarks } = useSWR<string[]>(
+    `${BOOKMARKS_API_BASE}`,
+    (url) => fetch(url).then(res => res.json()),
+    { refreshInterval: 30000 }
+  );
+
+  const bookmarkedIdsSet = useMemo(() => new Set(bookmarkedIds), [bookmarkedIds]);
+
   const { data: sourcesData } = useSWR<SourceInfo[]>(
     `${API_BASE}/sources?categoryId=${categoryId}`,
     fetcher,
@@ -332,21 +358,23 @@ export function Column({
          </span>
        </div>
 
-      <ColumnControlBar
-        filter={filter}
-        setFilter={setFilter}
-        sourceFilter={sourceFilter}
-        setSourceFilter={setSourceFilter}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        sources={sources}
-        sourceBtnRef={sourceBtnRef}
-        sortBtnRef={sortBtnRef}
-        showSourceDropdown={showSourceDropdown}
-        setShowSourceDropdown={setShowSourceDropdown}
-        showSortDropdown={showSortDropdown}
-        setShowSortDropdown={setShowSortDropdown}
-      />
+       <ColumnControlBar
+         filter={filter}
+         setFilter={setFilter}
+         sourceFilter={sourceFilter}
+         setSourceFilter={setSourceFilter}
+         sortBy={sortBy}
+         setSortBy={setSortBy}
+         sources={sources}
+         sourceBtnRef={sourceBtnRef}
+         sortBtnRef={sortBtnRef}
+         showSourceDropdown={showSourceDropdown}
+         setShowSourceDropdown={setShowSourceDropdown}
+         showSortDropdown={showSortDropdown}
+         setShowSortDropdown={setShowSortDropdown}
+         showBookmarks={showBookmarks}
+         setShowBookmarks={setShowBookmarks}
+       />
 
       <div className="flex-1 bg-card/25 border border-border/10 rounded-xl overflow-hidden backdrop-blur-sm transition-all duration-500 flex flex-col mt-2">
         {isLoading && signals.length === 0 && (
@@ -377,12 +405,52 @@ export function Column({
                    : "columns-1 sm:columns-2 xl:columns-3 gap-4"
                  : "flex flex-col space-y-3"
              )}>
-               {filtered.map((signal) => (
-                 <div key={signal.id} className="break-inside-avoid mb-4 cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => setSelectedSignal(signal)}>
-                   <SignalCard signal={signal} isCompact={layoutMode === 'list'} />
-                 </div>
-               ))}
+               {showBookmarks
+                 ? signals
+                     .filter(signal => bookmarkedIdsSet.has(signal.id))
+                     .map((signal) => (
+                       <div key={signal.id} className="break-inside-avoid mb-4 cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setSelectedSignal(signal)}>
+                         <SignalCard 
+                           signal={signal} 
+                           isCompact={layoutMode === 'list'}
+                           isBookmarked={true}
+                           onToggleBookmark={async (signalId: string) => {
+                             try {
+                               const result = await toggleBookmark(signalId);
+                               // Optimistic update - the SWR will be mutated in the toggle function
+                             } catch (error) {
+                               console.error('Failed to toggle bookmark:', error);
+                             }
+                           }}
+                         />
+                       </div>
+                     ))
+                 : filtered.map((signal) => (
+                   <div key={signal.id} className="break-inside-avoid mb-4 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setSelectedSignal(signal)}>
+                     <SignalCard 
+                       signal={signal} 
+                       isCompact={layoutMode === 'list'}
+                       isBookmarked={bookmarkedIdsSet.has(signal.id)}
+                       onToggleBookmark={async (signalId: string) => {
+                         try {
+                           const result = await toggleBookmark(signalId);
+                           // Mutate SWR cache for instant UI feedback
+                           await mutate(`${BOOKMARKS_API_BASE}`, 
+                             (currentBookmarks: string[] = []) => 
+                               result.bookmarked 
+                                 ? [...currentBookmarks, signalId] 
+                                 : currentBookmarks.filter(id => id !== signalId),
+                             false // Don't revalidate
+                           );
+                         } catch (error) {
+                           console.error('Failed to toggle bookmark:', error);
+                         }
+                       }}
+                     />
+                   </div>
+                 ))}
              </div>
 
             {hasMore && (
@@ -411,8 +479,27 @@ export function Column({
         )}
        </div>
        
-       {/* Signal Detail Modal */}
-       <SignalDetailModal signal={selectedSignal} onOpenChange={setSelectedSignal} />
+        {/* Signal Detail Modal */}
+        <SignalDetailModal 
+          signal={selectedSignal} 
+          onOpenChange={setSelectedSignal}
+          isBookmarked={selectedSignal ? bookmarkedIdsSet.has(selectedSignal.id) : false}
+          onToggleBookmark={async (signalId: string) => {
+            try {
+              const result = await toggleBookmark(signalId);
+              // Update bookmarks state
+              await mutate(`${BOOKMARKS_API_BASE}`, 
+                (currentBookmarks: string[] = []) => 
+                  result.bookmarked 
+                    ? [...currentBookmarks, signalId] 
+                    : currentBookmarks.filter(id => id !== signalId),
+                false // Don't revalidate
+              );
+            } catch (error) {
+              console.error('Failed to toggle bookmark:', error);
+            }
+          }}
+        />
        
      </div>
    );

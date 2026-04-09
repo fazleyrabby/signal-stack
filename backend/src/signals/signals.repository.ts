@@ -207,4 +207,117 @@ export class SignalsRepository {
 
     return results.map(r => ({ provider: r.provider || 'none', count: r.count }));
   }
+
+  async getTrends() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Volume by day with severity breakdown
+    const volumeByDay = await this.db
+      .select({
+        date: sql<string>`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`,
+        count: sql<number>`count(*)::int`,
+        high: sql<number>`SUM(CASE WHEN signals.severity = 'high' THEN 1 ELSE 0 END)::int`,
+        medium: sql<number>`SUM(CASE WHEN signals.severity = 'medium' THEN 1 ELSE 0 END)::int`,
+        low: sql<number>`SUM(CASE WHEN signals.severity = 'low' THEN 1 ELSE 0 END)::int`,
+      })
+      .from(signals)
+      .where(gte(signals.createdAt, thirtyDaysAgo))
+      .groupBy(sql`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`)
+      .orderBy(sql`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`);
+
+    // Top sources with average score
+    const topSources = await this.db
+      .select({
+        source: signals.source,
+        count: sql<number>`count(*)::int`,
+        avgScore: sql<number>`AVG(signals.score)::numeric(10,1)`,
+      })
+      .from(signals)
+      .where(gte(signals.createdAt, thirtyDaysAgo))
+      .groupBy(signals.source)
+      .orderBy(desc(sql`count(*)`))
+      .limit(5);
+
+    // Category breakdown
+    const categoryBreakdown = await this.db
+      .select({
+        category: categories.name,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(signals)
+      .innerJoin(categories, eq(signals.categoryId, categories.slug))
+      .where(gte(signals.createdAt, thirtyDaysAgo))
+      .groupBy(categories.name)
+      .orderBy(desc(sql`count(*)`));
+
+    // Severity distribution
+    const severityDistributionResult = await this.db
+      .select({
+        severity: signals.severity,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(signals)
+      .where(gte(signals.createdAt, thirtyDaysAgo))
+      .groupBy(signals.severity);
+
+    // Convert severity distribution to object format
+    const severityDistribution = {
+      high: 0,
+      medium: 0,
+      low: 0,
+    };
+    severityDistributionResult.forEach(row => {
+      if (row.severity === 'high') {
+        severityDistribution.high = row.count;
+      } else if (row.severity === 'medium') {
+        severityDistribution.medium = row.count;
+      } else if (row.severity === 'low') {
+        severityDistribution.low = row.count;
+      }
+    });
+
+    // AI stats
+    const aiStatsResult = await this.db
+      .select({
+        processed: sql<number>`SUM(CASE WHEN signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
+        failed: sql<number>`SUM(CASE WHEN signals.aiFailed = true THEN 1 ELSE 0 END)::int`,
+        local: sql<number>`SUM(CASE WHEN signals.aiProvider = 'local' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
+        groq: sql<number>`SUM(CASE WHEN signals.aiProvider = 'groq' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
+        openrouter: sql<number>`SUM(CASE WHEN signals.aiProvider = 'openrouter' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
+      })
+      .from(signals)
+      .where(gte(signals.createdAt, thirtyDaysAgo));
+
+    const aiStats = {
+      processed: aiStatsResult[0]?.processed || 0,
+      failed: aiStatsResult[0]?.failed || 0,
+      byProvider: {
+        local: aiStatsResult[0]?.local || 0,
+        groq: aiStatsResult[0]?.groq || 0,
+        openrouter: aiStatsResult[0]?.openrouter || 0,
+      },
+    };
+
+    return {
+      volumeByDay: volumeByDay.map(day => ({
+        date: day.date,
+        count: day.count,
+        high: day.high,
+        medium: day.medium,
+        low: day.low,
+      })),
+      topSources: topSources.map(source => ({
+        source: source.source,
+        count: source.count,
+        avgScore: Number(source.avgScore),
+      })),
+      categoryBreakdown: categoryBreakdown.map(cat => ({
+        category: cat.category,
+        count: cat.count,
+      })),
+      severityDistribution,
+      aiStats,
+    };
+  }
 }

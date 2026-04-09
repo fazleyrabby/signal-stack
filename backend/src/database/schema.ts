@@ -7,6 +7,7 @@ import {
   boolean,
   timestamp,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const categories = pgTable('categories', {
@@ -85,6 +86,26 @@ export const visitors = pgTable('visitors', {
   lastSeen: timestamp('last_seen', { withTimezone: true }).notNull().defaultNow(),
   pageViews: integer('page_views').notNull().default(1),
 });
+
+export const bookmarks = pgTable('bookmarks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  signalId: uuid('signal_id')
+    .notNull()
+    .references(() => signals.id),
+  sessionId: varchar('session_id', { length: 64 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}, (table) => ({
+  signalSessionIdx: index('idx_bookmarks_signal_id_session_id').on(
+    table.signalId,
+    table.sessionId
+  ),
+  uniqueSignalSession: uniqueIndex('uq_bookmarks_signal_id_session_id').on(
+    table.signalId,
+    table.sessionId
+  ),
+}));
 
 export type Visitor = typeof visitors.$inferSelect;
 export type NewVisitor = typeof visitors.$inferInsert;

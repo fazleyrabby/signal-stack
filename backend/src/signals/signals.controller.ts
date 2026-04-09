@@ -60,4 +60,9 @@ export class SignalsController {
       feedsActive: this.feedService.activeFeedsCount,
     };
   }
+
+  @Get('signals/trends')
+  async getTrends() {
+    return this.signalsService.getTrends();
+  }
 }
