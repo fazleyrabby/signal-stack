@@ -13,14 +13,20 @@ import { sources } from '../database/schema';
 const FEED_TIMEOUT = 10_000; // 10s per feed
 
 /** Strip HTML tags and decode common entities to plain text */
-function stripHtml(html: string): string {
-  return striptags(html)
+function decodeEntities(text: string): string {
+  return text
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
+    .replace(/&nbsp;/g, ' ');
+}
+
+function stripHtml(html: string): string {
+  // Decode entities first so encoded tags like &lt;p&gt; become <p> and can be stripped
+  const decoded = decodeEntities(html);
+  return striptags(decoded)
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }

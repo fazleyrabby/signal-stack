@@ -100,7 +100,7 @@ export default function SignalsDashboard() {
         isFullWidth={isFullWidth}
         showControls={showControls}
         onToggleControls={() => setShowControls(!showControls)}
-        visitorCount={visitorData?.today}
+        visitorCount={visitorData?.realtime}
       />
 
       <div className={cn(
