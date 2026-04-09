@@ -24,6 +24,14 @@ export class AdminService {
       .limit(50);
   }
 
+  async getHighSeverityUnprocessed() {
+    return this.db
+      .select({ id: signals.id, title: signals.title, content: signals.content, score: signals.score })
+      .from(signals)
+      .where(and(eq(signals.severity, 'high'), eq(signals.aiProcessed, false)))
+      .limit(100);
+  }
+
   // --- Categories ---
 
   async getCategories() {
