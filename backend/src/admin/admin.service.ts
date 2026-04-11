@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 import { categories, sources, signals } from '../database/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gte } from 'drizzle-orm';
 import { BackupService } from '../database/backup.service';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class AdminService {
         score: signals.score,
       })
       .from(signals)
-      .where(and(eq(signals.aiFailed, true), eq(signals.aiProcessed, false)))
+      .where(and(eq(signals.aiProcessed, false), gte(signals.score, 7)))
       .limit(50);
   }
 
