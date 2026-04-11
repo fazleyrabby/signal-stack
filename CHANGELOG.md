@@ -31,6 +31,10 @@ All notable changes to SignalStack will be documented in this file.
 - Model fetching from Groq and OpenRouter APIs with caching and static fallbacks
 - Dozzle authentication enforcement via `DOZZLE_AUTH_PROVIDER: simple`
 - Persistent backup volume (`backups:`) so database backups survive container rebuilds
+- **Signal Detail Modal**: click any card to view full title, AI summary, content preview, metadata, and direct link to original article
+- **Severity color stripes**: left border on signal cards (red/amber/blue) for instant visual scanning
+- **Mobile search**: search input now visible on all screen sizes
+- **UX font improvements**: minimum font sizes bumped for accessibility
 
 ### Changed
 - **Local AI optimized for low-resource VPS**: context window 1024→512, max_tokens 15→60, output cap 80→150 chars, directive prompt format for better small-model compliance
@@ -48,6 +52,11 @@ All notable changes to SignalStack will be documented in this file.
 - **Dialog transitions**: `tw-animate-css` was installed but never imported — animations now work (fade, zoom, slide)
 - **HTML in Discord embeds**: RSS content with encoded HTML entities (`&lt;p&gt;`, `&lt;a href="..."&gt;`) now properly stripped — entities are decoded before tag stripping, and `<script>`/`<style>` blocks are fully removed
 - Database backups lost on container rebuild — moved from `/app/` to `/app/backups/` on a named Docker volume
+- **Signal detail modal**: HTML tags showing in content preview — now stripped before display
+- **Signal detail modal**: mobile cutoff issue — modal now has max-height with scrolling body
+- **Explore/Bookmark buttons**: clicking triggers parent card click event and opens modal — added stopPropagation
+- **Bookmark URL mismatch**: column.tsx using relative `/api/bookmarks` instead of full backend URL — now uses API_BASE
+- **Signal card bottom UI**: cramped on small cards — restyled to stack badges and actions on separate rows
 
 ### Added
 - Error boundary components (`error.tsx`, `global-error.tsx`, `not-found.tsx`) for all routes

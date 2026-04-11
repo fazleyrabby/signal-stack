@@ -56,22 +56,22 @@
   /* Studio Air (Standard Light) - Re-tuned for Contrast (100% Surface) */
   --background: oklch(100% 0 0);
   --foreground: oklch(14% 0.02 240); /* Deep Industrial Gray Text */
-  --card: oklch(100% 0 0);
+  --card: oklch(99% 0.005 240);
   --card-foreground: oklch(14% 0.02 240);
-  --popover: oklch(100% 0 0);
+  --popover: oklch(99% 0.005 240);
   --popover-foreground: oklch(14% 0.02 240);
   --primary: oklch(50% 0.12 240); /* Primary Engaged Blue */
   --primary-foreground: oklch(100% 0 0);
   --secondary: oklch(96% 0.01 240); /* Subsurface cards/sections */
   --secondary-foreground: oklch(14% 0.02 240);
   --muted: oklch(94% 0.01 240); /* Deeper muted for contrast */
-  --muted-foreground: oklch(50% 0.02 240); /* Clinical text clarity */
-  --accent: oklch(93% 0.01 240); /* Hover states - definitively visible */
+  --muted-foreground: oklch(40% 0.02 240); /* Darkened for contrast on light bg */
+  --accent: oklch(90% 0.015 240); /* Hover states */
   --accent-foreground: oklch(14% 0.02 240);
   --destructive: oklch(55% 0.18 28);
   --destructive-foreground: oklch(100% 0 0);
-  --border: oklch(90% 0.02 240);
-  --input: oklch(90% 0.02 240);
+  --border: oklch(85% 0.02 240);
+  --input: oklch(85% 0.02 240);
   --ring: oklch(50% 0.12 240);
   /* Hover Overrides */
   --card-hover: oklch(98% 0.01 240);
