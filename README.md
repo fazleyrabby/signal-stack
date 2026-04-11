@@ -39,20 +39,13 @@ Access the system at [http://localhost:3001](http://localhost:3001).
 
 Builds new images while old containers serve traffic, then fast-swaps (~3–5s downtime) and auto-rolls back if health checks fail.
 
-**Updating (CI/CD — automated):**
+**Updating (one command):**
 
 ```bash
-# Push to deploy branch → auto-deploys via GitHub Actions self-hosted runner
-git checkout deploy && git merge main && git push origin deploy
+git push origin main && deploy-signal
 ```
 
-**Updating (manual):**
-
-```bash
-ssh fazley@192.168.0.110
-cd /path/to/SignalStack
-git pull origin main && ./scripts/deploy.sh
-```
+The `deploy-signal` shell alias SSHs into the VPS and runs `deploy.sh` automatically. See [DOCS.md](./DOCS.md) for alias setup.
 
 ## 🧠 Local AI (Optional)
 
