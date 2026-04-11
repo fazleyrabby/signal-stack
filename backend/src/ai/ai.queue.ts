@@ -1,10 +1,14 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { RedisService } from './redis.service';
 import { Subject, timer, zip, of } from 'rxjs';
 import { mergeMap, catchError, delay, filter } from 'rxjs/operators';
 import { logEvent } from '../common/logger';
 import { ConfigService } from '@nestjs/config';
+import { DATABASE_CONNECTION } from '../database/database.module';
+import type { DrizzleDB } from '../database/database.module';
+import { signals } from '../database/schema';
+import { eq, and, gte, or } from 'drizzle-orm';
 
 interface AIJob {
   id: string;
@@ -30,6 +34,7 @@ export class AIQueue implements OnModuleInit {
     private readonly aiService: AIService,
     private readonly redis: RedisService,
     private readonly configService: ConfigService,
+    @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
   ) {}
 
   async onModuleInit() {
@@ -53,6 +58,38 @@ export class AIQueue implements OnModuleInit {
       workers: this.maxWorkers,
       limit: this.dailyLimit,
     });
+
+    // Re-queue unprocessed signals on startup (recovers from container restarts)
+    setTimeout(() => this.requeuePending(), 5000);
+  }
+
+  private async requeuePending() {
+    try {
+      const pending = await this.db
+        .select({
+          id: signals.id,
+          title: signals.title,
+          content: signals.content,
+          score: signals.score,
+        })
+        .from(signals)
+        .where(and(eq(signals.aiProcessed, false), gte(signals.score, 7)))
+        .limit(50);
+
+      if (pending.length === 0) return;
+
+      logEvent('info', 'ai_startup_requeue', { count: pending.length });
+      for (const signal of pending) {
+        await this.enqueue({
+          id: signal.id,
+          title: signal.title,
+          content: signal.content,
+          score: signal.score ?? undefined,
+        });
+      }
+    } catch (err: any) {
+      logEvent('warn', 'ai_startup_requeue_failed', { error: err.message });
+    }
   }
 
   /**
