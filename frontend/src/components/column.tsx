@@ -278,6 +278,7 @@ export function Column({
   const [sourceFilter, setSourceFilter] = useState('');
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
 
   const sourceBtnRef = useRef<HTMLButtonElement>(null);
   const sortBtnRef = useRef<HTMLButtonElement>(null);

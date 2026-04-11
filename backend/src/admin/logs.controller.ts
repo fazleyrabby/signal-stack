@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { promises as fs } from 'fs';
 import { join } from 'path';

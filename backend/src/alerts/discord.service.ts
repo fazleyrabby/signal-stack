@@ -14,7 +14,8 @@ export class DiscordService {
 
   constructor(private readonly configService: ConfigService) {
     this.webhookUrl = this.configService.get<string>('DISCORD_WEBHOOK_URL');
-    this.filterTechOnly = this.configService.get<string>('DISCORD_FILTER_TECH') === 'true';
+    this.filterTechOnly =
+      this.configService.get<string>('DISCORD_FILTER_TECH') === 'true';
   }
 
   /**
@@ -22,12 +23,18 @@ export class DiscordService {
    */
   async sendAlert(signal: ScoredSignal): Promise<void> {
     if (!this.webhookUrl) {
-      logEvent('warn', 'alert_skipped', { reason: 'No DISCORD_WEBHOOK_URL configured' });
+      logEvent('warn', 'alert_skipped', {
+        reason: 'No DISCORD_WEBHOOK_URL configured',
+      });
       return;
     }
 
     if (this.filterTechOnly && signal.aiCategory !== 'Tech') {
-      logEvent('info', 'alert_skipped', { reason: 'non_tech', aiCategory: signal.aiCategory, title: signal.title.slice(0, 50) });
+      logEvent('info', 'alert_skipped', {
+        reason: 'non_tech',
+        aiCategory: signal.aiCategory,
+        title: signal.title.slice(0, 50),
+      });
       return;
     }
 
@@ -44,9 +51,11 @@ export class DiscordService {
 
       try {
         const color =
-          signal.severity === 'high' ? 0xff0000
-          : signal.severity === 'medium' ? 0xffa500
-          : 0x00ff00;
+          signal.severity === 'high'
+            ? 0xff0000
+            : signal.severity === 'medium'
+              ? 0xffa500
+              : 0x00ff00;
 
         const res = await fetch(this.webhookUrl!, {
           method: 'POST',

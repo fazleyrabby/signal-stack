@@ -8,6 +8,8 @@ import {
   ChevronUp,
   ChevronDown,
   Users,
+  BarChart3,
+  Rss,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -100,6 +102,24 @@ export function Header({
 
         {/* 2. Tactical Display Selector */}
         <div className="flex items-center gap-4 shrink-0">
+          <Link
+            href="/trends"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
+            aria-label="Trends"
+          >
+            <BarChart3 className="w-4 h-4 text-violet-400" />
+          </Link>
+
+          <a
+            href="/api/feed.xml"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden md:flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
+            aria-label="RSS Feed"
+          >
+            <Rss className="w-4 h-4 text-orange-400" />
+          </a>
+
           <button
             onClick={toggleTheme}
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"

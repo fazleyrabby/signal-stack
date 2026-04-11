@@ -18,7 +18,12 @@ export class AdminService {
 
   async getFailedAISignals() {
     return this.db
-      .select({ id: signals.id, title: signals.title, content: signals.content, score: signals.score })
+      .select({
+        id: signals.id,
+        title: signals.title,
+        content: signals.content,
+        score: signals.score,
+      })
       .from(signals)
       .where(and(eq(signals.aiFailed, true), eq(signals.aiProcessed, false)))
       .limit(50);
@@ -26,7 +31,12 @@ export class AdminService {
 
   async getHighSeverityUnprocessed() {
     return this.db
-      .select({ id: signals.id, title: signals.title, content: signals.content, score: signals.score })
+      .select({
+        id: signals.id,
+        title: signals.title,
+        content: signals.content,
+        score: signals.score,
+      })
       .from(signals)
       .where(and(eq(signals.severity, 'high'), eq(signals.aiProcessed, false)))
       .limit(100);
@@ -43,7 +53,10 @@ export class AdminService {
     return result;
   }
 
-  async updateCategory(slug: string, data: Partial<typeof categories.$inferInsert>) {
+  async updateCategory(
+    slug: string,
+    data: Partial<typeof categories.$inferInsert>,
+  ) {
     const [result] = await this.db
       .update(categories)
       .set(data)

@@ -66,9 +66,38 @@ The main dashboard features:
 - **Two-column layout** — Geopolitics and Technology streams side by side (tabbed on mobile)
 - **Grid & List modes** — dense list view or expanded card grid with severity color stripes
 - **Signal Detail Modal** — click any card for full title, AI summary, content preview, and metadata
+- **Bookmark/Save Signals** — save signals for later review with session-based bookmarks
 - **Search** — real-time filtering across all screen sizes
 - **Severity filters** — one-click All / High / Medium / Low toggles
 - **Source & sort controls** — filter by feed source, sort by newest/oldest/score
+
+## 📊 Trends Analytics
+
+The Trends page at `/trends` provides 30-day analytics with interactive charts:
+
+- **Signal Volume** — Stacked area chart by severity (high/medium/low)
+- **Top Sources** — Ranked table with counts and average scores
+- **Category Breakdown** — Geopolitics vs Technology comparison
+- **Severity Distribution** — Donut chart
+- **AI Provider Stats** — local vs groq vs openrouter usage
+
+Open-access page with 5-minute auto-refresh.
+
+## 📡 RSS Feed
+
+A public RSS 2.0 feed is available at `/api/feed.xml` for consuming signals programmatically.
+
+**Endpoints:**
+- `GET /api/feed.xml` — Full feed (last 50 signals with score >= 5)
+- `GET /api/feed.xml?category=geopolitics` — Filter by category
+- `GET /api/feed.xml?severity=high` — Filter by minimum severity
+- `GET /api/feed.xml?category=technology&severity=medium` — Combined filters
+
+**Response headers:**
+- `Content-Type: application/rss+xml`
+- `Cache-Control: public, max-age=900` (15 min cache)
+
+Each item includes custom `signal:score` and `signal:source` elements.
 
 ## 🔔 Discord Alerts
 

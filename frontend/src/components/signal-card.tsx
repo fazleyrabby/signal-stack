@@ -18,7 +18,7 @@ interface SignalCardProps {
   isCompact: boolean;
   className?: string;
   isBookmarked?: boolean;
-  onToggleBookmark?: (signalId: string) => Promise<void>;
+  onToggleBookmark?: (signalId: string) => Promise<void> | undefined;
 }
 
 // AI provider display config
@@ -29,7 +29,7 @@ const PROVIDER_CONFIG: Record<string, { label: string; color: string; icon: type
   failed: { label: 'FAILED', color: 'text-red-400/50', icon: Sparkles },
 };
 
-export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
+export function SignalCard({ signal, isCompact, className, isBookmarked, onToggleBookmark }: SignalCardProps) {
   // Clinical relative time
   const getRelativeTime = (dateStr: string | null) => {
     if (!dateStr) return "recent";
@@ -140,7 +140,8 @@ export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
                  
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         if (onToggleBookmark) {
                           await onToggleBookmark(signal.id);
                         }
@@ -157,6 +158,7 @@ export function SignalCard({ signal, isCompact, className }: SignalCardProps) {
                       href={signal.url} 
                       target="_blank" 
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all group/link shrink-0"
                     >
                       EXPLORE

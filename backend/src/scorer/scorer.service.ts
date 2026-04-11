@@ -9,25 +9,53 @@ const KEYWORD_RULES: { points: number; keywords: string[] }[] = [
   {
     points: 5,
     keywords: [
-      'outage', 'attack', 'explosion', 'cyberattack', 'breach',
-      'shutdown', 'vulnerability', 'zero-day', 'exploit', 'sanctions',
+      'outage',
+      'attack',
+      'explosion',
+      'cyberattack',
+      'breach',
+      'shutdown',
+      'vulnerability',
+      'zero-day',
+      'exploit',
+      'sanctions',
     ],
   },
   {
     points: 3,
     keywords: [
-      'acquisition', 'merger', 'layoff', 'regulation', 'ban',
-      'censorship', 'surveillance', 'leak',
-      'artificial intelligence', 'machine learning', 'neural network',
-      'large language model', 'generative ai', 'ai safety',
+      'acquisition',
+      'merger',
+      'layoff',
+      'regulation',
+      'ban',
+      'censorship',
+      'surveillance',
+      'leak',
+      'artificial intelligence',
+      'machine learning',
+      'neural network',
+      'large language model',
+      'generative ai',
+      'ai safety',
     ],
   },
   {
     points: 2,
     keywords: [
-      'launch', 'partnership', 'funding', 'update', 'release',
-      'ai model', 'open source ai', 'gpu', 'transformer', 'fine-tuning',
-      'chatbot', 'autonomous', 'deepfake',
+      'launch',
+      'partnership',
+      'funding',
+      'update',
+      'release',
+      'ai model',
+      'open source ai',
+      'gpu',
+      'transformer',
+      'fine-tuning',
+      'chatbot',
+      'autonomous',
+      'deepfake',
     ],
   },
 ];
@@ -36,16 +64,33 @@ const ENTITY_RULES: { points: number; entities: string[] }[] = [
   {
     points: 3,
     entities: [
-      'AWS', 'Amazon', 'Google', 'Microsoft', 'Cloudflare',
-      'OpenAI', 'Meta', 'Apple', 'NVIDIA', 'Anthropic',
+      'AWS',
+      'Amazon',
+      'Google',
+      'Microsoft',
+      'Cloudflare',
+      'OpenAI',
+      'Meta',
+      'Apple',
+      'NVIDIA',
+      'Anthropic',
     ],
   },
   {
     points: 2,
     entities: [
-      'Tesla', 'SpaceX', 'Stripe', 'Palantir', 'CrowdStrike',
-      'DeepMind', 'Mistral', 'Hugging Face', 'Stability AI', 'Cohere',
-      'xAI', 'Perplexity',
+      'Tesla',
+      'SpaceX',
+      'Stripe',
+      'Palantir',
+      'CrowdStrike',
+      'DeepMind',
+      'Mistral',
+      'Hugging Face',
+      'Stability AI',
+      'Cohere',
+      'xAI',
+      'Perplexity',
     ],
   },
 ];
@@ -60,9 +105,12 @@ function getSeverity(score: number): 'low' | 'medium' | 'high' {
 export class ScorerService {
   constructor() {}
 
-  async score(raw: RawSignal, source: typeof sources.$inferSelect): Promise<ScoredSignal> {
+  async score(
+    raw: RawSignal,
+    source: typeof sources.$inferSelect,
+  ): Promise<ScoredSignal> {
     const text = `${raw.title} ${raw.content || ''}`.toLowerCase();
-    
+
     // 1. Fallback: Classical Keyword Scoring
     let score = 0;
 

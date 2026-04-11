@@ -74,7 +74,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Track token usage for a provider. Stores in Redis with daily expiry.
    */
-  async trackTokens(provider: string, promptTokens: number, completionTokens: number) {
+  async trackTokens(
+    provider: string,
+    promptTokens: number,
+    completionTokens: number,
+  ) {
     if (!this.client || this.client.status !== 'ready') return;
     const today = new Date().toISOString().split('T')[0];
     const promptKey = `ai:tokens:${provider}:prompt:${today}`;
@@ -91,7 +95,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get token usage for a provider for today or all-time.
    */
-  async getTokenUsage(provider: string, forToday = true): Promise<{ prompt: number; completion: number; total: number }> {
+  async getTokenUsage(
+    provider: string,
+    forToday = true,
+  ): Promise<{ prompt: number; completion: number; total: number }> {
     if (!this.client || this.client.status !== 'ready') {
       return { prompt: 0, completion: 0, total: 0 };
     }
@@ -111,8 +118,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     // Get all-time (scan all keys)
     const promptTotal = await this.sumAllKeys(`ai:tokens:${provider}:prompt:*`);
-    const completionTotal = await this.sumAllKeys(`ai:tokens:${provider}:completion:*`);
-    return { prompt: promptTotal, completion: completionTotal, total: promptTotal + completionTotal };
+    const completionTotal = await this.sumAllKeys(
+      `ai:tokens:${provider}:completion:*`,
+    );
+    return {
+      prompt: promptTotal,
+      completion: completionTotal,
+      total: promptTotal + completionTotal,
+    };
   }
 
   private async sumAllKeys(pattern: string): Promise<number> {
@@ -120,7 +133,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     let cursor = '0';
     let sum = 0;
     do {
-      const [newCursor, keys] = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      const [newCursor, keys] = await this.client.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        100,
+      );
       cursor = newCursor;
       if (keys.length > 0) {
         const values = await this.client.mget(keys);

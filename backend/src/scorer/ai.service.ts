@@ -36,10 +36,16 @@ export class AIService {
     ];
   }
 
-  async analyzeSignal(title: string, content: string): Promise<AIAnalysisResult | null> {
-    const isAiEnabled = this.configService.get<string>('AI_ENABLED') !== 'false';
+  async analyzeSignal(
+    title: string,
+    content: string,
+  ): Promise<AIAnalysisResult | null> {
+    const isAiEnabled =
+      this.configService.get<string>('AI_ENABLED') !== 'false';
     if (!isAiEnabled) {
-      logEvent('info', 'ai_intelligence_disabled', { reason: 'manual_override' });
+      logEvent('info', 'ai_intelligence_disabled', {
+        reason: 'manual_override',
+      });
       return null;
     }
 
@@ -51,15 +57,22 @@ export class AIService {
       try {
         const result = await this.executeProvider(provider, title, content);
         if (result) {
-          logEvent('info', 'ai_provider_success', { provider: provider.name, title: title.slice(0, 50) });
+          logEvent('info', 'ai_provider_success', {
+            provider: provider.name,
+            title: title.slice(0, 50),
+          });
           return result;
         }
       } catch (error: any) {
         const isRateLimit = error.status === 429;
-        logEvent('warn', isRateLimit ? 'ai_provider_rate_limit' : 'ai_provider_error', {
-          provider: provider.name,
-          error: error.message,
-        });
+        logEvent(
+          'warn',
+          isRateLimit ? 'ai_provider_rate_limit' : 'ai_provider_error',
+          {
+            provider: provider.name,
+            error: error.message,
+          },
+        );
 
         // Failover to next provider
         continue;
@@ -70,7 +83,11 @@ export class AIService {
     return null;
   }
 
-  private async executeProvider(provider: AIProvider, title: string, content: string): Promise<AIAnalysisResult | null> {
+  private async executeProvider(
+    provider: AIProvider,
+    title: string,
+    content: string,
+  ): Promise<AIAnalysisResult | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 

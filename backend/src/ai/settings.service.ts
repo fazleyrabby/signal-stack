@@ -20,9 +20,7 @@ export class SettingsService {
   private modelCache: CachedModels | null = null;
   private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
-  constructor(
-    @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
-  ) {}
+  constructor(@Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB) {}
 
   async getSetting(key: string): Promise<string | null> {
     const result = await this.db
@@ -73,7 +71,10 @@ export class SettingsService {
         }
       }
     }
-    if (this.modelCache && Date.now() - this.modelCache.fetchedAt < this.CACHE_TTL) {
+    if (
+      this.modelCache &&
+      Date.now() - this.modelCache.fetchedAt < this.CACHE_TTL
+    ) {
       return this.modelCache;
     }
     return null;

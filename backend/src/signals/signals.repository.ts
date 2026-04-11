@@ -263,16 +263,16 @@ export class SignalsRepository {
       await Promise.all([
         this.db
           .select({
-            date: sql<string>`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`,
+            date: sql<string>`TO_CHAR(signals.created_at, 'YYYY-MM-DD')`,
             count: sql<number>`count(*)::int`,
-            high: sql<number>`SUM(CASE WHEN signals.severity = 'high' THEN 1 ELSE 0 END)::int`,
-            medium: sql<number>`SUM(CASE WHEN signals.severity = 'medium' THEN 1 ELSE 0 END)::int`,
-            low: sql<number>`SUM(CASE WHEN signals.severity = 'low' THEN 1 ELSE 0 END)::int`,
+            high: sql<number>`count(*) FILTER (WHERE signals.severity = 'high')::int`,
+            medium: sql<number>`count(*) FILTER (WHERE signals.severity = 'medium')::int`,
+            low: sql<number>`count(*) FILTER (WHERE signals.severity = 'low')::int`,
           })
           .from(signals)
           .where(gte(signals.createdAt, thirtyDaysAgo))
-          .groupBy(sql`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`)
-          .orderBy(sql`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`),
+          .groupBy(sql`TO_CHAR(signals.created_at, 'YYYY-MM-DD')`)
+          .orderBy(sql`TO_CHAR(signals.created_at, 'YYYY-MM-DD')`),
         this.db
           .select({
             source: signals.source,
@@ -294,11 +294,11 @@ export class SignalsRepository {
           .groupBy(signals.severity),
         this.db
           .select({
-            processed: sql<number>`SUM(CASE WHEN signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
-            failed: sql<number>`SUM(CASE WHEN signals.aiFailed = true THEN 1 ELSE 0 END)::int`,
-            local: sql<number>`SUM(CASE WHEN signals.aiProvider = 'local' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
-            groq: sql<number>`SUM(CASE WHEN signals.aiProvider = 'groq' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
-            openrouter: sql<number>`SUM(CASE WHEN signals.aiProvider = 'openrouter' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
+            processed: sql<number>`count(*) FILTER (WHERE signals.ai_processed = true)::int`,
+            failed: sql<number>`count(*) FILTER (WHERE signals.ai_failed = true)::int`,
+            local: sql<number>`count(*) FILTER (WHERE signals.ai_provider = 'local' AND signals.ai_processed = true)::int`,
+            groq: sql<number>`count(*) FILTER (WHERE signals.ai_provider = 'groq' AND signals.ai_processed = true)::int`,
+            openrouter: sql<number>`count(*) FILTER (WHERE signals.ai_provider = 'openrouter' AND signals.ai_processed = true)::int`,
           })
           .from(signals)
           .where(gte(signals.createdAt, thirtyDaysAgo)),

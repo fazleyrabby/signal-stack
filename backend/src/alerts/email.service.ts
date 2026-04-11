@@ -16,16 +16,20 @@ export class EmailService {
     private readonly signalsService: SignalsService,
   ) {
     const host = this.configService.get<string>('SMTP_HOST');
-    const port = parseInt(this.configService.get<string>('SMTP_PORT') || '587', 10);
+    const port = parseInt(
+      this.configService.get<string>('SMTP_PORT') || '587',
+      10,
+    );
     const user = this.configService.get<string>('SMTP_USER');
     const pass = this.configService.get<string>('SMTP_PASS');
-    const recipientsStr = this.configService.get<string>('DIGEST_RECIPIENTS') || '';
+    const recipientsStr =
+      this.configService.get<string>('DIGEST_RECIPIENTS') || '';
     this.enabled = this.configService.get<boolean>('DIGEST_ENABLED') || false;
 
     this.recipients = recipientsStr
       .split(',')
-      .map(email => email.trim())
-      .filter(email => email.length > 0);
+      .map((email) => email.trim())
+      .filter((email) => email.length > 0);
 
     if (host && port && user && pass && this.enabled) {
       this.transporter = nodemailer.createTransport({
@@ -49,7 +53,9 @@ export class EmailService {
     }
 
     if (!this.transporter) {
-      logEvent('error', 'email_failed', { reason: 'Transporter not configured' });
+      logEvent('error', 'email_failed', {
+        reason: 'Transporter not configured',
+      });
       return;
     }
 
@@ -62,6 +68,7 @@ export class EmailService {
       // Get signals from last 24h with score >= 7, ordered by score desc, limit 20
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const { data: signals } = await this.signalsService.getSignals({
+        page: 1,
         limit: 20,
         since: oneDayAgo.toISOString(),
         sort: 'score',
@@ -69,7 +76,7 @@ export class EmailService {
       });
 
       // Filter for score >= 7 (though the query should already do this)
-      const highScoreSignals = signals.filter(signal => signal.score >= 7);
+      const highScoreSignals = signals.filter((signal) => signal.score >= 7);
 
       // Get stats
       const stats = await this.signalsService.getStats();
@@ -97,10 +104,14 @@ export class EmailService {
               <p style="margin: 10px 0;"><strong>Low Importance:</strong> ${stats.low}</p>
             </div>
             
-            ${highScoreSignals.length > 0 ? `
+            ${
+              highScoreSignals.length > 0
+                ? `
               <div style="background-color: #1e293b; padding: 20px; border-radius: 8px;">
                 <h2 style="color: #38bdf8; margin-top: 0;">Top Signals (Score ≥ 7)</h2>
-                ${highScoreSignals.map(signal => `
+                ${highScoreSignals
+                  .map(
+                    (signal) => `
                   <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #334155;">
                     <h3 style="margin: 0 0 10px 0;">
                       <a href="${signal.url}" style="color: #38bdf8; text-decoration: none;">${signal.title}</a>
@@ -114,17 +125,25 @@ export class EmailService {
                       </span>
                       ${signal.publishedAt ? `<span style="color: #94a3b8; font-size: 12px;">${new Date(signal.publishedAt).toLocaleTimeString()}</span>` : ''}
                     </div>
-                    ${signal.summary ? `
+                    ${
+                      signal.summary
+                        ? `
                       <p style="color: #cbd5e1; margin: 10px 0; line-height: 1.5;">${signal.summary}</p>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                   </div>
-                `).join('')}
+                `,
+                  )
+                  .join('')}
               </div>
-            ` : `
+            `
+                : `
               <div style="background-color: #1e293b; padding: 20px; border-radius: 8px; text-align: center;">
                 <p style="color: #94a3b8;">No high-importance signals (score ≥ 7) in the last 24 hours.</p>
               </div>
-            `}
+            `
+            }
             
             <div style="text-align: center; margin-top: 30px; color: #64748b; font-size: 14px;">
               Powered by SignalStack
@@ -142,9 +161,9 @@ export class EmailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      logEvent('info', 'email_sent', { 
+      logEvent('info', 'email_sent', {
         recipients: this.recipients.length,
-        signalCount: highScoreSignals.length
+        signalCount: highScoreSignals.length,
       });
     } catch (error) {
       logEvent('error', 'email_failed', {
@@ -161,7 +180,9 @@ export class EmailService {
     }
 
     if (!this.transporter) {
-      logEvent('error', 'email_failed', { reason: 'Transporter not configured' });
+      logEvent('error', 'email_failed', {
+        reason: 'Transporter not configured',
+      });
       return;
     }
 
@@ -169,6 +190,7 @@ export class EmailService {
       // Get signals from last 24h with score >= 7, ordered by score desc, limit 20
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const { data: signals } = await this.signalsService.getSignals({
+        page: 1,
         limit: 20,
         since: oneDayAgo.toISOString(),
         sort: 'score',
@@ -176,7 +198,7 @@ export class EmailService {
       });
 
       // Filter for score >= 7
-      const highScoreSignals = signals.filter(signal => signal.score >= 7);
+      const highScoreSignals = signals.filter((signal) => signal.score >= 7);
 
       // Get stats
       const stats = await this.signalsService.getStats();
@@ -204,10 +226,14 @@ export class EmailService {
               <p style="margin: 10px 0;"><strong>Low Importance:</strong> ${stats.low}</p>
             </div>
             
-            ${highScoreSignals.length > 0 ? `
+            ${
+              highScoreSignals.length > 0
+                ? `
               <div style="background-color: #1e293b; padding: 20px; border-radius: 8px;">
                 <h2 style="color: #38bdf8; margin-top: 0;">Top Signals (Score ≥ 7)</h2>
-                ${highScoreSignals.map(signal => `
+                ${highScoreSignals
+                  .map(
+                    (signal) => `
                   <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #334155;">
                     <h3 style="margin: 0 0 10px 0;">
                       <a href="${signal.url}" style="color: #38bdf8; text-decoration: none;">${signal.title}</a>
@@ -221,17 +247,25 @@ export class EmailService {
                       </span>
                       ${signal.publishedAt ? `<span style="color: #94a3b8; font-size: 12px;">${new Date(signal.publishedAt).toLocaleTimeString()}</span>` : ''}
                     </div>
-                    ${signal.summary ? `
+                    ${
+                      signal.summary
+                        ? `
                       <p style="color: #cbd5e1; margin: 10px 0; line-height: 1.5;">${signal.summary}</p>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                   </div>
-                `).join('')}
+                `,
+                  )
+                  .join('')}
               </div>
-            ` : `
+            `
+                : `
               <div style="background-color: #1e293b; padding: 20px; border-radius: 8px; text-align: center;">
                 <p style="color: #94a3b8;">No high-importance signals (score ≥ 7) in the last 24 hours.</p>
               </div>
-            `}
+            `
+            }
             
             <div style="text-align: center; margin-top: 30px; color: #64748b; font-size: 14px;">
               Powered by SignalStack
@@ -249,16 +283,16 @@ export class EmailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      logEvent('info', 'email_sent', { 
+      logEvent('info', 'email_sent', {
         recipient: email,
         signalCount: highScoreSignals.length,
-        test: true
+        test: true,
       });
     } catch (error) {
       logEvent('error', 'email_failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
         recipient: email,
-        test: true
+        test: true,
       });
       throw error;
     }
@@ -266,10 +300,14 @@ export class EmailService {
 
   private getSeverityColor(severity: string): string {
     switch (severity.toLowerCase()) {
-      case 'high': return '#ef4444';
-      case 'medium': return '#f59e0b';
-      case 'low': return '#10b981';
-      default: return '#6b7280';
+      case 'high':
+        return '#ef4444';
+      case 'medium':
+        return '#f59e0b';
+      case 'low':
+        return '#10b981';
+      default:
+        return '#6b7280';
     }
   }
 

@@ -25,7 +25,7 @@ docker compose up -d --build
 
 | Service | URL | Description |
 |---|---|---|
-| Frontend | http://localhost:3001 | Dashboard + Admin Portal |
+| Frontend | http://localhost:3001 | Dashboard + Trends Analytics + Admin Portal |
 | Backend API | http://localhost:3000 | REST API + Feed Scheduler |
 | PostgreSQL | localhost:5433 | Database (external access) |
 | Redis | localhost:6380 | Cache + AI Queue (external access) |
@@ -47,6 +47,40 @@ cd frontend && npm install && npm run dev
 ```
 
 Access at [http://localhost:3001](http://localhost:3001).
+
+---
+
+## 📊 Trends Analytics
+
+Access at [http://localhost:3001/trends](http://localhost:3001/trends). Public page showing 30-day signal analytics with interactive charts.
+
+### Dashboard Panels
+- **Signal Volume** — Stacked area chart showing daily signal counts split by severity (red=high, amber=medium, blue=low)
+- **Top Sources** — Ranked table with signal counts and average scores, inline progress bars
+- **Category Breakdown** — Horizontal bar chart comparing Geopolitics vs Technology
+- **Severity Distribution** — Donut chart with severity breakdown
+- **AI Provider Stats** — Bar chart showing local vs groq vs openrouter usage
+
+### Features
+- Auto-refreshes every 5 minutes
+- Skeleton loaders while data loads
+- Responsive: 2-column grid on desktop, single column on mobile
+- Dark theme optimized colors
+
+### Backend Endpoint
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/signals/trends` | Returns 30-day aggregated analytics |
+
+```json
+{
+  "volumeByDay": [{ "date": "2026-04-09", "count": 45, "high": 5, "medium": 12, "low": 28 }],
+  "topSources": [{ "source": "Guardian World", "count": 120, "avgScore": 7.2 }],
+  "categoryBreakdown": [{ "category": "geopolitics", "count": 200 }, { "category": "technology", "count": 180 }],
+  "severityDistribution": { "high": 50, "medium": 150, "low": 180 },
+  "aiStats": { "processed": 300, "failed": 20, "byProvider": { "local": 200, "groq": 80, "openrouter": 20 } }
+}
+```
 
 ---
 
@@ -213,11 +247,58 @@ The dashboard is a pro-grade analytical terminal:
   - **List Mode**: Ultra-compact, single-line "quick titles" for scanning hundreds of events.
   - **Grid Mode**: Expansive layout for detailed signal cards with severity color stripes (red/amber/blue left border).
 - **Signal Detail Modal**: Click any card to open a compact dialog with full title, AI summary, content preview, metadata, and a direct link to the original article.
+- **Bookmark/Save Signals**: Save signals for later review with session-based bookmarks (persisted via IP-based tracking).
+- **Bookmarks View**: Toggle to view only your saved signals in any column.
 - **Intelligence Switcher (Mobile)**: Tactile tabs to switch between Geopolitical and Tech streams.
 - **Real-time Global Search**: Instant, full-text search across titles and sources — visible on all screen sizes including mobile.
 - **Severity Quick Filters**: One-click toggles for All / High / Medium / Low severity.
 - **Live Stats Bar**: Real-time signal counts, severity breakdown, and top source.
 - **Load More**: Fetch additional signals on demand without page reload.
+
+---
+
+## 📡 Public RSS Feed
+
+A public RSS 2.0 feed is available for consuming signals programmatically.
+
+### Endpoint
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/feed.xml` | Full feed (last 50 signals with score >= 5) |
+
+### Query Parameters
+
+| Parameter | Description | Example |
+|---|---|---|
+| `category` | Filter by category | `?category=geopolitics` |
+| `severity` | Filter by minimum severity | `?severity=high` |
+| Combined | Multiple filters | `?category=technology&severity=medium` |
+
+### Response Headers
+
+- `Content-Type: application/rss+xml`
+- `Cache-Control: public, max-age=900` (15 min cache)
+
+### RSS Item Structure
+
+Each item includes:
+- `title`: Signal title
+- `description`: AI summary or content excerpt (sanitized)
+- `url`: Link to original article
+- `guid`: Signal UUID
+- `date`: Published timestamp
+- `categories`: [categoryId, severity]
+- `signal:score`: Signal score
+- `signal:source`: Feed source
+
+### Frontend Integration
+
+The header includes an RSS icon (desktop only) that opens the feed in a new tab. The `<head>` also includes:
+
+```html
+<link rel="alternate" type="application/rss+xml" title="SignalStack Feed" href="/api/feed.xml" />
+```
 
 ---
 

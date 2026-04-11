@@ -17,10 +17,15 @@ export class AuthService {
     private configService: ConfigService,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
   ) {
-    this.jwtSecret = this.configService.get<string>('JWT_SECRET') || 'signalstack-jwt-secret-change-in-production';
+    this.jwtSecret =
+      this.configService.get<string>('JWT_SECRET') ||
+      'signalstack-jwt-secret-change-in-production';
   }
 
-  async login(email: string, password: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const [user] = await this.db
       .select()
       .from(users)
@@ -38,11 +43,10 @@ export class AuthService {
 
     const payload = { sub: user.id, email: user.email, role: user.role };
 
-    const accessToken = jwt.sign(
-      payload,
-      this.jwtSecret,
-      { expiresIn: this.accessTokenExpiry, algorithm: 'HS256' },
-    );
+    const accessToken = jwt.sign(payload, this.jwtSecret, {
+      expiresIn: this.accessTokenExpiry,
+      algorithm: 'HS256',
+    });
 
     const refreshToken = jwt.sign(
       { ...payload, type: 'refresh' },
@@ -53,9 +57,13 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refresh(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     try {
-      const decoded = jwt.verify(refreshToken, this.jwtSecret, { algorithms: ['HS256'] }) as {
+      const decoded = jwt.verify(refreshToken, this.jwtSecret, {
+        algorithms: ['HS256'],
+      }) as {
         sub: string;
         email: string;
         role: string;
@@ -79,11 +87,10 @@ export class AuthService {
 
       const payload = { sub: user.id, email: user.email, role: user.role };
 
-      const accessToken = jwt.sign(
-        payload,
-        this.jwtSecret,
-        { expiresIn: this.accessTokenExpiry, algorithm: 'HS256' },
-      );
+      const accessToken = jwt.sign(payload, this.jwtSecret, {
+        expiresIn: this.accessTokenExpiry,
+        algorithm: 'HS256',
+      });
 
       const newRefreshToken = jwt.sign(
         { ...payload, type: 'refresh' },
@@ -98,9 +105,17 @@ export class AuthService {
     }
   }
 
-  verifyAccessToken(token: string): { sub: string; email: string; role: string } {
+  verifyAccessToken(token: string): {
+    sub: string;
+    email: string;
+    role: string;
+  } {
     try {
-      return jwt.verify(token, this.jwtSecret) as { sub: string; email: string; role: string };
+      return jwt.verify(token, this.jwtSecret) as {
+        sub: string;
+        email: string;
+        role: string;
+      };
     } catch {
       throw new UnauthorizedException('Invalid or expired access token');
     }
