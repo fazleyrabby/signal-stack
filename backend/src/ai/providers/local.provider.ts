@@ -4,8 +4,8 @@ import { logEvent } from '../../common/logger';
 
 @Injectable()
 export class LocalProvider {
-  private readonly timeout = 15000;
-  private readonly maxTokens = 60;
+  private readonly timeout = 35000;
+  private readonly maxTokens = 40;
 
   public lastError: number | null = null;
   private enabled: boolean;
@@ -102,7 +102,7 @@ export class LocalProvider {
   }
 
   private buildPrompt(title: string, content: string): string {
-    const trimmedContent = content.slice(0, 200);
+    const trimmedContent = content.slice(0, 120);
     return `Summarize in 1 sentence (max 120 chars):\n${title}. ${trimmedContent}`;
   }
 
