@@ -129,7 +129,21 @@ function PieTooltip({ active, payload }: { active?: boolean; payload?: TooltipPa
   );
 }
 
-const TICK_STYLE = { fill: "hsl(var(--muted-foreground))", fontSize: 11 };
+function ChartTick({ x, y, payload, textAnchor }: { x?: number; y?: number; payload?: { value: string }; textAnchor?: "inherit" | "end" | "middle" | "start" }) {
+  return (
+    <text x={x} y={y} textAnchor={textAnchor ?? "middle"} dy={12} className="fill-muted-foreground text-[11px]">
+      {payload?.value}
+    </text>
+  );
+}
+
+function ChartTickY({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
+  return (
+    <text x={x} y={y} textAnchor="end" dy={4} className="fill-muted-foreground text-[11px]">
+      {payload?.value}
+    </text>
+  );
+}
 
 function SkeletonCard() {
   return (
@@ -268,8 +282,8 @@ export default function TrendsPage() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.3} />
-                      <XAxis dataKey="date" tick={TICK_STYLE} axisLine={false} tickLine={false} />
-                      <YAxis tick={TICK_STYLE} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="date" tick={<ChartTick />} axisLine={false} tickLine={false} />
+                      <YAxis tick={<ChartTickY />} axisLine={false} tickLine={false} />
                       <Tooltip content={<VolumeTooltip />} />
                       <Legend
                         wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }}
@@ -372,8 +386,8 @@ export default function TrendsPage() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.3} vertical={false} />
-                        <XAxis dataKey="category" tick={TICK_STYLE} axisLine={false} tickLine={false} />
-                        <YAxis tick={TICK_STYLE} axisLine={false} tickLine={false} />
+                        <XAxis dataKey="category" tick={<ChartTick />} axisLine={false} tickLine={false} />
+                        <YAxis tick={<ChartTickY />} axisLine={false} tickLine={false} />
                         <Tooltip content={<BarTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }} />
                         <Bar dataKey="count" fill="url(#gradViolet)" radius={[6, 6, 0, 0]} activeBar={{ fill: "#a78bfa" }} />
                       </BarChart>
@@ -470,8 +484,8 @@ export default function TrendsPage() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.3} vertical={false} />
-                        <XAxis dataKey="name" tick={TICK_STYLE} axisLine={false} tickLine={false} />
-                        <YAxis tick={TICK_STYLE} axisLine={false} tickLine={false} />
+                        <XAxis dataKey="name" tick={<ChartTick />} axisLine={false} tickLine={false} />
+                        <YAxis tick={<ChartTickY />} axisLine={false} tickLine={false} />
                         <Tooltip content={<BarTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }} />
                         <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                           {aiProviderData.map((_, index) => {
