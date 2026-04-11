@@ -35,16 +35,14 @@ All notable changes to SignalStack will be documented in this file.
 - **Severity color stripes**: left border on signal cards (red/amber/blue) for instant visual scanning
 - **Mobile search**: search input now visible on all screen sizes
 - **UX font improvements**: minimum font sizes bumped for accessibility
+- **Bookmark System**: Save/bookmark signals with API endpoint `GET/POST /api/bookmarks`, persisted in database
+- **Email Digests**: Scheduled daily email digest of high-impact signals
 
 ### Changed
 - **Local AI optimized for low-resource VPS**: context window 1024→512, max_tokens 15→60, output cap 80→150 chars, directive prompt format for better small-model compliance
 - **Production defaults**: `LOCAL_AI_ENABLED=true`, `DISCORD_FILTER_TECH=true`, llama batch-size aligned to 64 across dev/prod
-
-### Added
-- **Signal Detail Modal**: click any card to view full title, AI summary, content preview, metadata, and direct link to original article
-- **Severity color stripes**: left border on signal cards (red/amber/blue) for instant visual scanning
-- **Mobile search**: search input now visible on all screen sizes
-- **UX font improvements**: minimum font sizes bumped for accessibility
+- **Signal Detail Modal**: HTML preview now stripped of tags, mobile viewport height constraint with scrolling body, bookmark/Explore buttons use stopPropagation to prevent modal popup
+- **Card Bottom UI**: restyled to flex-col with badges and actions on separate rows for better spacing
 
 ### Fixed
 - **Numeric HTML entities in titles**: `&#8217;` (`'`), `&#8220;` (`"`), etc. now decoded in both titles and content — previously only named entities were handled
