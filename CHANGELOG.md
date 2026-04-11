@@ -11,7 +11,7 @@ All notable changes to SignalStack will be documented in this file.
 - **RSS query parameters**: `?category=geopolitics`, `?severity=high`, combined filters
 - **RSS icon in header**: desktop-only RSS link to `/api/feed.xml`
 - **RSS link tag**: `<link rel="alternate">` added to frontend layout metadata
-- **Trends Analytics page**: `/trends` with 5 interactive charts (volume, top sources, category breakdown, severity, AI providers)
+- **Trends Analytics page**: `/trends` with 6 interactive charts (volume, top sources, category breakdown, severity, AI providers, geo heatmap)
 - **Trends API endpoint**: `GET /api/signals/trends` returning 30-day aggregated data
 - **Environment-based AI routing**: Local-only mode for development (no external API calls)
 - **AI provider breakdown** endpoint: `GET /api/signals/ai-providers`
@@ -37,6 +37,9 @@ All notable changes to SignalStack will be documented in this file.
 - **UX font improvements**: minimum font sizes bumped for accessibility
 - **Bookmark System**: Save/bookmark signals with API endpoint `GET/POST /api/bookmarks`, persisted in database
 - **Email Digests**: Scheduled daily email digest of high-impact signals
+- **Geographic Heatmap**: World map on `/trends` showing signal counts by country with hover tooltips and click-to-filter
+- **Geo API endpoint**: `GET /api/signals/geo` returning `[{country, count}]`
+- **Country extraction**: URL-based country code extraction (bbc→GB, nytimes→US, etc.)
 
 ### Changed
 - **Local AI optimized for low-resource VPS**: context window 1024→512, max_tokens 15→60, output cap 80→150 chars, directive prompt format for better small-model compliance

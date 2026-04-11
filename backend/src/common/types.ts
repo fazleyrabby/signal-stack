@@ -5,6 +5,7 @@ export interface RawSignal {
   content: string | null;
   url: string;
   publishedAt: Date | null;
+  countryCode?: string;
 }
 
 export interface ScoredSignal extends RawSignal {
@@ -14,6 +15,7 @@ export interface ScoredSignal extends RawSignal {
   summary?: string;
   aiCategory?: string;
   aiProvider?: string;
+  countryCode?: string;
 }
 
 export interface PaginatedResponse<T> {

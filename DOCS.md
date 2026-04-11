@@ -60,6 +60,7 @@ Access at [http://localhost:3001/trends](http://localhost:3001/trends). Public p
 - **Category Breakdown** — Horizontal bar chart comparing Geopolitics vs Technology
 - **Severity Distribution** — Donut chart with severity breakdown
 - **AI Provider Stats** — Bar chart showing local vs groq vs openrouter usage
+- **Geographic Heatmap** — Interactive world map showing signal counts by country with hover tooltips and click-to-filter functionality
 
 ### Features
 - Auto-refreshes every 5 minutes

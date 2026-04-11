@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { BarChart3, TrendingUp, Tag, Cpu, AlertCircle, Activity, Shield, Clock, Database } from "lucide-react";
 import { Header } from "@/components/header";
+import { GeoHeatmap } from "@/components/geo-heatmap";
 import {
   Card,
   CardContent,
@@ -304,6 +305,9 @@ export default function TrendsPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Geo Heatmap */}
+          <GeoHeatmap />
 
           {/* 2×2 Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

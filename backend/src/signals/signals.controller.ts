@@ -18,6 +18,7 @@ export class SignalsController {
     @Query('severity') severity?: string,
     @Query('source') source?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('countryCode') countryCode?: string,
     @Query('since') since?: string,
     @Query('search') search?: string,
     @Query('sort') sort?: string,
@@ -29,6 +30,7 @@ export class SignalsController {
       severity,
       source,
       categoryId,
+      countryCode,
       since,
       search,
       sort,
@@ -64,5 +66,10 @@ export class SignalsController {
   @Get('signals/trends')
   async getTrends() {
     return this.signalsService.getTrends();
+  }
+
+  @Get('signals/geo')
+  async getGeoStats() {
+    return this.signalsService.getGeoStats();
   }
 }

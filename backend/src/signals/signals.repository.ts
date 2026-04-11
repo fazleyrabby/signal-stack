@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq, desc, asc, sql, and, gte, SQL, or, ilike } from 'drizzle-orm';
+import { eq, desc, asc, sql, and, gte, SQL, or, ilike, isNotNull } from 'drizzle-orm';
 import { signals, categories, Signal, NewSignal } from '../database/schema';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
@@ -46,6 +46,7 @@ export class SignalsRepository {
     severity?: string;
     source?: string;
     categoryId?: string;
+    countryCode?: string;
     since?: Date;
     search?: string;
     sort?: string;
@@ -58,6 +59,7 @@ export class SignalsRepository {
       severity,
       source,
       categoryId,
+      countryCode,
       since,
       search,
       sort = 'created_at',
@@ -77,6 +79,9 @@ export class SignalsRepository {
     }
     if (categoryId) {
       conditions.push(eq(signals.categoryId, categoryId));
+    }
+    if (countryCode) {
+      conditions.push(eq(signals.countryCode, countryCode));
     }
     if (since) {
       conditions.push(gte(signals.createdAt, since));
@@ -367,5 +372,29 @@ export class SignalsRepository {
       severityDistribution,
       aiStats,
     };
+  }
+
+  async getGeoStats(): Promise<{ country: string; count: number }[]> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const results = await this.db
+      .select({
+        country: signals.countryCode,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(signals)
+      .where(
+        and(
+          gte(signals.createdAt, thirtyDaysAgo),
+          isNotNull(signals.countryCode),
+        ),
+      )
+      .groupBy(signals.countryCode)
+      .orderBy(desc(sql`count(*)`));
+
+    return results
+      .filter((r) => r.country)
+      .map((r) => ({ country: r.country!, count: r.count }));
   }
 }

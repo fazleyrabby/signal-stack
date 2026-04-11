@@ -88,6 +88,7 @@ The Trends page at `/trends` provides 30-day analytics with interactive charts:
 - **Category Breakdown** — Geopolitics vs Technology comparison
 - **Severity Distribution** — Donut chart
 - **AI Provider Stats** — local vs groq vs openrouter usage
+- **Geographic Heatmap** — World map showing signal counts by country (click to filter by country)
 
 Open-access page with 5-minute auto-refresh.
 

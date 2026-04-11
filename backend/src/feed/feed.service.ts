@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { RawSignal, ScoredSignal } from '../common/types';
 import { ScorerService } from '../scorer/scorer.service';
 import { logEvent } from '../common/logger';
+import { getCountryFromUrl } from '../common/geo.util';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 import { sources } from '../database/schema';
@@ -211,9 +212,10 @@ export class FeedService {
       source: source.name,
       categoryId: source.categoryId,
       title,
-      content: content ? content.slice(0, 2000) : null, // Limit content size
+      content: content ? content.slice(0, 2000) : null,
       url,
       publishedAt,
+      countryCode: getCountryFromUrl(url),
     };
   }
 

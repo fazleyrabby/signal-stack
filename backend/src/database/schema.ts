@@ -54,6 +54,7 @@ export const signals = pgTable(
     aiProvider: varchar('ai_provider', { length: 20 }),
     aiProcessed: boolean('ai_processed').notNull().default(false),
     aiFailed: boolean('ai_failed').notNull().default(false),
+    countryCode: varchar('country_code', { length: 2 }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -64,6 +65,7 @@ export const signals = pgTable(
     severityIdx: index('idx_signals_severity').on(table.severity),
     scoreIdx: index('idx_signals_score').on(table.score),
     hashIdx: index('idx_signals_hash').on(table.hash),
+    countryCodeIdx: index('idx_signals_country_code').on(table.countryCode),
   }),
 );
 
