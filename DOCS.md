@@ -246,8 +246,8 @@ The dashboard is a pro-grade analytical terminal:
 - **High-Density Modes**:
   - **List Mode**: Ultra-compact, single-line "quick titles" for scanning hundreds of events.
   - **Grid Mode**: Expansive layout for detailed signal cards with severity color stripes (red/amber/blue left border).
-- **Signal Detail Modal**: Click any card to open a compact dialog with full title, AI summary, content preview, metadata, and a direct link to the original article.
-- **Bookmark/Save Signals**: Save signals for later review with session-based bookmarks (persisted via IP-based tracking).
+- **Signal Detail Modal**: Click any card to open a compact dialog with full title, AI summary, content preview (HTML-stripped), metadata, and a direct link to the original article.
+- **Bookmark/Save Signals**: Save signals for later review — persisted in the database and synced across sessions.
 - **Bookmarks View**: Toggle to view only your saved signals in any column.
 - **Intelligence Switcher (Mobile)**: Tactile tabs to switch between Geopolitical and Tech streams.
 - **Real-time Global Search**: Instant, full-text search across titles and sources — visible on all screen sizes including mobile.
@@ -348,6 +348,25 @@ SignalStack tracks unique visitors with persistent storage in PostgreSQL.
 - Homepage header shows realtime viewer count
 - Admin dashboard shows Total Today + Realtime visitors
 - Automatically tracks visits on page load
+
+---
+
+## 🔖 Bookmarks API
+
+Persistently save signals for later review. Bookmarks are stored in the database and synced across sessions.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/bookmarks` | List bookmarked signal IDs (array of strings) |
+| `POST` | `/api/bookmarks/{signalId}` | Add a bookmark |
+| `DELETE` | `/api/bookmarks/{signalId}` | Remove a bookmark |
+
+**Response:** `{ bookmarked: boolean }`
+
+**Frontend Integration:**
+- Bookmark button on each signal card and in the detail modal
+- Bookmarks filter in the dashboard header to show only saved signals
+- Uses SWR for optimistic UI updates and cache revalidation
 
 ---
 

@@ -59,14 +59,22 @@ The admin panel at `/admin` provides:
 - **Category Management** — manage intelligence categories
 - **Database Backup** — manual and automated daily backups
 
+## 🔖 Bookmarks
+
+Save signals for later review. Bookmarks are persisted in the database and synced across sessions.
+
+- **Bookmark button** on each signal card and in the detail modal
+- **Bookmarks filter** in the dashboard header to view only saved signals
+- **API**: `GET /api/bookmarks` (list), `POST /api/bookmarks/{signalId}` (add), `DELETE /api/bookmarks/{signalId}` (remove)
+
 ## 📰 Signal Feed
 
 The main dashboard features:
 
 - **Two-column layout** — Geopolitics and Technology streams side by side (tabbed on mobile)
 - **Grid & List modes** — dense list view or expanded card grid with severity color stripes
-- **Signal Detail Modal** — click any card for full title, AI summary, content preview, and metadata
-- **Bookmark/Save Signals** — save signals for later review with session-based bookmarks
+- **Signal Detail Modal** — click any card for full title, AI summary, content preview (HTML-stripped), and metadata
+- **Bookmark/Save Signals** — save signals for later review, persisted in database and synced across sessions
 - **Search** — real-time filtering across all screen sizes
 - **Severity filters** — one-click All / High / Medium / Low toggles
 - **Source & sort controls** — filter by feed source, sort by newest/oldest/score
