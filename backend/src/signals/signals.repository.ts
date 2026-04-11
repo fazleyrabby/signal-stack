@@ -1,14 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { eq, desc, asc, sql, and, gte, SQL, or, ilike } from 'drizzle-orm';
-import { signals, Signal, NewSignal } from '../database/schema';
+import { signals, categories, Signal, NewSignal } from '../database/schema';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 
 @Injectable()
 export class SignalsRepository {
-  constructor(
-    @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
-  ) {}
+  constructor(@Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB) {}
 
   /**
    * Check if a hash already exists in the database
@@ -53,7 +51,17 @@ export class SignalsRepository {
     sort?: string;
     order?: 'asc' | 'desc';
   }): Promise<{ data: Signal[]; total: number }> {
-    const { page, limit, severity, source, categoryId, since, search, sort = 'created_at', order = 'desc' } = params;
+    const {
+      page,
+      limit,
+      severity,
+      source,
+      categoryId,
+      since,
+      search,
+      sort = 'created_at',
+      order = 'desc',
+    } = params;
     const offset = (page - 1) * limit;
 
     // Build where conditions
@@ -73,21 +81,26 @@ export class SignalsRepository {
     }
     if (search) {
       const term = `%${search}%`;
-      conditions.push(or(
-        ilike(signals.title, term),
-        ilike(signals.summary, term),
-        ilike(signals.content, term)
-      ) as SQL);
+      conditions.push(
+        or(
+          ilike(signals.title, term),
+          ilike(signals.summary, term),
+          ilike(signals.content, term),
+        ) as SQL,
+      );
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Determine sort column
     const sortColumn =
-      sort === 'score' ? signals.score :
-      sort === 'severity' ? signals.severity :
-      sort === 'published_at' ? signals.publishedAt :
-      signals.createdAt;
+      sort === 'score'
+        ? signals.score
+        : sort === 'severity'
+          ? signals.severity
+          : sort === 'published_at'
+            ? signals.publishedAt
+            : signals.createdAt;
 
     const orderFn = order === 'asc' ? asc : desc;
 
@@ -145,10 +158,22 @@ export class SignalsRepository {
       highPendingResult,
     ] = await Promise.all([
       this.db.select({ count: sql<number>`count(*)::int` }).from(signals),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.severity, 'high')),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.severity, 'medium')),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.severity, 'low')),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(gte(signals.createdAt, oneDayAgo)),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(eq(signals.severity, 'high')),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(eq(signals.severity, 'medium')),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(eq(signals.severity, 'low')),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(gte(signals.createdAt, oneDayAgo)),
       this.db
         .select({
           source: signals.source,
@@ -158,11 +183,28 @@ export class SignalsRepository {
         .groupBy(signals.source)
         .orderBy(desc(sql`count(*)`))
         .limit(1),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.categoryId, 'geopolitics')),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.categoryId, 'technology')),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.aiProcessed, true)),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(eq(signals.aiFailed, true)),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals).where(and(eq(signals.severity, 'high'), eq(signals.aiProcessed, false))),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(eq(signals.categoryId, 'geopolitics')),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(eq(signals.categoryId, 'technology')),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(eq(signals.aiProcessed, true)),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(eq(signals.aiFailed, true)),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(
+          and(eq(signals.severity, 'high'), eq(signals.aiProcessed, false)),
+        ),
     ]);
 
     return {
@@ -180,7 +222,9 @@ export class SignalsRepository {
     };
   }
 
-  async getUniqueSources(categoryId?: string): Promise<{ source: string; count: number }[]> {
+  async getUniqueSources(
+    categoryId?: string,
+  ): Promise<{ source: string; count: number }[]> {
     const results = await this.db
       .select({
         source: signals.source,
@@ -191,7 +235,7 @@ export class SignalsRepository {
       .groupBy(signals.source)
       .orderBy(desc(sql`count(*)`));
 
-    return results.map(r => ({ source: r.source, count: r.count }));
+    return results.map((r) => ({ source: r.source, count: r.count }));
   }
 
   async getAIProviderStats(): Promise<{ provider: string; count: number }[]> {
@@ -205,69 +249,80 @@ export class SignalsRepository {
       .groupBy(signals.aiProvider)
       .orderBy(desc(sql`count(*)`));
 
-    return results.map(r => ({ provider: r.provider || 'none', count: r.count }));
+    return results.map((r) => ({
+      provider: r.provider || 'none',
+      count: r.count,
+    }));
   }
 
   async getTrends() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Volume by day with severity breakdown
-    const volumeByDay = await this.db
-      .select({
-        date: sql<string>`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`,
-        count: sql<number>`count(*)::int`,
-        high: sql<number>`SUM(CASE WHEN signals.severity = 'high' THEN 1 ELSE 0 END)::int`,
-        medium: sql<number>`SUM(CASE WHEN signals.severity = 'medium' THEN 1 ELSE 0 END)::int`,
-        low: sql<number>`SUM(CASE WHEN signals.severity = 'low' THEN 1 ELSE 0 END)::int`,
-      })
-      .from(signals)
-      .where(gte(signals.createdAt, thirtyDaysAgo))
-      .groupBy(sql`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`)
-      .orderBy(sql`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`);
+    const [volumeByDay, topSources, severityDistributionResult, aiStatsResult] =
+      await Promise.all([
+        this.db
+          .select({
+            date: sql<string>`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`,
+            count: sql<number>`count(*)::int`,
+            high: sql<number>`SUM(CASE WHEN signals.severity = 'high' THEN 1 ELSE 0 END)::int`,
+            medium: sql<number>`SUM(CASE WHEN signals.severity = 'medium' THEN 1 ELSE 0 END)::int`,
+            low: sql<number>`SUM(CASE WHEN signals.severity = 'low' THEN 1 ELSE 0 END)::int`,
+          })
+          .from(signals)
+          .where(gte(signals.createdAt, thirtyDaysAgo))
+          .groupBy(sql`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`)
+          .orderBy(sql`TO_CHAR(signals.createdAt, 'YYYY-MM-DD')`),
+        this.db
+          .select({
+            source: signals.source,
+            count: sql<number>`count(*)::int`,
+            avgScore: sql<number>`AVG(signals.score)::numeric(10,1)`,
+          })
+          .from(signals)
+          .where(gte(signals.createdAt, thirtyDaysAgo))
+          .groupBy(signals.source)
+          .orderBy(desc(sql`count(*)`))
+          .limit(5),
+        this.db
+          .select({
+            severity: signals.severity,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(signals)
+          .where(gte(signals.createdAt, thirtyDaysAgo))
+          .groupBy(signals.severity),
+        this.db
+          .select({
+            processed: sql<number>`SUM(CASE WHEN signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
+            failed: sql<number>`SUM(CASE WHEN signals.aiFailed = true THEN 1 ELSE 0 END)::int`,
+            local: sql<number>`SUM(CASE WHEN signals.aiProvider = 'local' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
+            groq: sql<number>`SUM(CASE WHEN signals.aiProvider = 'groq' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
+            openrouter: sql<number>`SUM(CASE WHEN signals.aiProvider = 'openrouter' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
+          })
+          .from(signals)
+          .where(gte(signals.createdAt, thirtyDaysAgo)),
+      ]);
 
-    // Top sources with average score
-    const topSources = await this.db
-      .select({
-        source: signals.source,
-        count: sql<number>`count(*)::int`,
-        avgScore: sql<number>`AVG(signals.score)::numeric(10,1)`,
-      })
-      .from(signals)
-      .where(gte(signals.createdAt, thirtyDaysAgo))
-      .groupBy(signals.source)
-      .orderBy(desc(sql`count(*)`))
-      .limit(5);
+    const [categoryBreakdown] = await Promise.all([
+      this.db
+        .select({
+          category: categories.name,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(signals)
+        .innerJoin(categories, eq(signals.categoryId, categories.slug))
+        .where(gte(signals.createdAt, thirtyDaysAgo))
+        .groupBy(categories.name)
+        .orderBy(desc(sql`count(*)`)),
+    ]);
 
-    // Category breakdown
-    const categoryBreakdown = await this.db
-      .select({
-        category: categories.name,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(signals)
-      .innerJoin(categories, eq(signals.categoryId, categories.slug))
-      .where(gte(signals.createdAt, thirtyDaysAgo))
-      .groupBy(categories.name)
-      .orderBy(desc(sql`count(*)`));
-
-    // Severity distribution
-    const severityDistributionResult = await this.db
-      .select({
-        severity: signals.severity,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(signals)
-      .where(gte(signals.createdAt, thirtyDaysAgo))
-      .groupBy(signals.severity);
-
-    // Convert severity distribution to object format
     const severityDistribution = {
       high: 0,
       medium: 0,
       low: 0,
     };
-    severityDistributionResult.forEach(row => {
+    severityDistributionResult.forEach((row) => {
       if (row.severity === 'high') {
         severityDistribution.high = row.count;
       } else if (row.severity === 'medium') {
@@ -276,18 +331,6 @@ export class SignalsRepository {
         severityDistribution.low = row.count;
       }
     });
-
-    // AI stats
-    const aiStatsResult = await this.db
-      .select({
-        processed: sql<number>`SUM(CASE WHEN signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
-        failed: sql<number>`SUM(CASE WHEN signals.aiFailed = true THEN 1 ELSE 0 END)::int`,
-        local: sql<number>`SUM(CASE WHEN signals.aiProvider = 'local' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
-        groq: sql<number>`SUM(CASE WHEN signals.aiProvider = 'groq' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
-        openrouter: sql<number>`SUM(CASE WHEN signals.aiProvider = 'openrouter' AND signals.aiProcessed = true THEN 1 ELSE 0 END)::int`,
-      })
-      .from(signals)
-      .where(gte(signals.createdAt, thirtyDaysAgo));
 
     const aiStats = {
       processed: aiStatsResult[0]?.processed || 0,
@@ -300,19 +343,19 @@ export class SignalsRepository {
     };
 
     return {
-      volumeByDay: volumeByDay.map(day => ({
+      volumeByDay: volumeByDay.map((day) => ({
         date: day.date,
         count: day.count,
         high: day.high,
         medium: day.medium,
         low: day.low,
       })),
-      topSources: topSources.map(source => ({
+      topSources: topSources.map((source) => ({
         source: source.source,
         count: source.count,
         avgScore: Number(source.avgScore),
       })),
-      categoryBreakdown: categoryBreakdown.map(cat => ({
+      categoryBreakdown: categoryBreakdown.map((cat) => ({
         category: cat.category,
         count: cat.count,
       })),
