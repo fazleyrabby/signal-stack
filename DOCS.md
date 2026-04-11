@@ -490,28 +490,29 @@ SignalStack monitors high-fidelity streams divided into strategic intelligence c
 
 ### Updating / Redeploying
 
-#### Automated (CI/CD — Recommended)
+#### Quick Deploy (shell alias)
 
-Pushing to the `deploy` branch triggers an automatic deployment via GitHub Actions and a self-hosted runner on the VPS.
+A shell alias is configured in `~/.zshrc` for one-command deploys:
 
 ```bash
-# From your local machine:
-git checkout deploy
-git merge main
-git push origin deploy
-# GitHub Actions picks it up → VPS rebuilds and deploys automatically
+# Push changes and deploy
+git push origin main && deploy-signal
 ```
 
-The workflow (`.github/workflows/deploy.yml`) runs on the self-hosted runner installed on the VPS, which calls `./scripts/deploy.sh` — handling git sync, Docker rebuild, container swap, health checks, and auto-rollback on failure.
+The `deploy-signal` alias SSHs into the VPS and runs `./scripts/deploy.sh`, which handles git sync, Docker rebuild, container swap, health checks, and auto-rollback on failure.
+
+**Alias definition** (in `~/.zshrc`):
+```bash
+alias deploy-signal="ssh fazley@192.168.0.110 'cd /home/fazley/signal-stack && ./scripts/deploy.sh'"
+```
 
 #### Manual (SSH)
 
-If CI/CD is unavailable, SSH into the VPS directly:
+Alternatively, SSH into the VPS directly:
 
 ```bash
 ssh fazley@192.168.0.110
-cd /path/to/SignalStack
-git pull origin main
+cd /home/fazley/signal-stack
 ./scripts/deploy.sh
 ```
 
@@ -525,37 +526,7 @@ git pull origin main    # pull clean code
 
 > **Important**: Always commit and push from your local machine first. The VPS should only ever pull — never edit code directly on the server.
 
-### CI/CD Setup (Self-Hosted Runner)
-
-SignalStack uses a **self-hosted GitHub Actions runner** on the VPS for automated deployments. This is required because the VPS is behind a Cloudflare Tunnel (no inbound SSH from GitHub).
-
-#### One-Time Setup
-
-1. Go to **GitHub repo → Settings → Actions → Runners → New self-hosted runner**
-2. Select **Linux** and follow the provided commands on the VPS:
-   ```bash
-   mkdir actions-runner && cd actions-runner
-   # Download, extract, and configure (commands from GitHub UI)
-   ./config.sh --url https://github.com/fazleyrabby/signal-stack --token <TOKEN>
-   sudo ./svc.sh install
-   sudo ./svc.sh start
-   ```
-3. Add the GitHub Actions secret:
-   - `VPS_PROJECT_PATH`: Absolute path to the project on the VPS (e.g. `/home/fazley/signal-stack`)
-
-#### How It Works
-
-```
-Local: push to deploy branch
-  → GitHub Actions triggers deploy.yml
-    → Self-hosted runner on VPS picks up the job
-      → Runs ./scripts/deploy.sh
-        → git reset --hard origin/main
-        → docker compose build
-        → container swap (~3-5s downtime)
-        → health checks
-        → auto-rollback on failure
-```
+> **Note on CI/CD**: GitHub Actions with a self-hosted runner was considered but is not recommended since the repo is public — forks could run arbitrary code on the VPS. The shell alias approach is simpler and secure for a single-developer project.
 
 ### VPS Considerations
 
