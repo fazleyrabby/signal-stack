@@ -73,7 +73,7 @@ export class SignalsService {
   }) {
     const page = Math.max(1, params.page || 1);
     const limit = Math.min(100, Math.max(1, params.limit || 20));
-    const order = params.order === 'asc' ? 'asc' as const : 'desc' as const;
+    const order = params.order === 'asc' ? ('asc' as const) : ('desc' as const);
 
     let since: Date | undefined;
     if (params.since) {
