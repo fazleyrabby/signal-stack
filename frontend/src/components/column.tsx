@@ -12,7 +12,7 @@ import {
   Bookmark,
   LucideIcon,
 } from "lucide-react";
-import { toggleBookmark } from "@/lib/api";
+import { toggleBookmark, API_BASE } from "@/lib/api";
 import { SignalCard } from "@/components/signal-card";
 import { SignalDetailModal } from "@/components/signal-detail-modal";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ const API_BASE = '/api/signals';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const PAGE_SIZE = 20;
-const BOOKMARKS_API_BASE = '/api/bookmarks';
+const BOOKMARKS_API_BASE = `${API_BASE}/api/bookmarks`;
 
 interface SourceInfo {
   source: string;

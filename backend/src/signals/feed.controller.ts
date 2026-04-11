@@ -15,22 +15,24 @@ export class FeedController {
     @Query('severity') severity: string,
     @Query('page') page: string,
     @Query('limit') limit: string,
+    @Query('sort') sort: string,
     @Res() res: Response,
   ) {
     try {
       const pageNum = parseInt(page || '1', 10);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit || '50', 10)));
+      const sortBy = sort || 'publishedAt';
 
       const { data: signals } = await this.signalsRepository.findAll({
         page: pageNum,
         limit: limitNum,
         severity,
         categoryId: category,
-        sort: 'score',
+        search: undefined,
+        sort: sortBy === 'score' ? 'score' : 'published_at',
         order: 'desc',
+        minScore: 5,
       });
-
-      const filteredSignals = signals.filter((signal) => signal.score >= 5);
 
       const feed = new RSS({
         title: 'SignalStack Intelligence Feed',
@@ -41,7 +43,7 @@ export class FeedController {
         ttl: 15,
       });
 
-      filteredSignals.forEach((signal) => {
+      signals.forEach((signal) => {
         const description = signal.aiSummary
           ? striptags(signal.aiSummary)
           : signal.content

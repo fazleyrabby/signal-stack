@@ -8,7 +8,8 @@ import { Sparkles, ExternalLink, Bookmark } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
-import { toggleBookmark } from "@/lib/api";
+import { toggleBookmark, API_BASE } from "@/lib/api";
+import { mutate } from "swr";
 
 interface SignalDetailModalProps {
   signal: Signal | null;
@@ -59,17 +60,22 @@ export function SignalDetailModal({ signal, onOpenChange }: SignalDetailModalPro
              <DialogTitle className="text-base font-bold leading-snug pr-6">
                {signal.title}
              </DialogTitle>
-             <button
-               onClick={async () => {
-                 try {
-                   const result = await toggleBookmark(signal.id);
-                   // Force refresh of the modal to update UI
-                   onOpenChange(null);
-                   setTimeout(() => onOpenChange(signal), 100);
-                 } catch (error) {
-                   console.error('Failed to toggle bookmark:', error);
-                 }
-               }}
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    const result = await toggleBookmark(signal.id);
+                    await mutate(`${API_BASE}/api/bookmarks`, 
+                      (currentBookmarks: string[] = []) => 
+                        result.bookmarked 
+                          ? [...currentBookmarks, signal.id] 
+                          : currentBookmarks.filter(id => id !== signal.id),
+                      false
+                    );
+                  } catch (error) {
+                    console.error('Failed to toggle bookmark:', error);
+                  }
+                }}
                className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all"
              >
                BOOKMARK

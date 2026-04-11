@@ -50,6 +50,7 @@ export class SignalsRepository {
     search?: string;
     sort?: string;
     order?: 'asc' | 'desc';
+    minScore?: number;
   }): Promise<{ data: Signal[]; total: number }> {
     const {
       page,
@@ -61,6 +62,7 @@ export class SignalsRepository {
       search,
       sort = 'created_at',
       order = 'desc',
+      minScore,
     } = params;
     const offset = (page - 1) * limit;
 
@@ -88,6 +90,9 @@ export class SignalsRepository {
           ilike(signals.content, term),
         ) as SQL,
       );
+    }
+    if (minScore !== undefined) {
+      conditions.push(gte(signals.score, minScore));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
