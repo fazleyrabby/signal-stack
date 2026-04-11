@@ -33,6 +33,7 @@ export class SignalsService {
       aiCategory: signal.aiCategory,
       hash: signal.hash,
       publishedAt: signal.publishedAt,
+      countryCode: signal.countryCode,
     });
 
     if (inserted) {
@@ -66,6 +67,7 @@ export class SignalsService {
     severity?: string;
     source?: string;
     categoryId?: string;
+    countryCode?: string;
     since?: string;
     search?: string;
     sort?: string;
@@ -89,6 +91,7 @@ export class SignalsService {
       severity: params.severity,
       source: params.source,
       categoryId: params.categoryId,
+      countryCode: params.countryCode,
       since,
       search: params.search,
       sort: params.sort,
@@ -123,5 +126,9 @@ export class SignalsService {
 
   async getTrends() {
     return this.repository.getTrends();
+  }
+
+  async getGeoStats() {
+    return this.repository.getGeoStats();
   }
 }

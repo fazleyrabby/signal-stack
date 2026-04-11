@@ -278,6 +278,7 @@ export function Column({
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [sourceFilter, setSourceFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -305,7 +306,7 @@ export function Column({
   const orderParam = sortBy === 'oldest' ? 'asc' : 'desc';
 
   const { data: response, isLoading, isValidating } = useSWR<SignalsResponse>(
-    `${SIGNALS_API_BASE}?limit=${PAGE_SIZE * page}&categoryId=${categoryId}&sort=${sortParam}&order=${orderParam}${sourceFilter ? `&source=${encodeURIComponent(sourceFilter)}` : ''}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`,
+    `${SIGNALS_API_BASE}?limit=${PAGE_SIZE * page}&categoryId=${categoryId}&sort=${sortParam}&order=${orderParam}${sourceFilter ? `&source=${encodeURIComponent(sourceFilter)}` : ''}${countryFilter ? `&countryCode=${encodeURIComponent(countryFilter)}` : ''}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`,
     fetcher,
     { refreshInterval: 15000, revalidateOnFocus: false, keepPreviousData: true }
   );
