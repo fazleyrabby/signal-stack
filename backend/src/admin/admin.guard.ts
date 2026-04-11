@@ -13,7 +13,9 @@ export class AdminGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const jwtSecret = this.configService.get<string>('JWT_SECRET') || 'signalstack-jwt-secret-change-in-production';
+    const jwtSecret =
+      this.configService.get<string>('JWT_SECRET') ||
+      'signalstack-jwt-secret-change-in-production';
 
     const accessToken = request.cookies?.signalstack_access_token;
 
@@ -22,7 +24,9 @@ export class AdminGuard implements CanActivate {
     }
 
     try {
-      const decoded = jwt.verify(accessToken, jwtSecret, { algorithms: ['HS256'] }) as { sub: string; email: string; role: string };
+      const decoded = jwt.verify(accessToken, jwtSecret, {
+        algorithms: ['HS256'],
+      }) as { sub: string; email: string; role: string };
       if (decoded.role === 'admin') {
         request.user = decoded;
         return true;

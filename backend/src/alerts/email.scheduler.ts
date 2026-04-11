@@ -17,7 +17,9 @@ export class EmailScheduler implements OnModuleInit {
     // Wait a few seconds for services to properly initialize
     setTimeout(() => {
       this.sendScheduledDigest().catch((err) => {
-        logEvent('error', 'startup_email_trigger_failed', { error: err.message });
+        logEvent('error', 'startup_email_trigger_failed', {
+          error: err.message,
+        });
       });
     }, 5000);
   }

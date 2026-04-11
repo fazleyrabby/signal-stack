@@ -14,17 +14,23 @@ export const categories = pgTable('categories', {
   slug: varchar('slug', { length: 50 }).primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
   description: text('description'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const sources = pgTable('sources', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 100 }).notNull(),
   url: text('url').notNull(),
-  categoryId: varchar('category_id', { length: 50 }).notNull().references(() => categories.slug),
+  categoryId: varchar('category_id', { length: 50 })
+    .notNull()
+    .references(() => categories.slug),
   trustScore: integer('trust_score').notNull().default(3),
   isActive: boolean('is_active').notNull().default(true),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const signals = pgTable(
@@ -37,7 +43,9 @@ export const signals = pgTable(
     summary: text('summary'),
     url: text('url').notNull(),
     score: integer('score').notNull(),
-    categoryId: varchar('category_id', { length: 50 }).notNull().references(() => categories.slug),
+    categoryId: varchar('category_id', { length: 50 })
+      .notNull()
+      .references(() => categories.slug),
     aiCategory: varchar('ai_category', { length: 50 }),
     severity: varchar('severity', { length: 10 }).notNull(),
     hash: varchar('hash', { length: 64 }).notNull().unique(),
@@ -67,14 +75,20 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   role: varchar('role', { length: 20 }).notNull().default('admin'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const settings = pgTable('settings', {
   key: varchar('key', { length: 100 }).primaryKey(),
   value: text('value').notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const visitors = pgTable('visitors', {
@@ -82,30 +96,38 @@ export const visitors = pgTable('visitors', {
   sessionId: varchar('session_id', { length: 64 }).notNull().unique(),
   ip: varchar('ip', { length: 45 }),
   userAgent: text('user_agent'),
-  firstSeen: timestamp('first_seen', { withTimezone: true }).notNull().defaultNow(),
-  lastSeen: timestamp('last_seen', { withTimezone: true }).notNull().defaultNow(),
+  firstSeen: timestamp('first_seen', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  lastSeen: timestamp('last_seen', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
   pageViews: integer('page_views').notNull().default(1),
 });
 
-export const bookmarks = pgTable('bookmarks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  signalId: uuid('signal_id')
-    .notNull()
-    .references(() => signals.id),
-  sessionId: varchar('session_id', { length: 64 }).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => ({
-  signalSessionIdx: index('idx_bookmarks_signal_id_session_id').on(
-    table.signalId,
-    table.sessionId
-  ),
-  uniqueSignalSession: uniqueIndex('uq_bookmarks_signal_id_session_id').on(
-    table.signalId,
-    table.sessionId
-  ),
-}));
+export const bookmarks = pgTable(
+  'bookmarks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    signalId: uuid('signal_id')
+      .notNull()
+      .references(() => signals.id),
+    sessionId: varchar('session_id', { length: 64 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    signalSessionIdx: index('idx_bookmarks_signal_id_session_id').on(
+      table.signalId,
+      table.sessionId,
+    ),
+    uniqueSignalSession: uniqueIndex('uq_bookmarks_signal_id_session_id').on(
+      table.signalId,
+      table.sessionId,
+    ),
+  }),
+);
 
 export type Visitor = typeof visitors.$inferSelect;
 export type NewVisitor = typeof visitors.$inferInsert;

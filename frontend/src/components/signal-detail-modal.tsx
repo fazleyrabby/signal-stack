@@ -43,7 +43,7 @@ export function SignalDetailModal({ signal, onOpenChange }: SignalDetailModalPro
       open={!!signal}
       onOpenChange={handleOpenChange}
     >
-      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden max-h-[calc(100dvh-2rem)] flex flex-col">
         {/* Header with severity stripe */}
         <div className={cn(
           "border-l-4 px-6 pt-6 pb-4",
@@ -82,7 +82,7 @@ export function SignalDetailModal({ signal, onOpenChange }: SignalDetailModalPro
         </div>
 
         {/* Body */}
-        <div className="px-6 pb-4 space-y-4">
+        <div className="px-6 pb-4 space-y-4 overflow-y-auto flex-1 min-h-0">
           {/* AI Summary */}
           {(signal.aiSummary || signal.summary) && (
             <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
@@ -101,7 +101,10 @@ export function SignalDetailModal({ signal, onOpenChange }: SignalDetailModalPro
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1.5">Content Preview</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {signal.content.substring(0, 300)}{signal.content.length > 300 ? "..." : ""}
+                {(() => {
+                  const stripped = signal.content.replace(/<[^>]*>/g, '');
+                  return stripped.length > 300 ? stripped.substring(0, 300) + "..." : stripped;
+                })()}
               </p>
             </div>
           )}

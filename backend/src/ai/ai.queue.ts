@@ -20,7 +20,9 @@ export class AIQueue implements OnModuleInit {
   private _queueSize = 0;
 
   // High-performance Rate-Limit Configuration
-  private readonly processDelay = parseInt(process.env.AI_PROCESS_DELAY || '1500');
+  private readonly processDelay = parseInt(
+    process.env.AI_PROCESS_DELAY || '1500',
+  );
   private readonly maxWorkers = parseInt(process.env.AI_MAX_WORKERS || '2');
   private readonly dailyLimit = parseInt(process.env.AI_DAILY_LIMIT || '150');
 
@@ -38,16 +40,18 @@ export class AIQueue implements OnModuleInit {
         // Ensure concurrent lanes (though zipped sequentially, this prepares for scaling)
         mergeMap(([job]) => this.processJob(job), this.maxWorkers),
         catchError((err) => {
-          logEvent('error', 'ai_queue_critical_failure', { error: err.message });
+          logEvent('error', 'ai_queue_critical_failure', {
+            error: err.message,
+          });
           return of(null);
-        })
+        }),
       )
       .subscribe();
-    
-    logEvent('info', 'ai_high_density_queue_active', { 
-      delay: this.processDelay, 
+
+    logEvent('info', 'ai_high_density_queue_active', {
+      delay: this.processDelay,
       workers: this.maxWorkers,
-      limit: this.dailyLimit
+      limit: this.dailyLimit,
     });
   }
 
@@ -61,7 +65,9 @@ export class AIQueue implements OnModuleInit {
     }
 
     // 2. Check Daily Limit
-    const withinLimit = await this.redis.checkAndIncrementLimit(this.dailyLimit);
+    const withinLimit = await this.redis.checkAndIncrementLimit(
+      this.dailyLimit,
+    );
     if (!withinLimit) {
       logEvent('warn', 'ai_daily_limit_reached', { limit: this.dailyLimit });
       return;
@@ -78,20 +84,29 @@ export class AIQueue implements OnModuleInit {
 
   private async processJob(job: AIJob) {
     try {
-      await this.aiService.processSignal(job.id, job.title, job.content, job.score);
+      await this.aiService.processSignal(
+        job.id,
+        job.title,
+        job.content,
+        job.score,
+      );
       await this.redis.markProcessed(job.id);
     } catch (error: any) {
-      logEvent('error', 'ai_queue_job_failed', { 
-        jobId: job.id, 
+      logEvent('error', 'ai_queue_job_failed', {
+        jobId: job.id,
         error: error.message,
-        retry: (job.retryCount || 0) < 1 
+        retry: (job.retryCount || 0) < 1,
       });
 
       // 3. Resilience: Retry up to 3 times with exponential backoff
       const retries = job.retryCount || 0;
       if (retries < 3) {
         const backoff = (retries + 1) * 30000; // 30s, 60s, 90s
-        logEvent('info', 'ai_queue_retry_scheduled', { jobId: job.id, retry: retries + 1, backoffMs: backoff });
+        logEvent('info', 'ai_queue_retry_scheduled', {
+          jobId: job.id,
+          retry: retries + 1,
+          backoffMs: backoff,
+        });
         setTimeout(() => {
           this.enqueue({ ...job, retryCount: retries + 1 });
         }, backoff);

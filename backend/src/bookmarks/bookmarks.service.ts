@@ -1,41 +1,47 @@
 import { Injectable } from '@nestjs/common';
-import { db } from '../database/db';
+import { DATABASE_CONNECTION } from '../database/database.module';
+import type { DrizzleDB } from '../database/database.module';
+import { Inject } from '@nestjs/common';
 import { bookmarks, signals } from '../database/schema';
 import { eq, and } from 'drizzle-orm';
-import { type Signal } from '../database/schema';
 
 @Injectable()
 export class BookmarksService {
+  constructor(@Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB) {}
+
   /**
    * Toggle bookmark for a signal - if bookmarked, remove it; if not, add it
    */
-  async toggle(signalId: string, sessionId: string): Promise<{ bookmarked: boolean }> {
+  async toggle(
+    signalId: string,
+    sessionId: string,
+  ): Promise<{ bookmarked: boolean }> {
     // Check if bookmark already exists
-    const existing = await db
+    const existing = await this.db
       .select()
       .from(bookmarks)
       .where(
         and(
           eq(bookmarks.signalId, signalId),
-          eq(bookmarks.sessionId, sessionId)
-        )
+          eq(bookmarks.sessionId, sessionId),
+        ),
       )
       .limit(1);
 
     if (existing.length > 0) {
       // Remove bookmark
-      await db
+      await this.db
         .delete(bookmarks)
         .where(
           and(
             eq(bookmarks.signalId, signalId),
-            eq(bookmarks.sessionId, sessionId)
-          )
+            eq(bookmarks.sessionId, sessionId),
+          ),
         );
       return { bookmarked: false };
     } else {
       // Add bookmark
-      await db.insert(bookmarks).values({
+      await this.db.insert(bookmarks).values({
         signalId,
         sessionId,
       });
@@ -47,19 +53,19 @@ export class BookmarksService {
    * Get all bookmarked signal IDs for a session
    */
   async getBySession(sessionId: string): Promise<string[]> {
-    const result = await db
+    const result = await this.db
       .select({ signalId: bookmarks.signalId })
       .from(bookmarks)
       .where(eq(bookmarks.sessionId, sessionId));
 
-    return result.map(row => row.signalId);
+    return result.map((row) => row.signalId);
   }
 
   /**
    * Get full signal data for bookmarked signals with pagination
    */
   async getBookmarkedSignals(sessionId: string, limit: number, offset: number) {
-    const { data, total } = await db
+    const signalData = await this.db
       .select({
         id: signals.id,
         source: signals.source,
@@ -86,11 +92,11 @@ export class BookmarksService {
       .offset(offset);
 
     return {
-      data,
+      data: signalData,
       meta: {
         limit,
         offset,
-        total,
+        total: signalData.length,
       },
     };
   }

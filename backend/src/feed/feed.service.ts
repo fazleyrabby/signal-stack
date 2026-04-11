@@ -16,7 +16,9 @@ const FEED_TIMEOUT = 10_000; // 10s per feed
 function decodeEntities(text: string): string {
   return text
     .replace(/&#(\d+);/g, (_, num) => String.fromCodePoint(Number(num)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
+      String.fromCodePoint(parseInt(hex, 16)),
+    )
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -73,13 +75,14 @@ export class FeedService {
     const limit = pLimit(CONCURRENCY_LIMIT);
     const allSignals: ScoredSignal[] = [];
 
-    const activeSources = await this.db.select().from(sources).where(eq(sources.isActive, true));
+    const activeSources = await this.db
+      .select()
+      .from(sources)
+      .where(eq(sources.isActive, true));
     this.activeCount = activeSources.length;
 
     const results = await Promise.allSettled(
-      activeSources.map((source) =>
-        limit(() => this.fetchSingleFeed(source)),
-      ),
+      activeSources.map((source) => limit(() => this.fetchSingleFeed(source))),
     );
 
     for (let i = 0; i < results.length; i++) {
@@ -101,8 +104,13 @@ export class FeedService {
   /**
    * Fetch a single RSS feed and return scored signals
    */
-  private async fetchSingleFeed(source: typeof sources.$inferSelect): Promise<ScoredSignal[]> {
-    logEvent('info', 'feed_fetch_start', { source: source.name, url: source.url });
+  private async fetchSingleFeed(
+    source: typeof sources.$inferSelect,
+  ): Promise<ScoredSignal[]> {
+    logEvent('info', 'feed_fetch_start', {
+      source: source.name,
+      url: source.url,
+    });
 
     try {
       const controller = new AbortController();
@@ -192,7 +200,10 @@ export class FeedService {
     }
 
     const STALE_THRESHOLD_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
-    if (publishedAt && Date.now() - publishedAt.getTime() > STALE_THRESHOLD_MS) {
+    if (
+      publishedAt &&
+      Date.now() - publishedAt.getTime() > STALE_THRESHOLD_MS
+    ) {
       return null; // Skip stale data
     }
 
@@ -207,7 +218,11 @@ export class FeedService {
   }
 
   async checkSourceHealth(id: string) {
-    const source = await this.db.select().from(sources).where(eq(sources.id, id)).limit(1);
+    const source = await this.db
+      .select()
+      .from(sources)
+      .where(eq(sources.id, id))
+      .limit(1);
     if (!source.length) {
       return { status: 'error', message: 'Source not found' };
     }
@@ -225,7 +240,11 @@ export class FeedService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        return { status: 'error', code: response.status, message: `HTTP ${response.status}` };
+        return {
+          status: 'error',
+          code: response.status,
+          message: `HTTP ${response.status}`,
+        };
       }
 
       const contentType = response.headers.get('content-type') || '';
@@ -238,7 +257,9 @@ export class FeedService {
         code: response.status,
         isRss,
         hasData: hasItems,
-        itemCount: hasItems ? (text.match(/<item/g) || text.match(/<entry/g))?.length || 0 : 0,
+        itemCount: hasItems
+          ? (text.match(/<item/g) || text.match(/<entry/g))?.length || 0
+          : 0,
       };
     } catch (error: any) {
       return { status: 'error', message: error.message };
@@ -246,13 +267,20 @@ export class FeedService {
   }
 
   async toggleSource(id: string) {
-    const source = await this.db.select().from(sources).where(eq(sources.id, id)).limit(1);
+    const source = await this.db
+      .select()
+      .from(sources)
+      .where(eq(sources.id, id))
+      .limit(1);
     if (!source.length) {
       return { success: false, message: 'Source not found' };
     }
 
     const feed = source[0];
-    await this.db.update(sources).set({ isActive: !feed.isActive }).where(eq(sources.id, id));
+    await this.db
+      .update(sources)
+      .set({ isActive: !feed.isActive })
+      .where(eq(sources.id, id));
 
     return { success: true, isActive: !feed.isActive };
   }

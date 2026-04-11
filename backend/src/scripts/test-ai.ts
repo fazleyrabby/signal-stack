@@ -11,7 +11,7 @@ async function testAI() {
 
   const result = await ai.analyzeSignal(
     'Microsoft detects massive nation-state cyberattack on European power grid',
-    'Microsoft security researchers have identified a coordinated campaign by a group linked to APT28 targeting electricity infrastructure in over 5 countries.'
+    'Microsoft security researchers have identified a coordinated campaign by a group linked to APT28 targeting electricity infrastructure in over 5 countries.',
   );
 
   if (result) {

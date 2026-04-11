@@ -13,15 +13,20 @@ export class FeedController {
   async getFeed(
     @Query('category') category: string,
     @Query('severity') severity: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
     @Res() res: Response,
   ) {
     try {
+      const pageNum = parseInt(page || '1', 10);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit || '50', 10)));
+
       const { data: signals } = await this.signalsRepository.findAll({
-        page: 1,
-        limit: 50,
+        page: pageNum,
+        limit: limitNum,
         severity,
         categoryId: category,
-        sort: 'publishedAt',
+        sort: 'score',
         order: 'desc',
       });
 

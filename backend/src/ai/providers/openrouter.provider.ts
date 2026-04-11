@@ -53,7 +53,8 @@ export class OpenRouterProvider {
           messages: [
             {
               role: 'system',
-              content: 'Summarize why this matters in one sentence. max 30 words, no fluff, no repetition, plain English.',
+              content:
+                'Summarize why this matters in one sentence. max 30 words, no fluff, no repetition, plain English.',
             },
             {
               role: 'user',
@@ -78,16 +79,20 @@ export class OpenRouterProvider {
       // Track token usage
       const usage = data?.usage;
       if (usage) {
-        await this.redisService.trackTokens('openrouter', usage.prompt_tokens || 0, usage.completion_tokens || 0);
+        await this.redisService.trackTokens(
+          'openrouter',
+          usage.prompt_tokens || 0,
+          usage.completion_tokens || 0,
+        );
       }
 
       const result = data?.choices?.[0]?.message?.content?.trim();
       return result ? this.cleanResponse(result) : null;
     } catch (error: any) {
       this.lastError = error.name === 'AbortError' ? 408 : 500;
-      logEvent('warn', 'openrouter_provider_error', { 
-        status: this.lastError, 
-        message: error.message 
+      logEvent('warn', 'openrouter_provider_error', {
+        status: this.lastError,
+        message: error.message,
       });
       return null;
     }
@@ -97,7 +102,11 @@ export class OpenRouterProvider {
     return text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
   }
 
-  async checkHealth(): Promise<{ status: string; latency?: number; error?: string }> {
+  async checkHealth(): Promise<{
+    status: string;
+    latency?: number;
+    error?: string;
+  }> {
     if (!this.apiKey) {
       return { status: 'no_api_key' };
     }
@@ -114,9 +123,13 @@ export class OpenRouterProvider {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://signalstack.now',
-          'X-Title': 'SignalStack'
+          'X-Title': 'SignalStack',
         },
-        body: JSON.stringify({ model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 }),
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: 'Hi' }],
+          max_tokens: 1,
+        }),
         signal: controller.signal,
       });
 

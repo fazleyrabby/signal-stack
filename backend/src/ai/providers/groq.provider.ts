@@ -51,7 +51,8 @@ export class GroqProvider {
           messages: [
             {
               role: 'system',
-              content: 'Summarize why this matters in one sentence. max 30 words, no fluff, no repetition, plain English.',
+              content:
+                'Summarize why this matters in one sentence. max 30 words, no fluff, no repetition, plain English.',
             },
             {
               role: 'user',
@@ -76,16 +77,20 @@ export class GroqProvider {
       // Track token usage
       const usage = data?.usage;
       if (usage) {
-        await this.redisService.trackTokens('groq', usage.prompt_tokens || 0, usage.completion_tokens || 0);
+        await this.redisService.trackTokens(
+          'groq',
+          usage.prompt_tokens || 0,
+          usage.completion_tokens || 0,
+        );
       }
 
       const result = data?.choices?.[0]?.message?.content?.trim();
       return result ? this.cleanResponse(result) : null;
     } catch (error: any) {
       this.lastError = error.name === 'AbortError' ? 408 : 500;
-      logEvent('warn', 'groq_provider_error', { 
-        status: this.lastError, 
-        message: error.message 
+      logEvent('warn', 'groq_provider_error', {
+        status: this.lastError,
+        message: error.message,
       });
       return null;
     }
@@ -95,7 +100,11 @@ export class GroqProvider {
     return text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
   }
 
-  async checkHealth(): Promise<{ status: string; latency?: number; error?: string }> {
+  async checkHealth(): Promise<{
+    status: string;
+    latency?: number;
+    error?: string;
+  }> {
     if (!this.apiKey) {
       return { status: 'no_api_key' };
     }
@@ -109,7 +118,11 @@ export class GroqProvider {
       const res = await fetch(this.apiUrl, {
         method: 'POST',
         headers: { Authorization: `Bearer ${this.apiKey}` },
-        body: JSON.stringify({ model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 }),
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: 'Hi' }],
+          max_tokens: 1,
+        }),
         signal: controller.signal,
       });
 

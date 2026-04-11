@@ -1,4 +1,10 @@
-import { Controller, Post, Body, Res, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 
@@ -17,7 +23,8 @@ export class AuthController {
     }
 
     const tokens = await this.authService.login(email, password);
-    const domain = process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
+    const domain =
+      process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
 
     res.cookie('signalstack_access_token', tokens.accessToken, {
       httpOnly: true,
@@ -51,7 +58,8 @@ export class AuthController {
     }
 
     const tokens = await this.authService.refresh(token);
-    const domain = process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
+    const domain =
+      process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
 
     res.cookie('signalstack_access_token', tokens.accessToken, {
       httpOnly: true,
@@ -76,9 +84,13 @@ export class AuthController {
 
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    const domain = process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
+    const domain =
+      process.env.NODE_ENV === 'production' ? '.fazleyrabbi.xyz' : undefined;
     res.clearCookie('signalstack_access_token', { path: '/', domain });
-    res.clearCookie('signalstack_refresh_token', { path: '/api/admin/auth/refresh', domain });
+    res.clearCookie('signalstack_refresh_token', {
+      path: '/api/admin/auth/refresh',
+      domain,
+    });
     return { success: true };
   }
 }

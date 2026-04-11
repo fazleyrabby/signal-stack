@@ -12,7 +12,11 @@ const execAsync = promisify(exec);
 export class BackupService implements OnModuleInit {
   private readonly logger = new Logger(BackupService.name);
   private readonly backupDir = path.join(process.cwd(), 'backups');
-  private readonly backupPath = path.join(process.cwd(), 'backups', 'signalstack_backup.sql');
+  private readonly backupPath = path.join(
+    process.cwd(),
+    'backups',
+    'signalstack_backup.sql',
+  );
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -52,15 +56,17 @@ export class BackupService implements OnModuleInit {
       try {
         await execAsync('pg_dump --version');
       } catch (e) {
-        this.logger.error('❌ CRITICAL: pg_dump is not installed in the container environment. Rebuild recommended.');
+        this.logger.error(
+          '❌ CRITICAL: pg_dump is not installed in the container environment. Rebuild recommended.',
+        );
         throw new Error('pg_dump binary not found');
       }
 
       // Create temporary backup file
       const tempFile = `${this.backupPath}.tmp`;
-      
+
       const command = `pg_dump "${databaseUrl}" --no-owner --no-privileges --clean -f "${tempFile}"`;
-      
+
       this.logger.log(`🛰️ Executing pg_dump...`);
       const { stderr } = await execAsync(command);
 
@@ -72,10 +78,10 @@ export class BackupService implements OnModuleInit {
       if (fs.existsSync(tempFile)) {
         fs.renameSync(tempFile, this.backupPath);
         this.logger.log(`✅ Backup successful: ${this.backupPath}`);
-        return { 
-          success: true, 
-          path: 'signalstack_backup.sql', 
-          timestamp: new Date().toISOString() 
+        return {
+          success: true,
+          path: 'signalstack_backup.sql',
+          timestamp: new Date().toISOString(),
         };
       }
     } catch (error) {

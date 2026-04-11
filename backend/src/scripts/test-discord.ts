@@ -22,7 +22,8 @@ async function testWebhook() {
         embeds: [
           {
             title: '🚨 CRITICAL SYSTEM TEST: SignalStack Ingestion Active',
-            description: 'This is a test signal triggered by the SignalStack engineering team to confirm your Discord notification pipeline is healthy.',
+            description:
+              'This is a test signal triggered by the SignalStack engineering team to confirm your Discord notification pipeline is healthy.',
             color: 0xff0000,
             fields: [
               { name: 'Node Status', value: 'ONLINE', inline: true },

@@ -11,6 +11,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "SignalStack | Intelligent Terminal",
   description: "High-density strategic intelligence terminal for professional operational monitoring.",
+  alternates: {
+    types: {
+      "application/rss+xml": "/api/feed.xml",
+    },
+  },
 };
 
 export default function RootLayout({

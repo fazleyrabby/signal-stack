@@ -7,6 +7,12 @@ All notable changes to SignalStack will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Public RSS Feed**: `GET /api/feed.xml` returns RSS 2.0 with last 50 signals (score >= 5)
+- **RSS query parameters**: `?category=geopolitics`, `?severity=high`, combined filters
+- **RSS icon in header**: desktop-only RSS link to `/api/feed.xml`
+- **RSS link tag**: `<link rel="alternate">` added to frontend layout metadata
+- **Trends Analytics page**: `/trends` with 5 interactive charts (volume, top sources, category breakdown, severity, AI providers)
+- **Trends API endpoint**: `GET /api/signals/trends` returning 30-day aggregated data
 - **Environment-based AI routing**: Local-only mode for development (no external API calls)
 - **AI provider breakdown** endpoint: `GET /api/signals/ai-providers`
 - **High severity retry** endpoint: `POST /api/admin/ai/retry/high`

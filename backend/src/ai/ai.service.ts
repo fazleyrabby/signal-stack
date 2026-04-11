@@ -24,7 +24,12 @@ export class AIService {
     private readonly configService: ConfigService,
   ) {}
 
-  async processSignal(id: string, title: string, content: string | null, score: number = 5) {
+  async processSignal(
+    id: string,
+    title: string,
+    content: string | null,
+    score: number = 5,
+  ) {
     const textContent = content || '';
     const trimmedContent = this.trimContent(textContent);
     let summary: string | null = null;
@@ -32,14 +37,20 @@ export class AIService {
     let provider = 'none';
 
     const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
-    const localAiEnabled = this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
-    const externalEnabled = this.configService.get<string>('AI_EXTERNAL_ENABLED') !== 'false';
+    const localAiEnabled =
+      this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
+    const externalEnabled =
+      this.configService.get<string>('AI_EXTERNAL_ENABLED') !== 'false';
 
     const useExternal = nodeEnv === 'production' && externalEnabled;
     const localOnly = !useExternal;
 
     if (localOnly) {
-      logEvent('info', 'ai_local_only_mode', { signalId: id, nodeEnv, externalEnabled });
+      logEvent('info', 'ai_local_only_mode', {
+        signalId: id,
+        nodeEnv,
+        externalEnabled,
+      });
     }
 
     // Step 1: Try local first (always in dev, or in production with local enabled)
@@ -52,7 +63,9 @@ export class AIService {
         try {
           summary = await Promise.race([
             this.local.summarize(title, trimmedContent),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000))
+            new Promise<null>((resolve) =>
+              setTimeout(() => resolve(null), 4000),
+            ),
           ]);
         } catch {
           summary = null;
@@ -62,7 +75,11 @@ export class AIService {
 
       if (summary) {
         provider = 'local';
-        logEvent('info', 'ai_provider_used', { signalId: id, provider, mode: localOnly ? 'local_only' : 'production' });
+        logEvent('info', 'ai_provider_used', {
+          signalId: id,
+          provider,
+          mode: localOnly ? 'local_only' : 'production',
+        });
       } else if (localOnly) {
         // Local only mode: if local fails after retries, mark as failed
         await this.db
@@ -74,7 +91,11 @@ export class AIService {
           })
           .where(eq(signals.id, id));
 
-        logEvent('error', 'ai_processing_failed', { signalId: id, reason: 'local_failed_local_only_mode', retries: localRetries });
+        logEvent('error', 'ai_processing_failed', {
+          signalId: id,
+          reason: 'local_failed_local_only_mode',
+          retries: localRetries,
+        });
         throw new Error('Local AI failed in local-only mode');
       }
     }
@@ -84,7 +105,11 @@ export class AIService {
       // Fallback to Groq
       if (!this.isCooldown('groq')) {
         if (useLocalFirst && !summary) {
-          logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'groq' });
+          logEvent('info', 'ai_pipeline_fallback', {
+            signalId: id,
+            from: provider,
+            to: 'groq',
+          });
         }
         fallbackUsed = true;
         summary = await this.groq.summarize(title, trimmedContent);
@@ -97,7 +122,11 @@ export class AIService {
 
       // Final fallback to OpenRouter
       if (!summary && !this.isCooldown('openrouter')) {
-        logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'openrouter' });
+        logEvent('info', 'ai_pipeline_fallback', {
+          signalId: id,
+          from: provider,
+          to: 'openrouter',
+        });
         fallbackUsed = true;
         summary = await this.openRouter.summarize(title, trimmedContent);
         if (summary) {
@@ -109,7 +138,11 @@ export class AIService {
     }
 
     if (summary && provider !== 'none') {
-      logEvent('info', 'ai_provider_used', { signalId: id, provider, mode: localOnly ? 'local_only' : 'production' });
+      logEvent('info', 'ai_provider_used', {
+        signalId: id,
+        provider,
+        mode: localOnly ? 'local_only' : 'production',
+      });
     }
 
     if (summary) {
@@ -123,7 +156,11 @@ export class AIService {
         })
         .where(eq(signals.id, id));
 
-      logEvent('info', 'ai_processing_success', { signalId: id, provider, fallbackUsed });
+      logEvent('info', 'ai_processing_success', {
+        signalId: id,
+        provider,
+        fallbackUsed,
+      });
     } else {
       await this.db
         .update(signals)
@@ -134,7 +171,10 @@ export class AIService {
         })
         .where(eq(signals.id, id));
 
-      logEvent('error', 'ai_processing_failed', { signalId: id, reason: 'capacity_exhausted' });
+      logEvent('error', 'ai_processing_failed', {
+        signalId: id,
+        reason: 'capacity_exhausted',
+      });
       // Throw so the queue can retry
       throw new Error('All AI providers failed');
     }
@@ -160,10 +200,21 @@ export class AIService {
   }
 
   async getHealth() {
-    const localEnabled = this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
-    
-    const [local, groq, openrouter, groqToday, groqAllTime, openrouterToday, openrouterAllTime] = await Promise.all([
-      localEnabled ? this.local.checkHealth() : Promise.resolve({ status: 'disabled' }),
+    const localEnabled =
+      this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
+
+    const [
+      local,
+      groq,
+      openrouter,
+      groqToday,
+      groqAllTime,
+      openrouterToday,
+      openrouterAllTime,
+    ] = await Promise.all([
+      localEnabled
+        ? this.local.checkHealth()
+        : Promise.resolve({ status: 'disabled' }),
       this.groq.checkHealth(),
       this.openRouter.checkHealth(),
       this.redisService.getTokenUsage('groq', true),
@@ -177,7 +228,9 @@ export class AIService {
       groq: { ...groq, model: this.groq.modelName },
       openrouter: { ...openrouter, model: this.openRouter.modelName },
       localEnabled,
-      pipeline: localEnabled ? 'local → groq → openrouter' : 'groq → openrouter',
+      pipeline: localEnabled
+        ? 'local → groq → openrouter'
+        : 'groq → openrouter',
       tokenUsage: {
         groq: { today: groqToday, allTime: groqAllTime },
         openrouter: { today: openrouterToday, allTime: openrouterAllTime },

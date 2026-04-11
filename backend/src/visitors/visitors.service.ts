@@ -44,16 +44,28 @@ export class VisitorsService {
 
   async getStats() {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     const [totalResult, todayResult, realtimeResult] = await Promise.all([
       this.db.select({ count: sql<number>`count(*)::int` }).from(visitors),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(visitors).where(gte(visitors.firstSeen, todayStart)),
       this.db
         .select({ count: sql<number>`count(*)::int` })
         .from(visitors)
-        .where(and(gte(visitors.lastSeen, yesterday), gte(visitors.lastSeen, todayStart))),
+        .where(gte(visitors.firstSeen, todayStart)),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(visitors)
+        .where(
+          and(
+            gte(visitors.lastSeen, yesterday),
+            gte(visitors.lastSeen, todayStart),
+          ),
+        ),
     ]);
 
     return {

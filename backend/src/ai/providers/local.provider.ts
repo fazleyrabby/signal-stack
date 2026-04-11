@@ -12,8 +12,10 @@ export class LocalProvider {
   private baseUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.enabled = this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
-    this.baseUrl = this.configService.get<string>('LOCAL_AI_URL') || 'http://llama:8080';
+    this.enabled =
+      this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
+    this.baseUrl =
+      this.configService.get<string>('LOCAL_AI_URL') || 'http://llama:8080';
   }
 
   async summarize(title: string, content: string): Promise<string | null> {
@@ -49,7 +51,11 @@ export class LocalProvider {
 
       const data = await response.json();
       const message = data?.choices?.[0]?.message;
-      const result = (message?.content || message?.reasoning_content || '').trim();
+      const result = (
+        message?.content ||
+        message?.reasoning_content ||
+        ''
+      ).trim();
       return result ? this.cleanResponse(result) : null;
     } catch (error: any) {
       this.lastError = error.name === 'AbortError' ? 408 : 500;
@@ -61,7 +67,11 @@ export class LocalProvider {
     }
   }
 
-  async checkHealth(): Promise<{ status: string; latency?: number; error?: string }> {
+  async checkHealth(): Promise<{
+    status: string;
+    latency?: number;
+    error?: string;
+  }> {
     if (!this.enabled) {
       return { status: 'disabled' };
     }
@@ -74,7 +84,11 @@ export class LocalProvider {
       const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'qwen.gguf', messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 }),
+        body: JSON.stringify({
+          model: 'qwen.gguf',
+          messages: [{ role: 'user', content: 'Hi' }],
+          max_tokens: 1,
+        }),
         signal: controller.signal,
       });
 

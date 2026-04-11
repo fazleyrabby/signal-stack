@@ -14,7 +14,11 @@ import { AIQueue } from '../ai/ai.queue';
 import { AdminGuard } from './admin.guard';
 import { SettingsService } from '../ai/settings.service';
 import { EmailService } from '../alerts/email.service';
-import { fetchGroqModels, fetchOpenRouterModels, STATIC_FREE_MODELS } from '../ai/models';
+import {
+  fetchGroqModels,
+  fetchOpenRouterModels,
+  STATIC_FREE_MODELS,
+} from '../ai/models';
 import { ConfigService } from '@nestjs/config';
 
 @Controller('api/admin')
@@ -40,10 +44,10 @@ export class AdminController {
   @Get('ai/models')
   async getAvailableModels() {
     const config = await this.settingsService.getModelConfig();
-    
+
     // Try to get cached models first
     const cached = await this.settingsService.getCachedModels();
-    
+
     if (cached) {
       return {
         groq: cached.groq,
@@ -58,20 +62,30 @@ export class AdminController {
     const openrouterKey = this.configService.get<string>('OPENROUTER_API_KEY');
 
     const [groqModels, openrouterModels] = await Promise.all([
-      groqKey ? fetchGroqModels(groqKey) : Promise.resolve(STATIC_FREE_MODELS.groq),
-      openrouterKey ? fetchOpenRouterModels(openrouterKey) : Promise.resolve(STATIC_FREE_MODELS.openrouter),
+      groqKey
+        ? fetchGroqModels(groqKey)
+        : Promise.resolve(STATIC_FREE_MODELS.groq),
+      openrouterKey
+        ? fetchOpenRouterModels(openrouterKey)
+        : Promise.resolve(STATIC_FREE_MODELS.openrouter),
     ]);
 
     // Cache the results
     await this.settingsService.setCachedModels({
       groq: groqModels.length > 0 ? groqModels : STATIC_FREE_MODELS.groq,
-      openrouter: openrouterModels.length > 0 ? openrouterModels : STATIC_FREE_MODELS.openrouter,
+      openrouter:
+        openrouterModels.length > 0
+          ? openrouterModels
+          : STATIC_FREE_MODELS.openrouter,
       fetchedAt: Date.now(),
     });
 
     return {
       groq: groqModels.length > 0 ? groqModels : STATIC_FREE_MODELS.groq,
-      openrouter: openrouterModels.length > 0 ? openrouterModels : STATIC_FREE_MODELS.openrouter,
+      openrouter:
+        openrouterModels.length > 0
+          ? openrouterModels
+          : STATIC_FREE_MODELS.openrouter,
       selected: config,
     };
   }
@@ -82,13 +96,20 @@ export class AdminController {
     const openrouterKey = this.configService.get<string>('OPENROUTER_API_KEY');
 
     const [groqModels, openrouterModels] = await Promise.all([
-      groqKey ? fetchGroqModels(groqKey) : Promise.resolve(STATIC_FREE_MODELS.groq),
-      openrouterKey ? fetchOpenRouterModels(openrouterKey) : Promise.resolve(STATIC_FREE_MODELS.openrouter),
+      groqKey
+        ? fetchGroqModels(groqKey)
+        : Promise.resolve(STATIC_FREE_MODELS.groq),
+      openrouterKey
+        ? fetchOpenRouterModels(openrouterKey)
+        : Promise.resolve(STATIC_FREE_MODELS.openrouter),
     ]);
 
     await this.settingsService.setCachedModels({
       groq: groqModels.length > 0 ? groqModels : STATIC_FREE_MODELS.groq,
-      openrouter: openrouterModels.length > 0 ? openrouterModels : STATIC_FREE_MODELS.openrouter,
+      openrouter:
+        openrouterModels.length > 0
+          ? openrouterModels
+          : STATIC_FREE_MODELS.openrouter,
       fetchedAt: Date.now(),
     });
 
@@ -96,7 +117,9 @@ export class AdminController {
   }
 
   @Put('ai/models')
-  async updateModelConfig(@Body() body: { provider: 'groq' | 'openrouter'; modelId: string }) {
+  async updateModelConfig(
+    @Body() body: { provider: 'groq' | 'openrouter'; modelId: string },
+  ) {
     const { provider, modelId } = body;
     if (provider === 'groq') {
       await this.settingsService.setModelConfig({ groqModel: modelId });
@@ -184,31 +207,32 @@ export class AdminController {
     return { queued, total: high.length };
   }
 
-   // --- System ---
+  // --- System ---
 
-   @Post('backup')
-   async triggerBackup() {
-     console.log('🏁 Admin API: Triggering manual database backup...');
-     try {
-       const result = await this.adminService.triggerBackup();
-       console.log('✅ Admin API: Backup successful');
-       return result;
-     } catch (err) {
-       console.error(`❌ Admin API: Backup failed: ${err.message}`);
-       throw err;
-     }
-   }
+  @Post('backup')
+  async triggerBackup() {
+    console.log('🏁 Admin API: Triggering manual database backup...');
+    try {
+      const result = await this.adminService.triggerBackup();
+      console.log('✅ Admin API: Backup successful');
+      return result;
+    } catch (err) {
+      console.error(`❌ Admin API: Backup failed: ${err.message}`);
+      throw err;
+    }
+  }
 
-   // --- Email Digest ---
-   @Post('digest/test')
-   async triggerTestDigest() {
-     // Get admin email from request or config
-     const adminEmail = this.configService.get<string>('ADMIN_EMAIL') || 
-                       this.configService.get<string>('SMTP_USER');
-     if (!adminEmail) {
-       throw new Error('No admin email configured for test digest');
-     }
-     await this.emailService.sendTestDigest(adminEmail);
-     return { success: true, message: `Test digest sent to ${adminEmail}` };
-   }
+  // --- Email Digest ---
+  @Post('digest/test')
+  async triggerTestDigest() {
+    // Get admin email from request or config
+    const adminEmail =
+      this.configService.get<string>('ADMIN_EMAIL') ||
+      this.configService.get<string>('SMTP_USER');
+    if (!adminEmail) {
+      throw new Error('No admin email configured for test digest');
+    }
+    await this.emailService.sendTestDigest(adminEmail);
+    return { success: true, message: `Test digest sent to ${adminEmail}` };
+  }
 }

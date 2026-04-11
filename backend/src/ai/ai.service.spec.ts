@@ -48,10 +48,12 @@ describe('AIService', () => {
 
     expect(groq.summarize).toHaveBeenCalled();
     expect(openRouter.summarize).toHaveBeenCalled();
-    expect(db.set).toHaveBeenCalledWith(expect.objectContaining({
-      aiSummary: 'Fallback summary',
-      aiProcessed: true,
-    }));
+    expect(db.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiSummary: 'Fallback summary',
+        aiProcessed: true,
+      }),
+    );
   });
 
   it('should mark as failed if both providers fail', async () => {
@@ -60,9 +62,11 @@ describe('AIService', () => {
 
     await service.processSignal('1', 'Test Title', 'Test Content');
 
-    expect(db.set).toHaveBeenCalledWith(expect.objectContaining({
-      aiProcessed: false,
-      aiFailed: true,
-    }));
+    expect(db.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiProcessed: false,
+        aiFailed: true,
+      }),
+    );
   });
 });
