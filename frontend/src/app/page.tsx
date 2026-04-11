@@ -36,7 +36,9 @@ export default function SignalsDashboard() {
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState("");
   const [isFullWidth, setIsFullWidth] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'geopolitics' | 'technology'>('geopolitics');
+  const [mobileTab, setMobileTab] = useState<'geopolitics' | 'technology'>(
+    () => (typeof window !== 'undefined' && localStorage.getItem('signalstack_mobile_tab') as 'geopolitics' | 'technology') || 'geopolitics'
+  );
   const [showControls, setShowControls] = useState(true);
   
   // Section visibility states
@@ -62,6 +64,10 @@ export default function SignalsDashboard() {
       localStorage.setItem("signalstack_show_technology", String(showTechnology));
     }
   }, [showGeopolitics, showTechnology, isLoaded]);
+
+  useEffect(() => {
+    localStorage.setItem('signalstack_mobile_tab', mobileTab);
+  }, [mobileTab]);
 
   const { data: statsResponse } = useSWR<StatsData>(
     `${API_BASE}/stats`,
