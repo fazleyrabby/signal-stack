@@ -18,11 +18,11 @@ import { SignalDetailModal } from "@/components/signal-detail-modal";
 import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
 
-const API_BASE = '/api/signals';
+const SIGNALS_API_BASE = `${API_BASE}/api/signals`;
+const BOOKMARKS_API_BASE = `${API_BASE}/api/bookmarks`;
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const PAGE_SIZE = 20;
-const BOOKMARKS_API_BASE = `${API_BASE}/api/bookmarks`;
 
 interface SourceInfo {
   source: string;
@@ -291,7 +291,7 @@ export function Column({
   const orderParam = sortBy === 'oldest' ? 'asc' : 'desc';
 
   const { data: response, isLoading, isValidating } = useSWR<SignalsResponse>(
-    `${API_BASE}?limit=${PAGE_SIZE * page}&categoryId=${categoryId}&sort=${sortParam}&order=${orderParam}${sourceFilter ? `&source=${encodeURIComponent(sourceFilter)}` : ''}`,
+    `${SIGNALS_API_BASE}?limit=${PAGE_SIZE * page}&categoryId=${categoryId}&sort=${sortParam}&order=${orderParam}${sourceFilter ? `&source=${encodeURIComponent(sourceFilter)}` : ''}`,
     fetcher,
     { refreshInterval: 15000, revalidateOnFocus: false, keepPreviousData: true }
   );
@@ -305,7 +305,7 @@ export function Column({
   const bookmarkedIdsSet = useMemo(() => new Set(bookmarkedIds), [bookmarkedIds]);
 
   const { data: sourcesData } = useSWR<SourceInfo[]>(
-    `${API_BASE}/sources?categoryId=${categoryId}`,
+    `${SIGNALS_API_BASE}/sources?categoryId=${categoryId}`,
     fetcher,
     { refreshInterval: 60000 }
   );

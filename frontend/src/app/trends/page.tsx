@@ -3,17 +3,10 @@
 import useSWR from "swr";
 import {
   AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
-  Bar,
-} from "recharts";
+  DonutChart,
+  BarList,
+} from "@tremor/react";
 import { BarChart3, TrendingUp, Tag, Cpu, AlertCircle } from "lucide-react";
 import { Header } from "@/components/header";
 import {
@@ -59,15 +52,6 @@ interface TrendsData {
   };
 }
 
-const COLORS = {
-  high: "#ef4444",
-  medium: "#f59e0b",
-  low: "#3b82f6",
-  local: "#8b5cf6",
-  groq: "#06b6d4",
-  openrouter: "#10b981",
-};
-
 function SkeletonCard() {
   return (
     <Card className="animate-pulse">
@@ -90,18 +74,26 @@ export default function TrendsPage() {
 
   const severityData = data
     ? [
-        { name: "High", value: data.severityDistribution.high, color: COLORS.high },
-        { name: "Medium", value: data.severityDistribution.medium, color: COLORS.medium },
-        { name: "Low", value: data.severityDistribution.low, color: COLORS.low },
+        { name: "High", value: data.severityDistribution.high },
+        { name: "Medium", value: data.severityDistribution.medium },
+        { name: "Low", value: data.severityDistribution.low },
       ]
     : [];
 
   const aiProviderData = data
     ? [
-        { name: "local", value: data.aiStats.byProvider.local, color: COLORS.local },
-        { name: "groq", value: data.aiStats.byProvider.groq, color: COLORS.groq },
-        { name: "openrouter", value: data.aiStats.byProvider.openrouter, color: COLORS.openrouter },
+        { name: "local", value: data.aiStats.byProvider.local },
+        { name: "groq", value: data.aiStats.byProvider.groq },
+        { name: "openrouter", value: data.aiStats.byProvider.openrouter },
       ]
+    : [];
+
+  const sourceList = data
+    ? data.topSources.map((s) => ({
+        name: s.source,
+        value: s.count,
+        subValue: `${s.avgScore.toFixed(1)} avg`,
+      }))
     : [];
 
   return (
@@ -130,71 +122,17 @@ export default function TrendsPage() {
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={data?.volumeByDay || []}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={COLORS.high} stopOpacity={0.3} />
-                          <stop offset="95%" stopColor={COLORS.high} stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="colorMedium" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={COLORS.medium} stopOpacity={0.3} />
-                          <stop offset="95%" stopColor={COLORS.medium} stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="colorLow" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={COLORS.low} stopOpacity={0.3} />
-                          <stop offset="95%" stopColor={COLORS.low} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                        tickFormatter={(value) => value.slice(5)}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        tickLine={false}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                          fontSize: "12px",
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="low"
-                        stackId="1"
-                        stroke={COLORS.low}
-                        fill="url(#colorLow)"
-                        name="Low"
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="medium"
-                        stackId="1"
-                        stroke={COLORS.medium}
-                        fill="url(#colorMedium)"
-                        name="Medium"
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="high"
-                        stackId="1"
-                        stroke={COLORS.high}
-                        fill="url(#colorHigh)"
-                        name="High"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <AreaChart
+                    className="h-[300px]"
+                    data={data?.volumeByDay || []}
+                    index="date"
+                    categories={["high", "medium", "low"]}
+                    colors={["red", "amber", "blue"]}
+                    valueFormatter={(v) => v.toString()}
+                    showLegend={true}
+                    showGridLines={false}
+                    curveType="monotone"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -214,35 +152,12 @@ export default function TrendsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {data?.topSources.map((source, index) => {
-                      const maxCount = Math.max(...(data?.topSources.map((s) => s.count) || [1]));
-                      const percentage = (source.count / maxCount) * 100;
-                      return (
-                        <div key={source.source} className="space-y-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-medium truncate flex-1">
-                              {index + 1}. {source.source}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">
-                                {source.count}
-                              </span>
-                              <span className="text-muted-foreground/60">
-                                avg {source.avgScore.toFixed(1)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="h-1.5 bg-accent/20 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-violet-500 rounded-full transition-all"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <BarList
+                    data={sourceList}
+                    className="mt-2"
+                    color="violet"
+                    showAnimation={true}
+                  />
                 </CardContent>
               </Card>
             )}
@@ -260,37 +175,16 @@ export default function TrendsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={data?.categoryBreakdown || []}
-                        layout="vertical"
-                        margin={{ top: 0, right: 10, left: 10, bottom: 0 }}
-                      >
-                        <XAxis
-                          type="number"
-                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                          axisLine={{ stroke: "hsl(var(--border))" }}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          dataKey="category"
-                          type="category"
-                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                          width={80}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "8px",
-                            fontSize: "12px",
-                          }}
-                        />
-                        <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <BarChart
+                      className="h-[200px]"
+                      data={data?.categoryBreakdown || []}
+                      index="category"
+                      categories={["count"]}
+                      colors={["violet"]}
+                      valueFormatter={(v) => v.toString()}
+                      showLegend={false}
+                      showGridLines={false}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -308,45 +202,30 @@ export default function TrendsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={severityData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={80}
-                          paddingAngle={2}
-                          dataKey="value"
-                        >
-                          {severityData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "8px",
-                            fontSize: "12px",
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                  <div className="h-[200px] flex items-center justify-center">
+                    <DonutChart
+                      className="h-[200px]"
+                      data={severityData}
+                      category="value"
+                      index="name"
+                      colors={["red", "amber", "blue"]}
+                      valueFormatter={(v) => v.toString()}
+                      showLabel={true}
+                    />
                   </div>
-                  <div className="flex justify-center gap-4 mt-2">
-                    {severityData.map((item) => (
-                      <div key={item.name} className="flex items-center gap-1.5 text-xs">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span>
-                          {item.name}: {item.value}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="flex justify-center gap-4 mt-4 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                      <span>High: {data?.severityDistribution.high}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                      <span>Medium: {data?.severityDistribution.medium}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                      <span>Low: {data?.severityDistribution.low}</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -365,36 +244,18 @@ export default function TrendsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={aiProviderData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                          axisLine={{ stroke: "hsl(var(--border))" }}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                          axisLine={{ stroke: "hsl(var(--border))" }}
-                          tickLine={false}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--card))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "8px",
-                            fontSize: "12px",
-                          }}
-                        />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                          {aiProviderData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <BarChart
+                      className="h-[200px]"
+                      data={aiProviderData}
+                      index="name"
+                      categories={["value"]}
+                      colors={["violet", "cyan", "emerald"]}
+                      valueFormatter={(v) => v.toString()}
+                      showLegend={false}
+                      showGridLines={false}
+                    />
                   </div>
-                  <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
+                  <div className="flex justify-center gap-4 mt-4 text-xs text-muted-foreground">
                     <span>Processed: {data?.aiStats.processed || 0}</span>
                     <span>Failed: {data?.aiStats.failed || 0}</span>
                   </div>
