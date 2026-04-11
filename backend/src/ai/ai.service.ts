@@ -61,12 +61,7 @@ export class AIService {
     if (useLocalFirst) {
       while (!summary && localRetries < maxLocalRetries) {
         try {
-          summary = await Promise.race([
-            this.local.summarize(title, trimmedContent),
-            new Promise<null>((resolve) =>
-              setTimeout(() => resolve(null), 4000),
-            ),
-          ]);
+          summary = await this.local.summarize(title, trimmedContent);
         } catch {
           summary = null;
         }
