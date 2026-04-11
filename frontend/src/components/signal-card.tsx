@@ -117,28 +117,28 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, onToggl
           </div>
 
 {!isCompact && (
-              <div className="flex items-center justify-between gap-2 flex-wrap mt-auto pt-3 border-t border-border/10">
-                 <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
-                    <Badge variant="outline" className="h-4.5 text-[8.5px] font-black tracking-widest uppercase px-1.5 bg-accent/20 border-border/10 text-muted-foreground/60 rounded-sm shrink-0">
-                      {signal.aiCategory?.split('|')[0] || 'INTEL'}
-                    </Badge>
-                    {signal.aiProvider && PROVIDER_CONFIG[signal.aiProvider] && (
-                       <Badge variant="outline" className={cn(
-                         "h-4.5 text-[8px] font-black tracking-widest uppercase px-1.5 border-border/10 rounded-sm shrink-0",
-                         PROVIDER_CONFIG[signal.aiProvider].color
-                       )}>
-                         {PROVIDER_CONFIG[signal.aiProvider].label}
-                       </Badge>
-                     )}
-                     <div className={cn(
-                       "px-1.5 py-0.5 rounded text-[11px] font-black tabular-nums whitespace-nowrap shrink-0",
-                       signal.score >= 8 ? "bg-red-500 text-white" : signal.score >= 5 ? "bg-amber-500 text-white" : "bg-blue-500 text-white"
-                     )}>
-                       {signal.score} IMPACT
-                     </div>
-                 </div>
-                 
-                  <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2 mt-auto pt-3 border-t border-border/10">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                     <Badge variant="outline" className="h-4.5 text-[8.5px] font-black tracking-widest uppercase px-1.5 bg-accent/20 border-border/10 text-muted-foreground/60 rounded-sm shrink-0">
+                       {signal.aiCategory?.split('|')[0] || 'INTEL'}
+                     </Badge>
+                     {signal.aiProvider && PROVIDER_CONFIG[signal.aiProvider] && (
+                        <Badge variant="outline" className={cn(
+                          "h-4.5 text-[8px] font-black tracking-widest uppercase px-1.5 border-border/10 rounded-sm shrink-0",
+                          PROVIDER_CONFIG[signal.aiProvider].color
+                        )}>
+                          {PROVIDER_CONFIG[signal.aiProvider].label}
+                        </Badge>
+                      )}
+                      <div className={cn(
+                        "px-1.5 py-0.5 rounded text-[11px] font-black tabular-nums whitespace-nowrap shrink-0",
+                        signal.score >= 8 ? "bg-red-500 text-white" : signal.score >= 5 ? "bg-amber-500 text-white" : "bg-blue-500 text-white"
+                      )}>
+                        {signal.score} IMPACT
+                      </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
