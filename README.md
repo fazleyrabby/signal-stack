@@ -39,6 +39,18 @@ Access the system at [http://localhost:3001](http://localhost:3001).
 
 Builds new images while old containers serve traffic, then fast-swaps (~3–5s downtime) and auto-rolls back if health checks fail.
 
+**Updating after code changes:**
+
+```bash
+# Local: commit and push
+git add . && git commit -m "your changes" && git push origin main
+
+# VPS: pull and redeploy
+ssh fazley@192.168.0.110
+cd /path/to/SignalStack
+git pull origin main && ./scripts/deploy.sh
+```
+
 ## 🧠 Local AI (Optional)
 
 To run zero-cost local AI inference with llama.cpp:

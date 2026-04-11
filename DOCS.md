@@ -488,6 +488,31 @@ SignalStack monitors high-fidelity streams divided into strategic intelligence c
    docker exec signalstack-app npm run seed
    ```
 
+### Updating / Redeploying
+
+After pushing changes to `origin/main`, SSH into the VPS and pull + redeploy:
+
+```bash
+ssh fazley@192.168.0.110
+cd /path/to/SignalStack
+
+# 1. Pull latest code
+git pull origin main
+
+# 2. Redeploy (rebuilds images, swaps containers)
+./scripts/deploy.sh
+```
+
+**If the VPS has local uncommitted changes or merge conflicts** (e.g. from a stash pop), discard them first:
+
+```bash
+git checkout -- .       # discard working tree changes
+git pull origin main    # pull clean code
+./scripts/deploy.sh     # redeploy
+```
+
+> **Important**: Always commit and push from your local machine first. The VPS should only ever pull — never edit code directly on the server.
+
 ### VPS Considerations
 
 - **NEXT_PUBLIC_API_URL**: If deploying to a public domain, update the build arg in `docker-compose.yml` to your public backend URL (e.g., `https://api.yourdomain.com`).
