@@ -124,7 +124,7 @@ export default function ChangelogPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header isRefreshing={false} showSearch={false} />
 
-      <div className="mx-auto max-w-3xl w-full px-4 sm:px-6 py-8">
+      <div className="mx-auto max-w-3xl w-full px-4 sm:px-6 py-8 pb-16 md:pb-0">
         <div className="space-y-10">
           {changelog.map((release) => (
             <div key={release.version} className="space-y-4">

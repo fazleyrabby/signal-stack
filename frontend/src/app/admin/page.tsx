@@ -376,7 +376,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background font-sans">
       <Header isRefreshing={false} onRefresh={() => {}} searchQuery="" onSearchChange={() => {}} />
 
-      <main className="max-w-6xl mx-auto py-12 px-6 space-y-12">
+      <main className="max-w-6xl mx-auto py-12 px-6 pb-16 md:pb-0 space-y-12">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-4 h-4 text-primary" />
