@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
+import { BottomNav } from "@/components/bottom-nav";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -28,7 +30,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} antialiased`} suppressHydrationWarning>
         <ThemeProvider>
-          {children}
+          <div className="pb-16 md:pb-0">{children}</div>
+          <Suspense fallback={null}>
+            <BottomNav />
+          </Suspense>
           <Toaster richColors position="bottom-right" />
         </ThemeProvider>
       </body>

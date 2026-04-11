@@ -3,9 +3,11 @@ import type { Response } from 'express';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { AdminGuard } from './admin.guard';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @Controller('api/admin')
 @UseGuards(AdminGuard)
+@SkipThrottle()
 export class LogsController {
   private logPath = join(process.cwd(), 'logs/app.log');
 

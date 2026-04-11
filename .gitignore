@@ -18,6 +18,7 @@ lerna-debug.log*
 frontend/.next/
 frontend/out/
 frontend/node_modules/
+frontend/tsconfig.tsbuildinfo
 
 # --- Backend (NestJS) ---
 backend/dist/

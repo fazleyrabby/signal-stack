@@ -102,7 +102,10 @@ OPENROUTER_API_KEY=sk-or-v1-your-openrouter-key
 
 # --- Alerts ---
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/your-webhook
-DISCORD_FILTER_TECH=true  # Only send tech-related signals to Discord
+DISCORD_ALERT_CATEGORIES=technology  # comma-separated, e.g. technology,geopolitics
+
+# --- Retention ---
+SIGNAL_RETENTION_DAYS=90
 
 # --- AI Toggle ---
 AI_ENABLED=true
@@ -234,7 +237,7 @@ Each signal stores `ai_provider` in the database:
 
 For 4GB RAM / 2 CPU VMs:
 
-- llama.cpp limited to **1GB memory**, **1 CPU**
+- llama.cpp limited to **1GB memory**, **0.5 CPU**
 - Context window: 512 tokens (optimized for small prompts)
 - Max output: 60 tokens (~150 char summaries)
 - Batch size: 64
@@ -252,8 +255,10 @@ The dashboard is a pro-grade analytical terminal:
 - **Signal Detail Modal**: Click any card to open a scrollable dialog with full title, AI summary, content preview (HTML-stripped), metadata, and a direct link to the original article. Constrained to viewport height on mobile with pinned header/footer.
 - **Bookmark/Save Signals**: Save signals for later review — persisted in the database and synced across sessions. Includes loading state feedback and toast notifications on toggle.
 - **Bookmarks View**: Toggle to view only your saved signals in any column.
+- **Saved deep-link**: Opening `/?bookmarks=true` auto-enables bookmark-only view.
 - **Share Signal**: Copy any signal's source URL to clipboard with one click (toast confirmation).
 - **Intelligence Switcher (Mobile)**: Tactile tabs to switch between Geopolitical and Tech streams. Selection persists across page reloads via localStorage.
+- **Mobile Bottom Nav**: Fixed mobile-only navigation (`Feed`, `Trends`, `Saved`, `Admin`) with safe-area support to avoid overlap.
 - **Real-time Global Search**: Debounced (300ms) full-text search passed to backend API for server-side filtering across titles, sources, and content.
 - **Severity Quick Filters**: Score-based toggles for All / High (≥8) / Medium (5–7) / Low (<5).
 - **Live Stats Bar**: Real-time signal counts, severity breakdown, and top source.
@@ -280,6 +285,8 @@ A public RSS 2.0 feed is available for consuming signals programmatically.
 | `severity` | Filter by minimum severity | `?severity=high` |
 | Combined | Multiple filters | `?category=technology&severity=medium` |
 
+**Sort behavior:** Feed responses are ordered by `published_at DESC` to ensure RSS aggregators detect new items correctly.
+
 ### Response Headers
 
 - `Content-Type: application/rss+xml`
@@ -304,6 +311,27 @@ The header includes an RSS icon (desktop only) that opens the feed in a new tab.
 ```html
 <link rel="alternate" type="application/rss+xml" title="SignalStack Feed" href="/api/feed.xml" />
 ```
+
+---
+
+## 🚦 Public API Throttling
+
+SignalStack applies global per-IP throttling to public endpoints using `@nestjs/throttler`.
+
+- **Limit**: `100 requests` per `60 seconds` per IP
+- **Scope**: all public API routes
+- **Admin exception**: authenticated admin controllers are marked with `@SkipThrottle()`
+
+---
+
+## 🧹 Signal Retention Cleanup
+
+`FeedScheduler` includes a daily cleanup cron:
+
+- **Schedule**: `0 2 * * *` (2:00 AM server time)
+- **Retention**: deletes signals older than `SIGNAL_RETENTION_DAYS` (default `90`)
+- **Integrity cleanup**: removes orphaned bookmarks where `signal_id` no longer exists
+- **Logging**: emits deleted counts for signals and bookmarks
 
 ---
 
@@ -559,10 +587,10 @@ cd backend && npm run test:ai
 
 ### Discord Webhook Test
 
-The Discord alerts now support **tech-only filtering**:
-- Only signals with `aiCategory === 'Tech'` are sent to Discord
-- Configure via `DISCORD_FILTER_TECH=true` in environment
-- Non-tech signals are logged but skipped
+The Discord alerts now support **category filtering**:
+- Signals are sent only when `signal.categoryId` is in `DISCORD_ALERT_CATEGORIES`
+- Configure via comma-separated env value, e.g. `DISCORD_ALERT_CATEGORIES=technology,geopolitics`
+- Non-matching categories are logged but skipped
 - **HTML sanitization**: All RSS content and titles are decoded from HTML entities (including numeric like `&#8217;` → `'`), stripped of `<script>`/`<style>` blocks, and cleaned of all HTML tags before being sent to Discord embeds
 
 ```bash

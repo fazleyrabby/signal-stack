@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AdminService } from './admin.service';
 import { AIService } from '../ai/ai.service';
 import { AIQueue } from '../ai/ai.queue';
@@ -23,6 +24,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Controller('api/admin')
 @UseGuards(AdminGuard)
+@SkipThrottle()
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,

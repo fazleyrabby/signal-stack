@@ -266,6 +266,7 @@ export function Column({
   layoutMode,
   searchQuery,
   isFullWidth,
+  initialShowBookmarks = false,
 }: {
   title: string;
   icon: LucideIcon;
@@ -273,6 +274,7 @@ export function Column({
   layoutMode: 'grid' | 'list';
   searchQuery: string;
   isFullWidth: boolean;
+  initialShowBookmarks?: boolean;
 }) {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState('all');
@@ -281,7 +283,7 @@ export function Column({
   const [countryFilter, setCountryFilter] = useState('');
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(initialShowBookmarks);
 
   // Debounced search — 300ms delay before passing to API
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
@@ -289,6 +291,10 @@ export function Column({
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
     return () => clearTimeout(t);
   }, [searchQuery]);
+
+  useEffect(() => {
+    setShowBookmarks(initialShowBookmarks);
+  }, [initialShowBookmarks]);
 
   const sourceBtnRef = useRef<HTMLButtonElement>(null);
   const sortBtnRef = useRef<HTMLButtonElement>(null);

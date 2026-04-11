@@ -222,7 +222,7 @@ export default function TrendsPage() {
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       <Header isRefreshing={false} />
 
-      <div className="flex-1 overflow-auto p-4 sm:p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6 pb-16 md:pb-0">
         <div className="max-w-[1400px] mx-auto space-y-6">
 
           {/* KPI Cards */}

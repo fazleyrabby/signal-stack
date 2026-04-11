@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import {
   LayoutGrid,
@@ -10,7 +12,6 @@ import {
   Cpu,
   ChevronDown,
   ChevronUp,
-  BarChart3,
   Eye,
   EyeOff,
   Users,
@@ -32,7 +33,11 @@ interface StatsData {
   topSource: string;
 }
 
-export default function SignalsDashboard() {
+function SignalsDashboardContent({
+  showBookmarksFromQuery = false,
+}: {
+  showBookmarksFromQuery?: boolean;
+}) {
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState("");
   const [isFullWidth, setIsFullWidth] = useState(false);
@@ -110,7 +115,7 @@ export default function SignalsDashboard() {
       />
 
       <div className={cn(
-        "mx-auto px-4 sm:px-6 w-full py-4 transition-all duration-500 overflow-hidden flex flex-col flex-1",
+        "mx-auto px-4 sm:px-6 w-full pt-4 pb-16 md:pb-0 transition-all duration-500 overflow-hidden flex flex-col flex-1",
         isFullWidth ? "max-w-full" : "max-w-[1400px] 2xl:max-w-[1800px]"
       )}>
         <div className="flex flex-col h-full">
@@ -121,34 +126,6 @@ export default function SignalsDashboard() {
             showControls ? "max-h-[400px] opacity-100 mb-3" : "max-h-0 opacity-0 mb-0"
           )}>
             <StatsBar stats={stats} />
-
-            {/* Mobile Tab Switcher */}
-            <div className="flex md:hidden items-center p-1 bg-card/40 border border-border/10 rounded-xl">
-              <button
-                onClick={() => setMobileTab('geopolitics')}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
-                  mobileTab === 'geopolitics'
-                    ? "bg-violet-600 text-white shadow-lg"
-                    : "text-muted-foreground"
-                )}
-              >
-                <Globe2 className="w-3.5 h-3.5" />
-                GEOPOLITICS
-              </button>
-              <button
-                onClick={() => setMobileTab('technology')}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
-                  mobileTab === 'technology'
-                    ? "bg-indigo-500 text-white shadow-lg"
-                    : "text-muted-foreground"
-                )}
-              >
-                <Cpu className="w-3.5 h-3.5" />
-                TECHNOLOGY
-              </button>
-            </div>
 
             {/* Layout + Fullscreen + Visibility Controls */}
             <div className="flex items-center justify-end gap-3 shrink-0">
@@ -207,6 +184,7 @@ export default function SignalsDashboard() {
                   layoutMode={layoutMode}
                   searchQuery={searchQuery}
                   isFullWidth={isFullWidth || !showTechnology}
+                  initialShowBookmarks={showBookmarksFromQuery}
                 />
               )}
               {showTechnology && (
@@ -217,34 +195,81 @@ export default function SignalsDashboard() {
                   layoutMode={layoutMode}
                   searchQuery={searchQuery}
                   isFullWidth={isFullWidth || !showGeopolitics}
+                  initialShowBookmarks={showBookmarksFromQuery}
                 />
               )}
             </div>
 
-            <div className="md:hidden h-full">
-              {mobileTab === 'geopolitics' ? (
-                <Column
-                  title="World Geopolitics"
-                  icon={Globe2}
-                  categoryId="geopolitics"
-                  layoutMode={layoutMode}
-                  searchQuery={searchQuery}
-                  isFullWidth={false}
-                />
-              ) : (
-                <Column
-                  title="Technology Intelligence"
-                  icon={Cpu}
-                  categoryId="technology"
-                  layoutMode={layoutMode}
-                  searchQuery={searchQuery}
-                  isFullWidth={false}
-                />
-              )}
+            <div className="md:hidden h-full flex flex-col gap-2">
+              <div className="flex items-center p-1 bg-card/40 border border-border/10 rounded-xl">
+                <button
+                  onClick={() => setMobileTab('geopolitics')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
+                    mobileTab === 'geopolitics'
+                      ? "bg-violet-600 text-white shadow-lg"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <Globe2 className="w-3.5 h-3.5" />
+                  GEOPOLITICS
+                </button>
+                <button
+                  onClick={() => setMobileTab('technology')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
+                    mobileTab === 'technology'
+                      ? "bg-indigo-500 text-white shadow-lg"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <Cpu className="w-3.5 h-3.5" />
+                  TECHNOLOGY
+                </button>
+              </div>
+
+              <div className="flex-1 min-h-0">
+                {mobileTab === 'geopolitics' ? (
+                  <Column
+                    title="World Geopolitics"
+                    icon={Globe2}
+                    categoryId="geopolitics"
+                    layoutMode={layoutMode}
+                    searchQuery={searchQuery}
+                    isFullWidth={false}
+                    initialShowBookmarks={showBookmarksFromQuery}
+                  />
+                ) : (
+                  <Column
+                    title="Technology Intelligence"
+                    icon={Cpu}
+                    categoryId="technology"
+                    layoutMode={layoutMode}
+                    searchQuery={searchQuery}
+                    isFullWidth={false}
+                    initialShowBookmarks={showBookmarksFromQuery}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function SignalsDashboardWithQuery() {
+  const searchParams = useSearchParams();
+  const showBookmarksFromQuery = searchParams.get("bookmarks") === "true";
+
+  return <SignalsDashboardContent showBookmarksFromQuery={showBookmarksFromQuery} />;
+}
+
+export default function SignalsDashboard() {
+  return (
+    <Suspense fallback={<SignalsDashboardContent showBookmarksFromQuery={false} />}>
+      <SignalsDashboardWithQuery />
+    </Suspense>
   );
 }

@@ -65,6 +65,8 @@ LOCAL_AI_ENABLED=true
 
 The AI pipeline uses fallback: `Local (llama.cpp) → Groq → OpenRouter` with auto-retry (3x exponential backoff) for failed signals.
 
+In production (`docker-compose.prod.yml`), llama is constrained to `0.5 CPU` and `1GB RAM` to prevent idle CPU starvation on small VPS instances.
+
 ## 📊 Admin Dashboard
 
 The admin panel at `/admin` provides:
@@ -91,9 +93,11 @@ Save signals for later review. Bookmarks are persisted in the database and synce
 The main dashboard features:
 
 - **Two-column layout** — Geopolitics and Technology streams side by side (tabbed on mobile, persisted)
+- **Mobile bottom nav** — fixed Feed / Trends / Saved / Admin tabs with safe-area padding
 - **Grid & List modes** — dense list view or expanded card grid with severity color stripes
 - **Signal Detail Modal** — scrollable dialog with full title, AI summary, content preview (HTML-stripped), and metadata
 - **Bookmark/Save Signals** — save signals with loading feedback and toast notifications, persisted in database
+- **Saved deep-link** — `/` supports `?bookmarks=true` to open directly in bookmark mode
 - **Share Signal** — copy source URL to clipboard with one click
 - **Search** — debounced server-side search across titles, sources, and content
 - **Severity filters** — score-based All / High (≥8) / Medium (5–7) / Low (<5) toggles
@@ -129,17 +133,28 @@ A public RSS 2.0 feed is available at `/api/feed.xml` for consuming signals prog
 - `Content-Type: application/rss+xml`
 - `Cache-Control: public, max-age=900` (15 min cache)
 
+Feed items are sorted chronologically by `published_at DESC` (newest first) for RSS reader compatibility.
 Each item includes custom `signal:score` and `signal:source` elements.
 
 ## 🔔 Discord Alerts
 
 Discord alerts send clean, HTML-free embeds with severity-based color coding (red/orange/green). RSS content and titles are fully sanitized during feed ingestion — all HTML entities (including numeric like `&#8217;`) are decoded and all tags (including `<script>`/`<style>`) are stripped before storing in the database.
 
-Alerts can be filtered to only send tech-related signals:
+Alerts can be filtered by category via environment variable:
 
 ```env
 DISCORD_WEBHOOK_URL=your-webhook-url
-DISCORD_FILTER_TECH=true  # Only send aiCategory === 'Tech'
+DISCORD_ALERT_CATEGORIES=technology  # comma-separated, e.g. technology,geopolitics
+```
+
+## 🚦 API Protection & Retention
+
+- **Global API throttle**: `100 requests / minute / IP` for public API endpoints via NestJS throttler
+- **Admin throttle bypass**: authenticated admin controllers use `@SkipThrottle()`
+- **Retention cleanup cron**: daily `2:00 AM` job deletes signals older than `SIGNAL_RETENTION_DAYS` (default `90`) and removes orphaned bookmarks
+
+```env
+SIGNAL_RETENTION_DAYS=90
 ```
 
 ## 🛡 Authentication

@@ -1,0 +1,29 @@
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build artifacts
+dist
+coverage
+*.tsbuildinfo
+
+# Local/dev files
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# VCS/docs/misc
+.git
+.gitignore
+README.md
+AGENTS.md
+CLAUDE.md
+*.md
+
+# Local data and backups
+backups
+signalstack_backup.sql
+.drizzle

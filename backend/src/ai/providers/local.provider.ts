@@ -5,7 +5,8 @@ import { logEvent } from '../../common/logger';
 @Injectable()
 export class LocalProvider {
   private readonly timeout = 35000;
-  private readonly maxTokens = 40;
+  private readonly maxTokens = 56;
+  private readonly maxSummaryChars = 120;
 
   public lastError: number | null = null;
   private enabled: boolean;
@@ -102,8 +103,11 @@ export class LocalProvider {
   }
 
   private buildPrompt(title: string, content: string): string {
-    const trimmedContent = content.slice(0, 120);
-    return `Summarize in 1 sentence (max 120 chars):\n${title}. ${trimmedContent}`;
+    const trimmedContent = content.slice(0, 140);
+    return `Write exactly one short sentence (12-22 words) explaining why this matters.
+Rules: plain English, no markdown, no line breaks, end with a period.
+Title: ${title}
+Content: ${trimmedContent}`;
   }
 
   private cleanResponse(text: string): string {
@@ -113,10 +117,37 @@ export class LocalProvider {
     cleaned = cleaned.replace(/\n/g, ' ');
     cleaned = cleaned.replace(/\s+/g, ' ');
     cleaned = cleaned.trim();
-    // Cap at 150 chars, break at last word boundary
-    if (cleaned.length > 150) {
-      cleaned = cleaned.slice(0, 150).replace(/\s\S*$/, '');
+
+    // Prefer a complete first sentence if present.
+    const firstSentence = cleaned.match(/^[^.!?]+[.!?]/)?.[0]?.trim();
+    if (firstSentence && firstSentence.length >= 30) {
+      cleaned = firstSentence;
     }
+
+    if (cleaned.length > this.maxSummaryChars) {
+      // Prefer a natural stop at punctuation inside the limit.
+      const punctIdx = Math.max(
+        cleaned.lastIndexOf('.', this.maxSummaryChars),
+        cleaned.lastIndexOf('!', this.maxSummaryChars),
+        cleaned.lastIndexOf('?', this.maxSummaryChars),
+      );
+
+      if (punctIdx >= 60) {
+        cleaned = cleaned.slice(0, punctIdx + 1).trim();
+      } else {
+        // Fall back to safe word boundary cut.
+        cleaned = cleaned
+          .slice(0, this.maxSummaryChars)
+          .replace(/\s+\S*$/, '')
+          .trim();
+        if (!/[.!?]$/.test(cleaned)) {
+          cleaned += '.';
+        }
+      }
+    } else if (!/[.!?]$/.test(cleaned)) {
+      cleaned += '.';
+    }
+
     return cleaned;
   }
 }

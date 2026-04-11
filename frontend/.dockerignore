@@ -1,2 +1,16 @@
 node_modules
 .next
+out
+coverage
+*.tsbuildinfo
+
+.env
+.env.*
+
+.DS_Store
+.git
+.gitignore
+
+README.md
+AGENTS.md
+CLAUDE.md
