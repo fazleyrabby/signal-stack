@@ -63,7 +63,7 @@ All notable changes to SignalStack will be documented in this file.
 - Error boundary components (`error.tsx`, `global-error.tsx`, `not-found.tsx`) for all routes
 - Admin route error boundaries (`admin/error.tsx`, `admin/categories/error.tsx`, `admin/sources/error.tsx`)
 - `scripts/audit.sh` — VPS environment health check script
-- `scripts/deploy.sh` — automated pull-and-deploy script for production
+- `scripts/deploy.sh` — zero-downtime deploy script with pre-build, fast-swap, and auto-rollback
 - `CHANGELOG.md` — this file
 - Infinite scroll with `IntersectionObserver` (auto-loads signals on scroll)
 - Mobile category tab switcher (Geopolitics / Technology)

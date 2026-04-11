@@ -55,18 +55,20 @@ Access at [http://localhost:3001](http://localhost:3001).
 Access at [http://localhost:3001/trends](http://localhost:3001/trends). Public page showing 30-day signal analytics with interactive charts.
 
 ### Dashboard Panels
-- **Signal Volume** — Stacked area chart showing daily signal counts split by severity (red=high, amber=medium, blue=low)
-- **Top Sources** — Ranked table with signal counts and average scores, inline progress bars
-- **Category Breakdown** — Horizontal bar chart comparing Geopolitics vs Technology
-- **Severity Distribution** — Donut chart with severity breakdown
-- **AI Provider Stats** — Bar chart showing local vs groq vs openrouter usage
+- **KPI Stat Cards** — Total Signals (30d), High Severity, Last 24h, Top Source — displayed as prominent metric cards at the top
+- **Signal Volume** — Stacked area chart with gradient fills and glow effects showing daily signal counts split by severity (red=high, amber=medium, blue=low)
+- **Top Sources** — Ranked list with signal counts, average scores, and animated gradient progress bars
+- **Category Breakdown** — Vertical bar chart with gradient fills comparing Geopolitics vs Technology
+- **Severity Distribution** — Donut chart with center total label and color-coded legend
+- **AI Provider Stats** — Bar chart with per-provider gradient fills (violet=local, cyan=groq, emerald=openrouter) and processed/failed counts
 - **Geographic Heatmap** — Interactive world map showing signal counts by country with hover tooltips and click-to-filter functionality
 
 ### Features
 - Auto-refreshes every 5 minutes
 - Skeleton loaders while data loads
 - Responsive: 2-column grid on desktop, single column on mobile
-- Dark theme optimized colors
+- Theme-aware chart labels — uses Tailwind CSS classes for SVG text fills, ensuring correct contrast in both dark and light modes
+- Custom tooltips styled to match the app theme (card background, border, rounded corners)
 
 ### Backend Endpoint
 | Method | Endpoint | Description |
@@ -247,14 +249,16 @@ The dashboard is a pro-grade analytical terminal:
 - **High-Density Modes**:
   - **List Mode**: Ultra-compact, single-line "quick titles" for scanning hundreds of events.
   - **Grid Mode**: Expansive layout for detailed signal cards with severity color stripes (red/amber/blue left border).
-- **Signal Detail Modal**: Click any card to open a compact dialog with full title, AI summary, content preview (HTML-stripped), metadata, and a direct link to the original article.
-- **Bookmark/Save Signals**: Save signals for later review — persisted in the database and synced across sessions.
+- **Signal Detail Modal**: Click any card to open a scrollable dialog with full title, AI summary, content preview (HTML-stripped), metadata, and a direct link to the original article. Constrained to viewport height on mobile with pinned header/footer.
+- **Bookmark/Save Signals**: Save signals for later review — persisted in the database and synced across sessions. Includes loading state feedback and toast notifications on toggle.
 - **Bookmarks View**: Toggle to view only your saved signals in any column.
-- **Intelligence Switcher (Mobile)**: Tactile tabs to switch between Geopolitical and Tech streams.
-- **Real-time Global Search**: Instant, full-text search across titles and sources — visible on all screen sizes including mobile.
-- **Severity Quick Filters**: One-click toggles for All / High / Medium / Low severity.
+- **Share Signal**: Copy any signal's source URL to clipboard with one click (toast confirmation).
+- **Intelligence Switcher (Mobile)**: Tactile tabs to switch between Geopolitical and Tech streams. Selection persists across page reloads via localStorage.
+- **Real-time Global Search**: Debounced (300ms) full-text search passed to backend API for server-side filtering across titles, sources, and content.
+- **Severity Quick Filters**: Score-based toggles for All / High (≥8) / Medium (5–7) / Low (<5).
 - **Live Stats Bar**: Real-time signal counts, severity breakdown, and top source.
-- **Load More**: Fetch additional signals on demand without page reload.
+- **Infinite Scroll**: Signals load automatically as you scroll — no manual "Load More" button.
+- **Skeleton Loading**: Shimmer placeholder cards while data loads for smoother perceived performance.
 
 ---
 
@@ -359,14 +363,15 @@ Persistently save signals for later review. Bookmarks are stored in the database
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/api/bookmarks` | List bookmarked signal IDs (array of strings) |
-| `POST` | `/api/bookmarks/{signalId}` | Add a bookmark |
-| `DELETE` | `/api/bookmarks/{signalId}` | Remove a bookmark |
+| `POST` | `/api/bookmarks/{signalId}` | Toggle bookmark (add/remove) |
+| `GET` | `/api/bookmarks/signals` | Get full signal data for bookmarked signals (with pagination) |
 
-**Response:** `{ bookmarked: boolean }`
+**Response (toggle):** `{ bookmarked: boolean }`
 
 **Frontend Integration:**
-- Bookmark button on each signal card and in the detail modal
-- Bookmarks filter in the dashboard header to show only saved signals
+- Bookmark button on each signal card and in the detail modal with loading spinner and toast feedback
+- Bookmarks filter in the column control bar to show only saved signals
+- Share button copies signal URL to clipboard with toast confirmation
 - Uses SWR for optimistic UI updates and cache revalidation
 
 ---
@@ -471,12 +476,14 @@ SignalStack monitors high-fidelity streams divided into strategic intelligence c
    # Edit .env with your API keys and admin secret
    ```
 
-3. **Container Ignition**:
+3. **Deploy** (zero-downtime on subsequent runs):
    ```bash
-   docker compose up -d --build
+   ./scripts/deploy.sh
    ```
 
-4. **Seed Database** (first run only):
+   The script builds new images while old containers keep serving, then does a fast-swap (~3–5s downtime) and automatically rolls back if health checks fail.
+
+4. **Seed Database** (first run only — deploy.sh handles this automatically):
    ```bash
    docker exec signalstack-app npm run seed
    ```
@@ -533,6 +540,10 @@ docker compose logs -f frontend # Frontend only
 
 ### Rebuilding After Code Changes
 ```bash
+# Preferred — zero-downtime, auto-rollback on failure
+./scripts/deploy.sh
+
+# Manual rebuild (causes full downtime)
 docker compose up -d --build    # Rebuild and restart all services
 docker compose up -d --build frontend  # Rebuild frontend only
 ```
