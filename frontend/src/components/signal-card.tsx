@@ -68,7 +68,7 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
         <div className="flex flex-col h-full justify-between gap-3">
           <div className="space-y-3">
             {/* Metadata Line */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between relative">
               <div className="flex items-center gap-3 min-w-0">
                 <span className={cn(
                   "text-[11px] font-black uppercase tracking-widest truncate max-w-[120px]",
@@ -80,6 +80,23 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
                   {getRelativeTime(signal.publishedAt)}
                 </span>
               </div>
+
+              {!isCompact && (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (isBookmarking || !onToggleBookmark) return;
+                    await onToggleBookmark(signal.id);
+                  }}
+                  disabled={isBookmarking}
+                  className="absolute -top-1 -right-1 p-2 text-muted-foreground hover:text-primary transition-all disabled:opacity-40"
+                >
+                  {isBookmarking
+                    ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    : <Bookmark className={cn("w-3.5 h-3.5", isBookmarked ? "text-primary fill-primary" : "text-muted-foreground/30 hover:text-muted-foreground")} />
+                  }
+                </button>
+              )}
 
               {isCompact && (
                 <div className="w-4 h-4 text-muted-foreground/30 hover:text-primary transition-all shrink-0">
@@ -121,7 +138,7 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
           </div>
 
           {!isCompact && (
-            <div className="flex flex-col gap-2 mt-auto pt-3 border-t border-border/10">
+            <div className="flex flex-col gap-3 mt-auto pt-3 border-t border-border/10">
               <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
                 <Badge variant="outline" className="h-4.5 text-[8.5px] font-black tracking-widest uppercase px-1.5 bg-accent/20 border-border/10 text-muted-foreground/60 rounded-sm shrink-0">
                   {signal.aiCategory?.split('|')[0] || 'INTEL'}
@@ -142,32 +159,16 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (isBookmarking || !onToggleBookmark) return;
-                    await onToggleBookmark(signal.id);
-                  }}
-                  disabled={isBookmarking}
-                  className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all shrink-0 disabled:opacity-40"
-                >
-                  {isBookmarking
-                    ? <RefreshCw className="w-3 h-3 animate-spin" />
-                    : <Bookmark className={cn("w-3 h-3", isBookmarked ? "text-primary fill-primary" : "text-muted-foreground/60")} />
-                  }
-                  BOOKMARK
-                </button>
-
+              <div className="flex items-center justify-between mt-1">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     navigator.clipboard.writeText(signal.url);
                     toast.success("Link copied");
                   }}
-                  className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all shrink-0"
+                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 hover:text-primary transition-all"
                 >
-                  SHARE <Link2 className="w-3 h-3" />
+                  <Link2 className="w-3 h-3" /> SHARE
                 </button>
 
                 <a
@@ -175,7 +176,7 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all group/link shrink-0"
+                  className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-all group/link"
                 >
                   EXPLORE
                   <ChevronRight className="w-3 h-3 group-hover/link:translate-x-1 transition-all" />
