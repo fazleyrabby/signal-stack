@@ -13,6 +13,7 @@
 5. [The Feed Pipeline: RSS Ingestion](#5-the-feed-pipeline-rss-ingestion)
 6. [The AI Pipeline](#6-the-ai-pipeline)
 7. [Discord Alerts System](#7-discord-alerts-system)
+   - 7.4 [Email Digest System](#74-email-digest-system)
 8. [Authentication & Admin Portal](#8-authentication--admin-portal)
 9. [Database & Drizzle ORM](#9-database--drizzle-orm)
 10. [The Frontend: Next.js Dashboard](#10-the-frontend-nextjs-dashboard)
@@ -809,7 +810,33 @@ const embed = {
 };
 ```
 
-### 7.3 Rate Limiting Summary
+### 7.3 Email Digest System
+
+The Email Digest System provides a scheduled intelligence briefing delivered daily. It summarizes the top signals so you don't have to monitor the dashboard constantly.
+
+**Key logic:**
+- **Schedule**: Triggers every day at **8:00 AM** via `@Cron`.
+- **Filtering**: Currently locked to the **Technology** category with a **Score ≥ 7** threshold.
+- **Deduplication**: Only include signals from the last 24 hours to ensure fresh reports.
+- **Design Strategy**: Uses a "bulletproof" HTML architecture with `inline-block` margins instead of Flexbox to ensure consistent layout across Outlook, Gmail, and Apple Mail.
+
+**Configuration:**
+- `DIGEST_ENABLED`: Global toggle for the service.
+- `DIGEST_CATEGORIES`: Defaults to `technology` (filterable in `.env`).
+- `SMTP_HOST`: e.g., `smtp.gmail.com`.
+- `SMTP_PASS`: Uses **App Passwords** for secure Google service authentication.
+
+```typescript
+// backend/src/alerts/email.service.ts
+const { data: signals } = await this.signalsService.getSignals({
+  page: 1, limit: 20,
+  since: oneDayAgo.toISOString(),
+  categoryId: this.digestCategories, // Filtered by Tech
+  sort: 'score', order: 'desc',
+});
+```
+
+### 7.4 Rate Limiting Summary
 
 The system has **four layers** of rate limiting across different subsystems:
 
