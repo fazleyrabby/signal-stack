@@ -86,11 +86,20 @@ export class FeedScheduler implements OnModuleInit {
 
         stored++;
 
-        // Alert if critical (>= 7) and category is enabled via env.
-        if (
-          signal.score >= 7 &&
-          this.alertCategories.has(signal.categoryId || '')
-        ) {
+        // Logic: Technology (Medium+), Geopolitics (High only)
+        const category = signal.categoryId || '';
+        let shouldAlert = false;
+ 
+        if (category === 'technology') {
+          shouldAlert = signal.score >= 7; // Medium (7) or High (10)
+        } else if (category === 'geopolitics') {
+          shouldAlert = signal.score >= 10; // High (10) only
+        } else {
+          // For other categories, use the generic env-based toggle
+          shouldAlert = signal.score >= 7 && this.alertCategories.has(category);
+        }
+ 
+        if (shouldAlert) {
           await this.discordService.sendAlert(signal);
           alerted++;
         }
