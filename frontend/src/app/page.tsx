@@ -20,6 +20,7 @@ import { Header } from "@/components/header";
 import { StatsBar } from "@/components/stats-bar";
 import { Column } from "@/components/column";
 import { cn, fetchVisitorStats, trackVisit, type VisitorStats } from "@/lib/utils";
+import { useSearch } from "@/context/SearchContext";
 
 const API_BASE = '/api/signals';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -38,13 +39,13 @@ function SignalsDashboardContent({
 }: {
   showBookmarksFromQuery?: boolean;
 }) {
+  const { searchQuery, setSearchQuery } = useSearch();
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
-  const [searchQuery, setSearchQuery] = useState("");
   const [isFullWidth, setIsFullWidth] = useState(false);
   const [mobileTab, setMobileTab] = useState<'geopolitics' | 'technology'>(
     () => (typeof window !== 'undefined' && localStorage.getItem('signalstack_mobile_tab') as 'geopolitics' | 'technology') || 'geopolitics'
   );
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   
   // Section visibility states
   const [showGeopolitics, setShowGeopolitics] = useState(true);
@@ -59,6 +60,10 @@ function SignalsDashboardContent({
     if (savedGeo !== null) setShowGeopolitics(savedGeo === "true");
     if (savedTech !== null) setShowTechnology(savedTech === "true");
     
+    // Check if controls were previously shown
+    const savedControls = localStorage.getItem("signalstack_show_controls");
+    if (savedControls !== null) setShowControls(savedControls === "true");
+    
     setIsLoaded(true);
   }, []);
 
@@ -67,8 +72,9 @@ function SignalsDashboardContent({
     if (isLoaded) {
       localStorage.setItem("signalstack_show_geopolitics", String(showGeopolitics));
       localStorage.setItem("signalstack_show_technology", String(showTechnology));
+      localStorage.setItem("signalstack_show_controls", String(showControls));
     }
-  }, [showGeopolitics, showTechnology, isLoaded]);
+  }, [showGeopolitics, showTechnology, showControls, isLoaded]);
 
   useEffect(() => {
     localStorage.setItem('signalstack_mobile_tab', mobileTab);
@@ -106,8 +112,6 @@ function SignalsDashboardContent({
     <div className="flex flex-col h-screen bg-background overflow-hidden relative">
       <Header
         isRefreshing={false}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
         isFullWidth={isFullWidth}
         showControls={showControls}
         onToggleControls={() => setShowControls(!showControls)}
