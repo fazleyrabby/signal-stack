@@ -10,6 +10,13 @@ All notable changes to SignalStack will be documented in this file.
 - **AI startup requeue**: On container restart, `AIQueue.onModuleInit` automatically re-queues up to 50 unprocessed signals (score ≥ 7) after a 5s delay — no manual retry needed after deploys
 - **Shell alias deploy**: `deploy-signal` alias in `~/.zshrc` SSHs into VPS and runs `deploy.sh` for one-command deploys from local machine
 - **Premium Diagnostic Suite**: `scripts/test-endpoints.sh` added with animated terminal UI, payload previewing, and latency benchmarking for all core API endpoints
+- **Mobile Navigation Overhaul**: 5-column bottom navigation with centered, animated search popup and global search state synchronization
+- **High-Density UI Refinement**: Reduced global padding, card gaps, and header height to maximize screen real-estate and information density
+
+### Changed
+- **Header Optimization**: Stats bar now hidden by default on mobile to prioritize signals. Toggle renamed to "Stats" with visual active state indicator
+- **Global Search Context**: Search state migrated from local components to a centralized `SearchContext`, enabling seamless search between top-nav (desktop) and bottom-nav (mobile)
+- **UI Spacing Polish**: Refined all component margins and paddings (`Card`, `Header`, `Column`, `StatsBar`) for a tighter, more professional "clinical" aesthetic
 
 ### Fixed
 - **Local AI never processing** (`ai.service.ts`): hardcoded 4s `Promise.race` was overriding the provider's 35s AbortController — local AI always lost the race and fell back to Groq. Removed the race entirely; provider timeout is now authoritative
