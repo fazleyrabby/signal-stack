@@ -31,6 +31,24 @@ docker compose up -d --build
 | Redis | localhost:6380 | Cache + AI Queue (external access) |
 | Dozzle Logs | http://localhost:9999 | Real-time Docker log viewer |
 
+---
+
+## 🩺 System Diagnostics
+
+Use the premium diagnostic suite to verify API health, latency, and endpoint integrity:
+
+```bash
+# Run against production (default)
+./scripts/test-endpoints.sh
+
+# Run against a specific URL
+./scripts/test-endpoints.sh http://localhost:3000
+```
+
+This script provides an animated, high-fidelity terminal UI and validates the entire signal pipe—including RSS feeds, Trends data, and Geographic Intelligence.
+
+---
+
 ### Local Development
 
 ```bash
@@ -102,7 +120,8 @@ OPENROUTER_API_KEY=sk-or-v1-your-openrouter-key
 
 # --- Alerts ---
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/your-webhook
-DISCORD_ALERT_CATEGORIES=technology  # comma-separated, e.g. technology,geopolitics
+DISCORD_ALERT_CATEGORIES=technology,geopolitics  # comma-separated allowlist
+DISCORD_FILTER_TECH=false                        # Recommended: bypass missing AI categories
 
 # --- Retention ---
 SIGNAL_RETENTION_DAYS=90
@@ -587,10 +606,10 @@ cd backend && npm run test:ai
 
 ### Discord Webhook Test
 
-The Discord alerts now support **category filtering**:
+The Discord alerts now support **refined category/severity filtering**:
 - Signals are sent only when `signal.categoryId` is in `DISCORD_ALERT_CATEGORIES`
-- Configure via comma-separated env value, e.g. `DISCORD_ALERT_CATEGORIES=technology,geopolitics`
-- Non-matching categories are logged but skipped
+- **Technology**: Sends alerts for Medium (Score 7-9) and High (Score 10+) signals.
+- **Geopolitics**: Sends alerts for High (Score 10+) signals ONLY.
 - **HTML sanitization**: All RSS content and titles are decoded from HTML entities (including numeric like `&#8217;` → `'`), stripped of `<script>`/`<style>` blocks, and cleaned of all HTML tags before being sent to Discord embeds
 
 ```bash

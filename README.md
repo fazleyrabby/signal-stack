@@ -37,7 +37,15 @@ Access the system at [http://localhost:3001](http://localhost:3001).
 ./scripts/deploy.sh
 ```
 
-Builds new images while old containers serve traffic, then fast-swaps (~3–5s downtime) and auto-rolls back if health checks fail.
+By default, this script builds new images while old containers serve traffic, then fast-swaps (~3–5s downtime) and auto-rolls back if health checks fail.
+
+**Diagnostic & Health Check:**
+
+```bash
+./scripts/test-endpoints.sh
+```
+
+Runs a premium diagnostic suite against all API endpoints to verify system integrity and latency.
 
 **Updating (one command):**
 
@@ -140,11 +148,16 @@ Each item includes custom `signal:score` and `signal:source` elements.
 
 Discord alerts send clean, HTML-free embeds with severity-based color coding (red/orange/green). RSS content and titles are fully sanitized during feed ingestion — all HTML entities (including numeric like `&#8217;`) are decoded and all tags (including `<script>`/`<style>`) are stripped before storing in the database.
 
-Alerts can be filtered by category via environment variable:
+Alerts are filtered by category and severity to reduce noise:
+- **Technology**: Medium (Score 7-9) and High (Score 10+) alerts.
+- **Geopolitics**: High (Score 10+) alerts only.
+
+Configure via environment variables:
 
 ```env
 DISCORD_WEBHOOK_URL=your-webhook-url
-DISCORD_ALERT_CATEGORIES=technology  # comma-separated, e.g. technology,geopolitics
+DISCORD_ALERT_CATEGORIES=technology,geopolitics
+DISCORD_FILTER_TECH=false  # Set to false to bypass unpopulated AI categories
 ```
 
 ## 🚦 API Protection & Retention
