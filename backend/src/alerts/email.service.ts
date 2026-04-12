@@ -112,18 +112,18 @@ export class EmailService {
                 ${highScoreSignals
                   .map(
                     (signal) => `
-                  <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #334155;">
-                    <h3 style="margin: 0 0 10px 0;">
-                      <a href="${signal.url}" style="color: #38bdf8; text-decoration: none;">${signal.title}</a>
+                  <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #334155;">
+                    <h3 style="margin: 0 0 14px 0; line-height: 1.4;">
+                      <a href="${signal.url}" style="color: #38bdf8; text-decoration: none; font-size: 18px; font-weight: 700;">${signal.title}</a>
                     </h3>
-                    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
-                      <span style="background-color: ${this.getSeverityColor(signal.severity)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-bottom: 16px;">
+                      <span style="background-color: ${this.getSeverityColor(signal.severity)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
                         ${signal.source}
                       </span>
-                      <span style="background-color: ${this.getScoreColor(signal.score)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                      <span style="background-color: ${this.getScoreColor(signal.score)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
                         Score: ${signal.score}
                       </span>
-                      ${signal.publishedAt ? `<span style="color: #94a3b8; font-size: 12px;">${new Date(signal.publishedAt).toLocaleTimeString()}</span>` : ''}
+                      ${signal.publishedAt ? `<span style="color: #94a3b8; font-size: 12px; font-style: italic;">${new Date(signal.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
                     </div>
                     ${
                       signal.summary
@@ -234,18 +234,18 @@ export class EmailService {
                 ${highScoreSignals
                   .map(
                     (signal) => `
-                  <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #334155;">
-                    <h3 style="margin: 0 0 10px 0;">
-                      <a href="${signal.url}" style="color: #38bdf8; text-decoration: none;">${signal.title}</a>
+                  <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #334155;">
+                    <h3 style="margin: 0 0 14px 0; line-height: 1.4;">
+                      <a href="${signal.url}" style="color: #38bdf8; text-decoration: none; font-size: 18px; font-weight: 700;">${signal.title}</a>
                     </h3>
-                    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
-                      <span style="background-color: ${this.getSeverityColor(signal.severity)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-bottom: 16px;">
+                      <span style="background-color: ${this.getSeverityColor(signal.severity)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
                         ${signal.source}
                       </span>
-                      <span style="background-color: ${this.getScoreColor(signal.score)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                      <span style="background-color: ${this.getScoreColor(signal.score)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
                         Score: ${signal.score}
                       </span>
-                      ${signal.publishedAt ? `<span style="color: #94a3b8; font-size: 12px;">${new Date(signal.publishedAt).toLocaleTimeString()}</span>` : ''}
+                      ${signal.publishedAt ? `<span style="color: #94a3b8; font-size: 12px; font-style: italic;">${new Date(signal.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
                     </div>
                     ${
                       signal.summary
