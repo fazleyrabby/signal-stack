@@ -673,7 +673,7 @@ On a standard **2-CPU / 4GB RAM VPS**:
 
 ## Architecture
 
-```
+```text
 ┌─────────────┐     ┌───────────────┐     ┌──────────┐     ┌───────────┐
 │ RSS Feeds   │────▶│ Fetch Job     │────▶│ Parser   │────▶│ Scorer    │
 │ (10 sources)│     │ (Promise.all) │     │ (rss-p)  │     │ (Keywords)│
@@ -684,23 +684,7 @@ On a standard **2-CPU / 4GB RAM VPS**:
                                               ┌──────────┐ ┌────────┐ ┌──────────┐
                                               │ Discard  │ │  DB    │ │  Alert   │
                                               │ (< 5)    │ │ (≥ 5)  │ │  (≥ 7)  │
-                                              └──────────┘
-
----
-
-### AI Provider Chain
-
-The AI pipeline follows this fallback chain:
-
-```
-Local (llama.cpp/Qwen) → Groq → OpenRouter
-```
-
-- **Local**: Zero-cost, ~3s inference, limited by timeout (8s)
-- **Groq**: Fastest, sub-second latency
-- **OpenRouter**: Ultimate fallback, comprehensive model coverage
-- **Provider Tracking**: Each signal stores `ai_provider` to identify which AI processed it
-- **Health Check**: AI health is displayed on the admin dashboard with auto-refresh └───┬────┘ └──────────┘
+                                              └──────────┘ └───┬────┘ └──────────┘
                                                                │
                                                     ┌──────────┴──────────┐
                                                     ▼                     ▼
@@ -714,6 +698,22 @@ Local (llama.cpp/Qwen) → Groq → OpenRouter
                                              │ (Next.js)│
                                              └──────────┘
 ```
+
+---
+
+### AI Provider Chain
+
+The AI pipeline follows this fallback chain:
+
+```text
+Local (llama.cpp/Qwen) → Groq → OpenRouter
+```
+
+- **Local**: Zero-cost, ~3s inference, limited by timeout (8s)
+- **Groq**: Fastest, sub-second latency
+- **OpenRouter**: Ultimate fallback, comprehensive model coverage
+- **Provider Tracking**: Each signal stores `ai_provider` to identify which AI processed it
+- **Health Check**: AI health is displayed on the admin dashboard with auto-refresh
 
 ---
 
