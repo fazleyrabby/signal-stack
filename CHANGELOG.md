@@ -9,6 +9,7 @@ All notable changes to SignalStack will be documented in this file.
 ### Added
 - **AI startup requeue**: On container restart, `AIQueue.onModuleInit` automatically re-queues up to 50 unprocessed signals (score ≥ 7) after a 5s delay — no manual retry needed after deploys
 - **Shell alias deploy**: `deploy-signal` alias in `~/.zshrc` SSHs into VPS and runs `deploy.sh` for one-command deploys from local machine
+- **Premium Diagnostic Suite**: `scripts/test-endpoints.sh` added with animated terminal UI, payload previewing, and latency benchmarking for all core API endpoints
 
 ### Fixed
 - **Local AI never processing** (`ai.service.ts`): hardcoded 4s `Promise.race` was overriding the provider's 35s AbortController — local AI always lost the race and fell back to Groq. Removed the race entirely; provider timeout is now authoritative
@@ -18,6 +19,7 @@ All notable changes to SignalStack will be documented in this file.
 ### Changed
 - **Deploy workflow**: removed GitHub Actions self-hosted runner (unsafe for public repos — forks could run arbitrary code on VPS). Replaced with `deploy-signal` shell alias for one-command local→VPS deploys
 - **`scripts/deploy.sh`**: zero-downtime rewrite — pre-build while live, fast-swap (~3–5s downtime), auto-rollback on health check failure, retry-loop health checks replacing fragile `sleep`
+- **Discord Noise Reduction**: Refined alert logic: **Technology** (Med+High score alerts) vs **Geopolitics** (High score alerts only). Replaced the rigid `filterTechOnly` flag with a dynamic category-aware severity threshold.
 
 ### Added
 - **Public RSS Feed**: `GET /api/feed.xml` returns RSS 2.0 with last 50 signals (score >= 5)
