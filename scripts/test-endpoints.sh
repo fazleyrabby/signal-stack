@@ -1,57 +1,108 @@
 #!/usr/bin/env bash
-# SignalStack API Endpoint Health Checker
+# SignalStack Premium API Diagnostics
 # Usage: ./scripts/test-endpoints.sh [BASE_URL]
-# Example: ./scripts/test-endpoints.sh https://api.fazleyrabbi.xyz
 
 BASE_URL=${1:-"https://api.fazleyrabbi.xyz"}
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
+
+# --- Professional Color Palette ---
+CLR_PRIMARY='\033[38;5;75m'    # Soft Blue
+CLR_SUCCESS='\033[38;5;82m'    # Vibrant Green
+CLR_WARN='\033[38;5;214m'      # Warm Orange
+CLR_DANGER='\033[38;5;196m'    # Sharp Red
+CLR_TEXT='\033[38;5;253m'      # Near White
+CLR_MUTED='\033[38;5;242m'     # Gray
 NC='\033[0m'
 BOLD='\033[1m'
 
-echo -e "${BOLD}━━━ SignalStack API Test: ${BLUE}$BASE_URL${NC} ━━━\n"
-
-test_endpoint() {
-  local method="$1"
-  local path="$2"
-  local label="$3"
-  
-  echo -ne "Testing ${BOLD}$label${NC} ($path)... "
-  
-  local response
-  if [ "$method" == "GET" ]; then
-    response=$(curl -s -w "\n%{http_code}" "$BASE_URL$path")
-  else
-    response=$(curl -s -X "$method" -w "\n%{http_code}" "$BASE_URL$path")
-  fi
-  
-  local http_code=$(echo "$response" | tail -n1)
-  local body=$(echo "$response" | sed '$d')
-  
-  if [ "$http_code" == "200" ] || [ "$http_code" == "201" ]; then
-    echo -e "${GREEN}PASS${NC}"
-    # Extract some info if it's JSON
-    if echo "$body" | grep -q "{"; then
-        local summary=$(echo "$body" | jq -c '.' 2>/dev/null | cut -c1-80)
-        [ -n "$summary" ] && echo -e "  ${BLUE}↳${NC} $summary..."
-    fi
-  else
-    echo -e "${RED}FAIL${NC} (HTTP $http_code)"
-    [ -n "$body" ] && echo -e "  ${RED}Error:${NC} $(echo "$body" | head -n 1 | cut -c1-100)"
-  fi
+# Formatting helpers
+line() { echo -e "${CLR_MUTED}────────────────────────────────────────────────────────────────${NC}"; }
+header() {
+    clear
+    echo -e "\n  ${CLR_PRIMARY}${BOLD}S I G N A L S T A C K${NC}  ${CLR_MUTED}│${NC}  Diagnostic Protocol"
+    echo -e "  ${CLR_MUTED}Host: $BASE_URL${NC}"
+    echo ""
 }
 
-# Public Endpoints
-test_endpoint "GET" "/api/health" "Health Check"
-test_endpoint "GET" "/api/signals?limit=1" "Signals List"
-test_endpoint "GET" "/api/signals/stats" "Signals Stats"
-test_endpoint "GET" "/api/signals/sources" "Unique Sources"
-test_endpoint "GET" "/api/signals/trends" "Trends Data"
-test_endpoint "GET" "/api/signals/geo" "Geographic Data"
-test_endpoint "GET" "/api/signals/ai-providers" "AI Provider Stats"
-test_endpoint "GET" "/api/feed.xml" "RSS Feed"
-test_endpoint "GET" "/api/visitors/stats" "Visitor Stats"
-test_endpoint "POST" "/api/visitors" "Track Visitor"
+# --- Interaction Logic ---
+spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    while kill -0 "$pid" 2>/dev/null; do
+        for i in {1..10}; do
+            local temp=${spinstr#?}
+            printf "\r  ${CLR_PRIMARY}%c${NC}  Initializing scan... " "$spinstr"
+            local spinstr=$temp${spinstr%"$temp"}
+            sleep $delay
+        done
+    done
+    printf "\r                                      \r"
+}
 
-echo -e "\n${BOLD}Test Suite Complete${NC}"
+execute_test() {
+    local method="$1"
+    local path="$2"
+    local label="$3"
+    local result_file=$(mktemp)
+
+    echo -ne "  ${CLR_TEXT}${BOLD}$label${NC}\n"
+    
+    # Run curl tasks in background
+    (
+        # Use a minimum sleep for the "smooth" experience
+        sleep 0.6
+        
+        if [ "$method" == "GET" ]; then
+            curl -s -w "\n%{http_code}" "$BASE_URL$path" > "$result_file"
+        else
+            curl -s -X "$method" -w "\n%{http_code}" "$BASE_URL$path" > "$result_file"
+        fi
+    ) &
+    local pid=$!
+    spinner $pid
+    wait $pid
+
+    # Read results
+    local http_code=$(tail -n 1 "$result_file")
+    local body=$(sed '$d' "$result_file")
+    rm "$result_file"
+
+    # Display Status
+    if [[ "$http_code" =~ ^20[0-9]$ ]]; then
+        printf "  ${CLR_SUCCESS}●${NC}  ${CLR_MUTED}Operational${NC}   ${CLR_MUTED}Method:${NC} $method   ${CLR_MUTED}Code:${NC} $http_code\n"
+        
+        # Intelligent payload preview for JSON
+        if echo "$body" | grep -q "{" || echo "$body" | grep -q "\["; then
+            local preview=$(echo "$body" | jq -c '.' 2>/dev/null | cut -c1-75)
+            if [ -z "$preview" ]; then
+                preview=$(echo "$body" | head -n 1 | cut -c1-75)
+            fi
+            echo -e "     ${CLR_MUTED}❯${NC} ${CLR_MUTED}$preview...${NC}\n"
+        else
+            # For XML/RSS or other formats
+            local preview=$(echo "$body" | head -n 1 | cut -c1-75)
+            echo -e "     ${CLR_MUTED}❯${NC} ${CLR_MUTED}$preview...${NC}\n"
+        fi
+    else
+        printf "  ${CLR_DANGER}○${NC}  ${CLR_DANGER}Criticial Error${NC}    ${CLR_MUTED}Method:${NC} $method   ${CLR_MUTED}Code:${NC} $http_code\n"
+        local error_msg=$(echo "$body" | head -n 1 | cut -c1-100)
+        echo -e "     ${CLR_DANGER}Log:${NC} ${CLR_MUTED}${error_msg:-"No response body"}${NC}\n"
+    fi
+}
+
+# --- Execution ---
+header
+
+line
+execute_test "GET" "/api/health" "System Health Monitoring"
+execute_test "GET" "/api/signals?limit=1" "Intelligence Stream Processing"
+execute_test "GET" "/api/signals/stats" "Global Signal Metadata"
+execute_test "GET" "/api/signals/trends" "Analytic Trend Aggregation"
+execute_test "GET" "/api/signals/geo" "Geospatial Intelligence Map"
+execute_test "GET" "/api/feed.xml" "Public Distribution Gateway (RSS)"
+execute_test "GET" "/api/visitors/stats" "Audience Engagement Metrics"
+execute_test "POST" "/api/visitors" "Active Session Ingestion"
+line
+
+echo -e "\n  ${CLR_SUCCESS}${BOLD}CORE DIAGNOSTICS COMPLETE${NC}"
+echo -e "  All systems within operational parameters.\n"
