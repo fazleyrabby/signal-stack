@@ -119,15 +119,15 @@ function SignalsDashboardContent({
       />
 
       <div className={cn(
-        "mx-auto px-4 sm:px-6 w-full pt-4 pb-16 md:pb-0 transition-all duration-500 overflow-hidden flex flex-col flex-1",
+        "mx-auto px-3 sm:px-4 w-full pt-2 pb-16 md:pb-0 transition-all duration-500 overflow-hidden flex flex-col flex-1",
         isFullWidth ? "max-w-full" : "max-w-[1400px] 2xl:max-w-[1800px]"
       )}>
         <div className="flex flex-col h-full">
 
           {/* Collapsible Top Section */}
           <div className={cn(
-            "flex flex-col gap-3 shrink-0 transition-all duration-300 overflow-hidden",
-            showControls ? "max-h-[400px] opacity-100 mb-3" : "max-h-0 opacity-0 mb-0"
+            "flex flex-col gap-2 shrink-0 transition-all duration-300 overflow-hidden",
+            showControls ? "max-h-[400px] opacity-100 mb-2" : "max-h-0 opacity-0 mb-0"
           )}>
             <StatsBar stats={stats} />
 
@@ -177,7 +177,7 @@ function SignalsDashboardContent({
           {/* Column Content */}
           <div className="flex-1 overflow-hidden">
             <div className={cn(
-              "hidden md:grid gap-6 h-full transition-all duration-500",
+              "hidden md:grid gap-4 h-full transition-all duration-500",
               showGeopolitics && showTechnology ? "grid-cols-2" : "grid-cols-1"
             )}>
               {showGeopolitics && (

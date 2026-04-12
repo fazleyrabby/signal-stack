@@ -78,7 +78,7 @@ function ColumnControlBar({
 
   return (
     <>
-      <div className="flex items-center gap-1.5 p-1.5 bg-card/30 border border-border/5 rounded-lg">
+      <div className="flex items-center gap-1.5 p-1 bg-card/30 border border-border/5 rounded-lg">
         <div className="flex items-center gap-0.5">
           {['all', 'high', 'medium', 'low'].map((f) => (
             <button
@@ -400,14 +400,14 @@ export function Column({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center gap-2 mb-2 px-1 shrink-0">
+      <div className="px-3 py-2 flex items-center gap-2 shrink-0 bg-background/5 border-b border-border/5">
         <div className="p-1 rounded-md bg-primary/10 text-primary">
           <Icon className="w-3.5 h-3.5" />
         </div>
-        <h2 className="text-[11px] font-black uppercase tracking-[0.2em] opacity-80">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
           {title}
         </h2>
-        <span className="text-[11px] font-mono text-muted-foreground/30 ml-auto tabular-nums bg-accent/20 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-mono text-muted-foreground/30 ml-auto tabular-nums bg-accent/20 px-1.5 py-0.5 rounded-full">
           {isLoading ? '--' : filtered.length} / {isLoading ? '--' : signals.length}
         </span>
       </div>
@@ -430,35 +430,35 @@ export function Column({
         setShowBookmarks={setShowBookmarks}
       />
 
-      <div className="flex-1 bg-card/25 border border-border/10 rounded-xl overflow-hidden backdrop-blur-sm transition-all duration-500 flex flex-col mt-2">
+      <div className="flex-1 bg-card/15 border border-border/5 rounded-xl overflow-hidden backdrop-blur-sm transition-all duration-500 flex flex-col mt-1.5">
         {/* Skeleton loading state */}
         {isLoading && signals.length === 0 && (
-          <div className="p-3">
+          <div className="p-2.5">
             <FeedSkeleton layoutMode={layoutMode} />
           </div>
         )}
 
         {!isLoading && !hasSignals && (
-          <div className="flex flex-col items-center justify-center py-16 text-center opacity-30">
+          <div className="flex flex-col items-center justify-center py-12 text-center opacity-30">
             <RefreshCw className="w-6 h-6 mb-2 text-muted-foreground" />
-            <span className="text-[9px] font-black tracking-widest uppercase">Awaiting local uplink...</span>
+            <span className="text-[9px] font-black tracking-widest uppercase">Awaiting signals...</span>
           </div>
         )}
 
         {hasSignals && (
           <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto relative">
             {showScrollIndicator && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 animate-bounce pointer-events-none">
-                <ChevronDown className="w-4 h-4 text-primary/60" />
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 animate-bounce pointer-events-none opacity-50">
+                <ChevronDown className="w-3.5 h-3.5 text-primary/60" />
               </div>
             )}
             <div className={cn(
-              "p-3 pr-4",
+              "p-2.5 pr-3.5",
               layoutMode === 'grid'
                 ? isFullWidth
-                  ? "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-6 gap-4"
-                  : "columns-1 sm:columns-2 xl:columns-3 gap-4"
-                : "flex flex-col space-y-3"
+                  ? "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-6 gap-3"
+                  : "columns-1 sm:columns-2 xl:columns-3 gap-3"
+                : "flex flex-col space-y-2.5"
             )}>
               {showBookmarks
                 ? signals
