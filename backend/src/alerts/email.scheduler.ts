@@ -8,20 +8,8 @@ export class EmailScheduler implements OnModuleInit {
   constructor(private readonly emailService: EmailService) {}
 
   async onModuleInit() {
-    if (process.env.DISABLE_SCHEDULER === 'true') {
-      logEvent('info', 'scheduler_is_disabled_via_env', {});
-      return;
-    }
-
-    logEvent('info', 'startup_email_trigger', {});
-    // Wait a few seconds for services to properly initialize
-    setTimeout(() => {
-      this.sendScheduledDigest().catch((err) => {
-        logEvent('error', 'startup_email_trigger_failed', {
-          error: err.message,
-        });
-      });
-    }, 5000);
+    // Startup email trigger removed to prevent spam during deployments.
+    // Daily digest will strictly follow the cron schedule at 8:00 AM.
   }
 
   /**
