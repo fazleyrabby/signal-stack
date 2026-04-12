@@ -2,7 +2,6 @@
 
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export function Shell({ 
@@ -18,8 +17,6 @@ export function Shell({
   selectedSeverity?: string;
   onSeverityChange?: (id: string) => void;
 }) {
-  const [searchQuery, setSearchQuery] = useState("");
-
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar 
@@ -33,8 +30,6 @@ export function Shell({
         <Header 
           isRefreshing={false}
           onRefresh={() => window.location.reload()}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
         />
 
         <main className="flex-1 overflow-y-auto scrollbar-hide">

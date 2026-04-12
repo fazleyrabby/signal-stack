@@ -75,8 +75,6 @@ export default function CategoriesAdmin() {
       <Header 
         isRefreshing={false} 
         onRefresh={() => {}} 
-        searchQuery="" 
-        onSearchChange={() => {}} 
         showSearch={false} 
       />
 
