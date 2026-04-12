@@ -374,7 +374,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background font-sans">
-      <Header isRefreshing={false} onRefresh={() => {}} searchQuery="" onSearchChange={() => {}} />
+      <Header isRefreshing={false} onRefresh={() => {}} showSearch={false} />
 
       <main className="max-w-6xl mx-auto py-12 px-6 pb-16 md:pb-0 space-y-12">
         <div className="flex items-center justify-between">

@@ -117,8 +117,6 @@ export default function SourcesAdmin() {
       <Header 
         isRefreshing={false} 
         onRefresh={() => {}} 
-        searchQuery="" 
-        onSearchChange={() => {}} 
         showSearch={false} 
       />
 
