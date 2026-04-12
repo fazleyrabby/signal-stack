@@ -12,6 +12,9 @@ All notable changes to SignalStack will be documented in this file.
 - **Premium Diagnostic Suite**: `scripts/test-endpoints.sh` added with animated terminal UI, payload previewing, and latency benchmarking for all core API endpoints
 - **Mobile Navigation Overhaul**: 5-column bottom navigation with centered, animated search popup and global search state synchronization
 - **High-Density UI Refinement**: Reduced global padding, card gaps, and header height to maximize screen real-estate and information density
+- **Email Digest Polish**: Overhauled HTML email template with "bulletproof" CSS (inline-block margins) to fix badge/timestamp overlap across all email clients
+- **Technology Digest Filter**: Daily digest restricted exclusively to the "technology" category as requested for cleaner focus / less noise
+- **Gmail SMTP Integration**: Successfully configured Gmail SMTP via App Passwords with env-based configuration for production signal delivery
 
 ### Changed
 - **Header Optimization**: Stats bar now hidden by default on mobile to prioritize signals. Toggle renamed to "Stats" with visual active state indicator
@@ -22,6 +25,8 @@ All notable changes to SignalStack will be documented in this file.
 - **Local AI never processing** (`ai.service.ts`): hardcoded 4s `Promise.race` was overriding the provider's 35s AbortController — local AI always lost the race and fell back to Groq. Removed the race entirely; provider timeout is now authoritative
 - **Local AI timeout too short** (`local.provider.ts`): increased from 15s → 35s, reduced `max_tokens` 60 → 40, content slice 200 → 120 chars to fit within VPS CPU inference speed (~3.2 tok/s)
 - **Retry button missed pending signals** (`admin.service.ts`): `getFailedAISignals()` only queried `ai_failed=true`, missing signals that were pending but never failed. Now queries all `ai_processed=false AND score>=7`
+- **Deployment Spam Protection**: Removed automatic on-startup email trigger in `EmailScheduler` to prevent duplicate notifications during maintenance/deployments
+- **SMTP Routing Fix**: Corrected `ADMIN_EMAIL` and `SMTP_USER` environment mappings on VPS to resolve "Address not found" bounce-backs
 
 ### Changed
 - **Deploy workflow**: removed GitHub Actions self-hosted runner (unsafe for public repos — forks could run arbitrary code on VPS). Replaced with `deploy-signal` shell alias for one-command local→VPS deploys
