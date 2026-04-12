@@ -10,6 +10,7 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
   private recipients: string[];
   private enabled: boolean;
+  private digestCategories: string | undefined;
 
   constructor(
     private readonly configService: ConfigService,
@@ -25,6 +26,7 @@ export class EmailService {
     const recipientsStr =
       this.configService.get<string>('DIGEST_RECIPIENTS') || '';
     this.enabled = this.configService.get<boolean>('DIGEST_ENABLED') || false;
+    this.digestCategories = this.configService.get<string>('DIGEST_CATEGORIES') || 'technology';
 
     this.recipients = recipientsStr
       .split(',')
@@ -71,6 +73,7 @@ export class EmailService {
         page: 1,
         limit: 20,
         since: oneDayAgo.toISOString(),
+        categoryId: this.digestCategories,
         sort: 'score',
         order: 'desc',
       });
@@ -93,7 +96,7 @@ export class EmailService {
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #e2e8f0; padding: 20px; margin: 0;">
           <div style="max-width: 600px; margin: 0 auto;">
             <h1 style="color: #38bdf8; text-align: center; margin-bottom: 30px;">
-              SignalStack Daily Digest — ${date}
+              SignalStack ${this.digestCategories ? this.digestCategories.charAt(0).toUpperCase() + this.digestCategories.slice(1) : ''} Digest — ${date}
             </h1>
             
             <div style="background-color: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
@@ -193,6 +196,7 @@ export class EmailService {
         page: 1,
         limit: 20,
         since: oneDayAgo.toISOString(),
+        categoryId: this.digestCategories,
         sort: 'score',
         order: 'desc',
       });
@@ -215,7 +219,7 @@ export class EmailService {
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #e2e8f0; padding: 20px; margin: 0;">
           <div style="max-width: 600px; margin: 0 auto;">
             <h1 style="color: #38bdf8; text-align: center; margin-bottom: 30px;">
-              SignalStack Daily Digest — ${date}
+              SignalStack ${this.digestCategories ? this.digestCategories.charAt(0).toUpperCase() + this.digestCategories.slice(1) : ''} Digest — ${date}
             </h1>
             
             <div style="background-color: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
