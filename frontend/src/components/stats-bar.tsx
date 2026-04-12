@@ -30,7 +30,7 @@ export function StatsBar({ stats }: StatsBarProps) {
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
       {statsItems.map((item, idx) => (
         <div key={idx} className={cn(
-          "p-2.5 rounded-md border border-border/30 shadow-sm transition-all duration-300",
+          "p-2 rounded-md border border-border/30 shadow-sm transition-all duration-300",
           "bg-card/30 hover:bg-[var(--card-hover)]"
         )}>
           <div className="flex items-center justify-between">

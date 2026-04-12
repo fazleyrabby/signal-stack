@@ -59,9 +59,9 @@ export function Header({
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/10 bg-background/80 backdrop-blur-md h-13 transition-colors duration-500">
+    <header className="sticky top-0 z-50 border-b border-border/10 bg-background/80 backdrop-blur-md h-11 transition-colors duration-500">
       <div className={cn(
-        "mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-6 transition-all duration-500 ease-in-out",
+        "mx-auto px-3 sm:px-4 h-full flex items-center justify-between gap-6 transition-all duration-500 ease-in-out",
         isFullWidth ? "max-w-full" : "max-w-[1400px]"
       )}>
         <Link href="/" className="flex items-center gap-3 shrink-0 group">
@@ -135,7 +135,7 @@ export function Header({
             <button
               onClick={onToggleControls}
               className={cn(
-                "flex items-center gap-2 px-3 h-9 rounded-xl transition-all duration-300 shadow-sm",
+                "flex items-center gap-2 p-2 rounded-xl transition-all duration-300 shadow-sm",
                 showControls 
                   ? "bg-primary/20 border border-primary/20 text-primary" 
                   : "bg-accent/20 border border-border/10 text-muted-foreground hover:bg-accent/40"
