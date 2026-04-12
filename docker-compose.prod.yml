@@ -62,7 +62,8 @@ services:
       LOCAL_AI_ENABLED: ${LOCAL_AI_ENABLED:-true}
       LOCAL_AI_URL: ${LOCAL_AI_URL:-http://llama:8080}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
-      DISCORD_FILTER_TECH: ${DISCORD_FILTER_TECH:-true}
+      DISCORD_FILTER_TECH: ${DISCORD_FILTER_TECH:-false}
+      DISCORD_ALERT_CATEGORIES: ${DISCORD_ALERT_CATEGORIES:-technology,geopolitics}
     volumes:
       - backups:/app/backups
     depends_on:

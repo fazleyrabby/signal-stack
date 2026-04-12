@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import striptags from 'striptags';
 import { ScoredSignal } from '../common/types';
 import { logEvent } from '../common/logger';
 
@@ -65,7 +66,7 @@ export class DiscordService {
               {
                 title: signal.title.slice(0, 256),
                 url: signal.url,
-                description: signal.content?.slice(0, 200) || '',
+                description: signal.content ? striptags(signal.content).slice(0, 200) : '',
                 color,
                 fields: [
                   { name: 'Source', value: signal.source, inline: true },
