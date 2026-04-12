@@ -14,14 +14,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useSearch } from "@/context/SearchContext";
 
 type Theme = "light" | "dark";
 
 interface HeaderProps {
   isRefreshing: boolean;
   onRefresh?: () => void;
-  searchQuery?: string;
-  onSearchChange?: (value: string) => void;
   showSearch?: boolean;
   isFullWidth?: boolean;
   showControls?: boolean;
@@ -30,16 +29,13 @@ interface HeaderProps {
 }
 
 export function Header({ 
-  isRefreshing, 
-  onRefresh, 
-  searchQuery, 
-  onSearchChange, 
   showSearch = true,
   isFullWidth = false,
   showControls = true,
   onToggleControls,
   visitorCount
 }: HeaderProps) {
+  const { searchQuery, setSearchQuery } = useSearch();
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
@@ -58,13 +54,16 @@ export function Header({
     document.documentElement.setAttribute("data-theme", next === "light" ? "light" : "");
   };
 
+  if (!mounted) return (
+    <header className="sticky top-0 z-50 border-b border-border/10 bg-background/80 backdrop-blur-md h-13" />
+  );
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/10 bg-background/80 backdrop-blur-md h-13 transition-colors duration-500">
       <div className={cn(
         "mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-6 transition-all duration-500 ease-in-out",
         isFullWidth ? "max-w-full" : "max-w-[1400px]"
       )}>
-        {/* 1. Branding: Adaptive Identity */}
         <Link href="/" className="flex items-center gap-3 shrink-0 group">
            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20 transition-transform group-hover:scale-105 group-active:scale-95 duration-300">
               <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -86,7 +85,8 @@ export function Header({
             </div>
         </Link>
 
-        <div className="flex-1 max-w-sm block">
+        {/* Search: Hidden on Mobile as it moves to Bottom Nav */}
+        <div className="flex-1 max-w-sm hidden md:block">
             {showSearch && (
               <div className="relative group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
@@ -94,13 +94,12 @@ export function Header({
                   placeholder="Search live insights..." 
                   value={searchQuery}
                   className="w-full bg-accent/10 border-border/10 pl-10 h-9 text-[13px] font-bold tracking-tight rounded-xl focus:ring-1 focus:ring-primary/20 transition-all font-sans"
-                  onChange={(e) => onSearchChange?.(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
             )}
         </div>
 
-        {/* 2. Tactical Display Selector */}
         <div className="flex items-center gap-4 shrink-0">
           <Link
             href="/trends"
@@ -135,16 +134,21 @@ export function Header({
           {onToggleControls && (
             <button
               onClick={onToggleControls}
-              className="flex items-center gap-2 px-3 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 shadow-sm"
-              title={showControls ? "Hide controls" : "Show controls"}
+              className={cn(
+                "flex items-center gap-2 px-3 h-9 rounded-xl transition-all duration-300 shadow-sm",
+                showControls 
+                  ? "bg-primary/20 border border-primary/20 text-primary" 
+                  : "bg-accent/20 border border-border/10 text-muted-foreground hover:bg-accent/40"
+              )}
+              title={showControls ? "Hide stats" : "Show stats"}
             >
-              <span className="text-[10px] font-bold tracking-wide text-muted-foreground">
-                {showControls ? "Hide" : "Show"}
+              <span className="text-[10px] font-bold tracking-wide">
+                Stats
               </span>
               {showControls ? (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                <ChevronDown className="w-4 h-4" />
               ) : (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                <ChevronUp className="w-4 h-4 opacity-50" />
               )}
             </button>
           )}

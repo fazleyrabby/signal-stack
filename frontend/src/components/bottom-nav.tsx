@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, BarChart3, Bookmark, Shield } from "lucide-react";
+import { Home, BarChart3, Bookmark, Shield, Search as SearchIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSearch } from "@/context/SearchContext";
+import { Input } from "@/components/ui/input";
+import { useEffect, useRef } from "react";
 
-const tabs = [
+const mainTabs = [
   {
     id: "feed",
     label: "Feed",
@@ -41,47 +44,101 @@ const tabs = [
 export function BottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { searchQuery, setSearchQuery, isMobileSearchOpen, setIsMobileSearchOpen } = useSearch();
+  const inputRef = useRef<HTMLInputElement>(null);
+  
   const bookmarksOnly =
     pathname === "/" && searchParams.get("bookmarks") === "true";
 
-  return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border/20 pb-[env(safe-area-inset-bottom)]">
-      <div className="h-[60px] grid grid-cols-4">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const active = tab.isActive(pathname, bookmarksOnly);
+  useEffect(() => {
+    if (isMobileSearchOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isMobileSearchOpen]);
 
-          return (
-            <Link
-              key={tab.id}
-              href={tab.href}
-              className="relative flex flex-col items-center justify-center gap-1 transition-colors duration-200"
-              aria-current={active ? "page" : undefined}
-            >
-              <span
-                className={cn(
-                  "absolute top-1.5 h-1.5 w-1.5 rounded-full transition-all duration-200",
-                  active ? "bg-primary opacity-100" : "opacity-0",
-                )}
-              />
-              <Icon
-                className={cn(
-                  "w-5 h-5 transition-colors duration-200",
-                  active ? "text-primary" : "text-muted-foreground/60",
-                )}
-              />
-              <span
-                className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider transition-colors duration-200",
-                  active ? "text-primary" : "text-muted-foreground/60",
-                )}
-              >
-                {tab.label}
-              </span>
-            </Link>
-          );
-        })}
+  return (
+    <>
+      {/* Mobile Search Overlay/Popup */}
+      <div className={cn(
+        "fixed bottom-[60px] left-0 right-0 z-[60] p-4 bg-card/95 backdrop-blur-xl border-t border-border/20 transition-all duration-300 ease-out transform",
+        isMobileSearchOpen 
+          ? "translate-y-0 opacity-100 visible" 
+          : "translate-y-4 opacity-0 invisible"
+      )}>
+        <div className="relative group max-w-lg mx-auto">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary transition-colors" />
+          <Input 
+            ref={inputRef}
+            placeholder="Search signals..." 
+            value={searchQuery}
+            className="w-full bg-accent/20 border-primary/20 pl-10 pr-10 h-11 text-[14px] font-bold tracking-tight rounded-xl focus:ring-1 focus:ring-primary/40 transition-all"
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button 
+            onClick={() => {
+              setSearchQuery("");
+              setIsMobileSearchOpen(false);
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground/40 hover:text-primary transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
-    </nav>
+
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border/20 pb-[env(safe-area-inset-bottom)]">
+        <div className="h-[60px] grid grid-cols-5">
+          {mainTabs.slice(0, 2).map((tab) => {
+            const Icon = tab.icon;
+            const active = tab.isActive(pathname, bookmarksOnly);
+            return (
+              <Link
+                key={tab.id}
+                href={tab.href}
+                className="relative flex flex-col items-center justify-center gap-1 transition-colors duration-200"
+              >
+                <Icon className={cn("w-5 h-5", active ? "text-primary" : "text-muted-foreground/60")} />
+                <span className={cn("text-[9px] font-bold uppercase tracking-wider", active ? "text-primary" : "text-muted-foreground/60")}>
+                  {tab.label}
+                </span>
+              </Link>
+            );
+          })}
+
+          {/* Center Search Button */}
+          <button
+            onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+            className="relative flex flex-col items-center justify-center gap-1 transition-colors duration-200"
+          >
+            <div className={cn(
+              "p-2 rounded-full transition-all duration-300",
+              isMobileSearchOpen ? "bg-primary text-white scale-110 shadow-lg shadow-primary/20" : "text-muted-foreground/60 hover:text-primary"
+            )}>
+              <SearchIcon className="w-5 h-5" />
+            </div>
+            {!isMobileSearchOpen && (
+              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">Search</span>
+            )}
+          </button>
+
+          {mainTabs.slice(2).map((tab) => {
+            const Icon = tab.icon;
+            const active = tab.isActive(pathname, bookmarksOnly);
+            return (
+              <Link
+                key={tab.id}
+                href={tab.href}
+                className="relative flex flex-col items-center justify-center gap-1 transition-colors duration-200"
+              >
+                <Icon className={cn("w-5 h-5", active ? "text-primary" : "text-muted-foreground/60")} />
+                <span className={cn("text-[8px] font-bold uppercase tracking-wider", active ? "text-primary" : "text-muted-foreground/60")}>
+                  {tab.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }
