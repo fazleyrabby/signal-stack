@@ -119,14 +119,14 @@ export class EmailService {
                     <h3 style="margin: 0 0 14px 0; line-height: 1.4;">
                       <a href="${signal.url}" style="color: #38bdf8; text-decoration: none; font-size: 18px; font-weight: 700;">${signal.title}</a>
                     </h3>
-                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-bottom: 16px;">
-                      <span style="background-color: ${this.getSeverityColor(signal.severity)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <div style="margin-bottom: 18px;">
+                      <span style="display: inline-block; background-color: ${this.getSeverityColor(signal.severity)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 12px;">
                         ${signal.source}
                       </span>
-                      <span style="background-color: ${this.getScoreColor(signal.score)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
+                      <span style="display: inline-block; background-color: ${this.getScoreColor(signal.score)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-right: 15px;">
                         Score: ${signal.score}
                       </span>
-                      ${signal.publishedAt ? `<span style="color: #94a3b8; font-size: 12px; font-style: italic;">${new Date(signal.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
+                      ${signal.publishedAt ? `<span style="display: inline-block; color: #94a3b8; font-size: 11px; font-style: italic; vertical-align: middle;"> • ${new Date(signal.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
                     </div>
                     ${
                       signal.summary
@@ -242,14 +242,14 @@ export class EmailService {
                     <h3 style="margin: 0 0 14px 0; line-height: 1.4;">
                       <a href="${signal.url}" style="color: #38bdf8; text-decoration: none; font-size: 18px; font-weight: 700;">${signal.title}</a>
                     </h3>
-                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-bottom: 16px;">
-                      <span style="background-color: ${this.getSeverityColor(signal.severity)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <div style="margin-bottom: 18px;">
+                      <span style="display: inline-block; background-color: ${this.getSeverityColor(signal.severity)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 12px;">
                         ${signal.source}
                       </span>
-                      <span style="background-color: ${this.getScoreColor(signal.score)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
+                      <span style="display: inline-block; background-color: ${this.getScoreColor(signal.score)}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-right: 15px;">
                         Score: ${signal.score}
                       </span>
-                      ${signal.publishedAt ? `<span style="color: #94a3b8; font-size: 12px; font-style: italic;">${new Date(signal.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
+                      ${signal.publishedAt ? `<span style="display: inline-block; color: #94a3b8; font-size: 11px; font-style: italic; vertical-align: middle;"> • ${new Date(signal.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
                     </div>
                     ${
                       signal.summary
