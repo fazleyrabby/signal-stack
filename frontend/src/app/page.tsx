@@ -105,7 +105,7 @@ function SignalsDashboardContent({
   const stats = statsResponse || { total: 0, high: 0, low: 0, last24h: 0, topSource: 'Scanning...' };
 
   const toggleGeopolitics = () => {
-    if (showGeopolitics && !showTechnology) return; // Prevent hiding both
+    if (showGeopolitics && !showTechnology && !showAi) return; // Prevent hiding all
     setShowGeopolitics(!showGeopolitics);
   };
 
@@ -216,7 +216,7 @@ function SignalsDashboardContent({
                     categoryId="geopolitics"
                     layoutMode={layoutMode}
                     searchQuery={searchQuery}
-                    isFullWidth={isFullWidth || !showTechnology}
+                    isFullWidth={isFullWidth || (!showTechnology && !showAi)}
                     isFocused={focusedColumn === 'geopolitics'}
                     onToggleFocus={() => handleToggleFocus('geopolitics')}
                     initialShowBookmarks={showBookmarksFromQuery}
