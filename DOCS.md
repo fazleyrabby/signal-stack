@@ -759,3 +759,27 @@ The system prioritizes:
 - **Reliability** over speed
 - **Signal quality** over quantity
 - **Simplicity** over overengineering
+
+---
+
+## 🛠️ System Updates & Maintenance
+
+### Update: April 14, 2026
+**Geographic Heatmap Optimization & AI Source Enrichment**
+
+#### 1. Geo-Map Intelligence Fixes
+- **Projection**: Switched to `geoEqualEarth` for a more accurate global representation (reduced polar distortion).
+- **Data Mapping**: Fixed the broken mapping between backend ISO-A2 codes and GeoJSON properties. The component now robustly matches `ISO_A2`, `iso_a2`, and `id` fields.
+- **Visual Contrast**: Optimized for dark mode by changing the null-data fill to a deep slate (`#1e293b`) and boosting heat intensity for active regions.
+- **Interactivity**: Added glass-morphism tooltips and a refined density legend.
+
+#### 2. AI Signal Enrichment
+- **New Sources**: Added 6 high-reliability, authentic AI research and news sources to `seed.ts`:
+  - **Hugging Face Blog** (FR)
+  - **Microsoft Research AI** (US)
+  - **Stanford HAI** (US)
+  - **Stability AI** (US)
+  - **Meta AI Blog** (US)
+  - **DeepLearning.ai** (US)
+- **Geo-Mapping**: Updated `backend/src/common/geo.util.ts` to correctly attribute these new sources to their respective countries (US/FR).
+- **Trust Scores**: All new research-grade sources assigned a maximum `trustScore` of 5.

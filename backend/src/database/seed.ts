@@ -160,6 +160,42 @@ async function seed() {
       categoryId: 'ai',
       trustScore: 4,
     },
+    {
+      name: 'Hugging Face Blog',
+      url: 'https://huggingface.co/blog/feed.xml',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'Microsoft Research',
+      url: 'https://www.microsoft.com/en-us/research/feed/',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'Stanford HAI',
+      url: 'https://hai.stanford.edu/news/rss.xml',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'Stability AI',
+      url: 'https://stability.ai/news?format=rss',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'Meta AI Blog',
+      url: 'https://ai.meta.com/blog/rss/',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'DeepLearning.ai',
+      url: 'https://www.deeplearning.ai/the-batch/rss/',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
   ];
 
   for (const src of sourceData) {
