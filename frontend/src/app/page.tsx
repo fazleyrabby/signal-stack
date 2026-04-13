@@ -52,6 +52,7 @@ function SignalsDashboardContent({
   const [showGeopolitics, setShowGeopolitics] = useState(true);
   const [showTechnology, setShowTechnology] = useState(true);
   const [showAi, setShowAi] = useState(true);
+  const [focusedColumn, setFocusedColumn] = useState<'geopolitics' | 'technology' | 'ai' | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load persistence from localStorage
@@ -116,6 +117,10 @@ function SignalsDashboardContent({
   const toggleAi = () => {
     if (showAi && !showGeopolitics && !showTechnology) return;
     setShowAi(!showAi);
+  };
+
+  const handleToggleFocus = (col: 'geopolitics' | 'technology' | 'ai') => {
+    setFocusedColumn(prev => prev === col ? null : col);
   };
 
   return (
@@ -197,42 +202,62 @@ function SignalsDashboardContent({
           {/* Column Content */}
           <div className="flex-1 overflow-hidden">
             <div className={cn(
-              "hidden md:grid gap-4 h-full transition-all duration-500",
-              showGeopolitics && showTechnology && showAi ? "grid-cols-3" : 
-              (showGeopolitics && showTechnology) || (showGeopolitics && showAi) || (showTechnology && showAi) ? "grid-cols-2" : "grid-cols-1"
+              "hidden md:flex gap-4 h-full transition-all duration-500 overflow-x-auto pb-2 custom-scrollbar",
+              isFullWidth ? "max-w-full" : ""
             )}>
               {showGeopolitics && (
-                <Column
-                  title="World Geopolitics"
-                  icon={Globe2}
-                  categoryId="geopolitics"
-                  layoutMode={layoutMode}
-                  searchQuery={searchQuery}
-                  isFullWidth={isFullWidth || !showTechnology}
-                  initialShowBookmarks={showBookmarksFromQuery}
-                />
+                <div className={cn(
+                  "h-full transition-all duration-500 min-w-[380px]",
+                  focusedColumn === 'geopolitics' ? "flex-[2.5]" : focusedColumn ? "flex-1 opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "flex-1"
+                )}>
+                  <Column
+                    title="World Geopolitics"
+                    icon={Globe2}
+                    categoryId="geopolitics"
+                    layoutMode={layoutMode}
+                    searchQuery={searchQuery}
+                    isFullWidth={isFullWidth || !showTechnology}
+                    isFocused={focusedColumn === 'geopolitics'}
+                    onToggleFocus={() => handleToggleFocus('geopolitics')}
+                    initialShowBookmarks={showBookmarksFromQuery}
+                  />
+                </div>
               )}
               {showTechnology && (
-                <Column
-                  title="Technology Intelligence"
-                  icon={Cpu}
-                  categoryId="technology"
-                  layoutMode={layoutMode}
-                  searchQuery={searchQuery}
-                  isFullWidth={isFullWidth || (!showGeopolitics && !showAi)}
-                  initialShowBookmarks={showBookmarksFromQuery}
-                />
+                <div className={cn(
+                  "h-full transition-all duration-500 min-w-[380px]",
+                  focusedColumn === 'technology' ? "flex-[2.5]" : focusedColumn ? "flex-1 opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "flex-1"
+                )}>
+                  <Column
+                    title="Technology Intelligence"
+                    icon={Cpu}
+                    categoryId="technology"
+                    layoutMode={layoutMode}
+                    searchQuery={searchQuery}
+                    isFullWidth={isFullWidth || (!showGeopolitics && !showAi)}
+                    isFocused={focusedColumn === 'technology'}
+                    onToggleFocus={() => handleToggleFocus('technology')}
+                    initialShowBookmarks={showBookmarksFromQuery}
+                  />
+                </div>
               )}
               {showAi && (
-                <Column
-                  title="Artificial Intelligence"
-                  icon={BrainCircuit}
-                  categoryId="ai"
-                  layoutMode={layoutMode}
-                  searchQuery={searchQuery}
-                  isFullWidth={isFullWidth || (!showGeopolitics && !showTechnology)}
-                  initialShowBookmarks={showBookmarksFromQuery}
-                />
+                <div className={cn(
+                  "h-full transition-all duration-500 min-w-[380px]",
+                  focusedColumn === 'ai' ? "flex-[2.5]" : focusedColumn ? "flex-1 opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "flex-1"
+                )}>
+                  <Column
+                    title="Artificial Intelligence"
+                    icon={BrainCircuit}
+                    categoryId="ai"
+                    layoutMode={layoutMode}
+                    searchQuery={searchQuery}
+                    isFullWidth={isFullWidth || (!showGeopolitics && !showTechnology)}
+                    isFocused={focusedColumn === 'ai'}
+                    onToggleFocus={() => handleToggleFocus('ai')}
+                    initialShowBookmarks={showBookmarksFromQuery}
+                  />
+                </div>
               )}
             </div>
 
