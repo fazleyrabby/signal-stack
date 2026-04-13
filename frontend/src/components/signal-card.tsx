@@ -64,7 +64,7 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
       severityBorderClass,
       className
     )}>
-      <div className={cn("p-0 relative flex flex-col h-full uppercase-none", isCompact ? "" : "p-3.5")}>
+      <div className={cn("p-0 relative flex flex-col h-full uppercase-none")}>
         <div className="flex flex-col h-full justify-between gap-2.5">
           <div className="space-y-2.5">
             {/* Metadata Line */}

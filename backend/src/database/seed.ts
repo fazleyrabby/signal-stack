@@ -23,6 +23,7 @@ async function seed() {
     .values([
       { slug: 'geopolitics', name: 'Geopolitics' },
       { slug: 'technology', name: 'Technology' },
+      { slug: 'ai', name: 'Artificial Intelligence' },
     ])
     .onConflictDoNothing();
 
@@ -74,47 +75,89 @@ async function seed() {
       trustScore: 4,
     },
     {
-      name: 'MIT Tech Review',
-      url: 'https://www.technologyreview.com/feed/',
-      categoryId: 'technology',
-      trustScore: 5,
-    },
-    {
       name: 'Wired',
       url: 'https://www.wired.com/feed/rss',
       categoryId: 'technology',
       trustScore: 4,
     },
+    {
+      name: 'The Pragmatic Engineer',
+      url: 'https://blog.pragmaticengineer.com/feed/',
+      categoryId: 'technology',
+      trustScore: 5,
+    },
 
-    // 🤖 AI & Deep Tech
+    // 🤖 Artificial Intelligence (High Precision)
     {
-      name: 'OpenAI Blog',
-      url: 'https://openai.com/blog/rss.xml',
-      categoryId: 'technology',
+      name: 'OpenAI News',
+      url: 'https://openai.com/news/rss.xml',
+      categoryId: 'ai',
       trustScore: 5,
     },
     {
-      name: 'Google AI Blog',
-      url: 'https://blog.google/technology/ai/rss/',
-      categoryId: 'technology',
+      name: 'Google DeepMind',
+      url: 'https://deepmind.google/blog/feed/basic/',
+      categoryId: 'ai',
       trustScore: 5,
     },
     {
-      name: 'The Verge AI',
-      url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml',
-      categoryId: 'technology',
+      name: 'Anthropic News',
+      url: 'https://www.anthropic.com/news/rss.xml',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'Import AI',
+      url: 'https://importai.substack.com/feed',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'MIT AI News',
+      url: 'https://news.mit.edu/rss/topic/artificial-intelligence2',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'BAIR Blog',
+      url: 'https://bair.berkeley.edu/blog/feed.xml',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'NVIDIA AI',
+      url: 'https://blogs.nvidia.com/blog/category/deep-learning/feed/',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'MIT Tech Review AI',
+      url: 'https://www.technologyreview.com/topic/artificial-intelligence/feed/',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'TLDR AI',
+      url: 'https://tldr.tech/api/rss/ai',
+      categoryId: 'ai',
+      trustScore: 4,
+    },
+    {
+      name: 'Ben\'s Bites',
+      url: 'https://bensbites.beehiiv.com/feed',
+      categoryId: 'ai',
       trustScore: 4,
     },
     {
       name: 'VentureBeat AI',
       url: 'https://venturebeat.com/category/ai/feed/',
-      categoryId: 'technology',
+      categoryId: 'ai',
       trustScore: 4,
     },
     {
       name: 'TechCrunch AI',
       url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
-      categoryId: 'technology',
+      categoryId: 'ai',
       trustScore: 4,
     },
   ];

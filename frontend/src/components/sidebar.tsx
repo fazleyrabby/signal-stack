@@ -25,6 +25,7 @@ const navigation = [
 const categories = [
   { name: 'Geopolitics', id: 'geopolitics', icon: Globe2, color: 'text-violet-400' },
   { name: 'Technology', id: 'technology', icon: Cpu, color: 'text-blue-400' },
+  { name: 'AI', id: 'ai', icon: BrainCircuit, color: 'text-emerald-400' },
 ];
 
 const severities = [
