@@ -15,6 +15,7 @@ import {
   Eye,
   EyeOff,
   Users,
+  BrainCircuit,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { StatsBar } from "@/components/stats-bar";
@@ -42,23 +43,26 @@ function SignalsDashboardContent({
   const { searchQuery, setSearchQuery } = useSearch();
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
   const [isFullWidth, setIsFullWidth] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'geopolitics' | 'technology'>(
-    () => (typeof window !== 'undefined' && localStorage.getItem('signalstack_mobile_tab') as 'geopolitics' | 'technology') || 'geopolitics'
+  const [mobileTab, setMobileTab] = useState<'geopolitics' | 'technology' | 'ai'>(
+    () => (typeof window !== 'undefined' && localStorage.getItem('signalstack_mobile_tab') as 'geopolitics' | 'technology' | 'ai') || 'geopolitics'
   );
   const [showControls, setShowControls] = useState(false);
   
   // Section visibility states
   const [showGeopolitics, setShowGeopolitics] = useState(true);
   const [showTechnology, setShowTechnology] = useState(true);
+  const [showAi, setShowAi] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load persistence from localStorage
   useEffect(() => {
     const savedGeo = localStorage.getItem("signalstack_show_geopolitics");
     const savedTech = localStorage.getItem("signalstack_show_technology");
+    const savedAi = localStorage.getItem("signalstack_show_ai");
     
     if (savedGeo !== null) setShowGeopolitics(savedGeo === "true");
     if (savedTech !== null) setShowTechnology(savedTech === "true");
+    if (savedAi !== null) setShowAi(savedAi === "true");
     
     // Check if controls were previously shown
     const savedControls = localStorage.getItem("signalstack_show_controls");
@@ -72,6 +76,7 @@ function SignalsDashboardContent({
     if (isLoaded) {
       localStorage.setItem("signalstack_show_geopolitics", String(showGeopolitics));
       localStorage.setItem("signalstack_show_technology", String(showTechnology));
+      localStorage.setItem("signalstack_show_ai", String(showAi));
       localStorage.setItem("signalstack_show_controls", String(showControls));
     }
   }, [showGeopolitics, showTechnology, showControls, isLoaded]);
@@ -104,8 +109,13 @@ function SignalsDashboardContent({
   };
 
   const toggleTechnology = () => {
-    if (showTechnology && !showGeopolitics) return; // Prevent hiding both
+    if (showTechnology && !showGeopolitics && !showAi) return;
     setShowTechnology(!showTechnology);
+  };
+
+  const toggleAi = () => {
+    if (showAi && !showGeopolitics && !showTechnology) return;
+    setShowAi(!showAi);
   };
 
   return (
@@ -155,6 +165,16 @@ function SignalsDashboardContent({
                   {showTechnology ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                   TECHNOLOGY
                 </button>
+                <button
+                  onClick={toggleAi}
+                  className={cn(
+                    "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[9px] font-black tracking-widest transition-all",
+                    showAi ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/20" : "text-muted-foreground opacity-40 hover:opacity-100"
+                  )}
+                >
+                  {showAi ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  ARTIFICIAL INTELLIGENCE
+                </button>
               </div>
 
               <div className="flex items-center bg-accent/20 rounded-lg p-0.5 border border-border/10">
@@ -178,7 +198,8 @@ function SignalsDashboardContent({
           <div className="flex-1 overflow-hidden">
             <div className={cn(
               "hidden md:grid gap-4 h-full transition-all duration-500",
-              showGeopolitics && showTechnology ? "grid-cols-2" : "grid-cols-1"
+              showGeopolitics && showTechnology && showAi ? "grid-cols-3" : 
+              (showGeopolitics && showTechnology) || (showGeopolitics && showAi) || (showTechnology && showAi) ? "grid-cols-2" : "grid-cols-1"
             )}>
               {showGeopolitics && (
                 <Column
@@ -198,7 +219,18 @@ function SignalsDashboardContent({
                   categoryId="technology"
                   layoutMode={layoutMode}
                   searchQuery={searchQuery}
-                  isFullWidth={isFullWidth || !showGeopolitics}
+                  isFullWidth={isFullWidth || (!showGeopolitics && !showAi)}
+                  initialShowBookmarks={showBookmarksFromQuery}
+                />
+              )}
+              {showAi && (
+                <Column
+                  title="Artificial Intelligence"
+                  icon={BrainCircuit}
+                  categoryId="ai"
+                  layoutMode={layoutMode}
+                  searchQuery={searchQuery}
+                  isFullWidth={isFullWidth || (!showGeopolitics && !showTechnology)}
                   initialShowBookmarks={showBookmarksFromQuery}
                 />
               )}
@@ -230,10 +262,22 @@ function SignalsDashboardContent({
                   <Cpu className="w-3.5 h-3.5" />
                   TECHNOLOGY
                 </button>
+                <button
+                  onClick={() => setMobileTab('ai')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
+                    mobileTab === 'ai'
+                      ? "bg-emerald-600 text-white shadow-lg"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <BrainCircuit className="w-3.5 h-3.5" />
+                  AI
+                </button>
               </div>
 
               <div className="flex-1 min-h-0">
-                {mobileTab === 'geopolitics' ? (
+                {mobileTab === 'geopolitics' && (
                   <Column
                     title="World Geopolitics"
                     icon={Globe2}
@@ -243,11 +287,23 @@ function SignalsDashboardContent({
                     isFullWidth={false}
                     initialShowBookmarks={showBookmarksFromQuery}
                   />
-                ) : (
+                )}
+                {mobileTab === 'technology' && (
                   <Column
                     title="Technology Intelligence"
                     icon={Cpu}
                     categoryId="technology"
+                    layoutMode={layoutMode}
+                    searchQuery={searchQuery}
+                    isFullWidth={false}
+                    initialShowBookmarks={showBookmarksFromQuery}
+                  />
+                )}
+                {mobileTab === 'ai' && (
+                  <Column
+                    title="Artificial Intelligence"
+                    icon={BrainCircuit}
+                    categoryId="ai"
                     layoutMode={layoutMode}
                     searchQuery={searchQuery}
                     isFullWidth={false}
