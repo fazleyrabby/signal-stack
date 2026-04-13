@@ -268,6 +268,8 @@ export function Column({
   layoutMode,
   searchQuery,
   isFullWidth,
+  isFocused,
+  onToggleFocus,
   initialShowBookmarks = false,
 }: {
   title: string;
