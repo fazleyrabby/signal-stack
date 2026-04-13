@@ -165,6 +165,6 @@ export default function CategoriesAdmin() {
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }

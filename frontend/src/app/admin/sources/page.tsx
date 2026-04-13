@@ -263,6 +263,6 @@ export default function SourcesAdmin() {
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }
