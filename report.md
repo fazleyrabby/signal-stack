@@ -41,6 +41,8 @@ Integrated on April 14, 2026, this phase professionalizes the AI stream and geog
 ### Geographic Intelligence Fix
 *   **Projection**: Switched to `geoEqualEarth` and stabilized with `world-atlas` TopoJSON to resolve distortion.
 *   **Data Mapping**: Implemented a robust `ID_TO_ISO` mapping layer to ensure backend ISO-A2 codes correctly highlight map regions.
+*   **End-to-End Filtering**: Fixed the signal feed logic to correctly handle `?country=XX` query parameters, enabling seamless "click-to-filter" from the map to the dashboard.
+
 
 ### Terminal UI Upgrades
 *   **Triple-Column Grid**: Monitoring Geopolitics | Tech | AI simultaneously.
