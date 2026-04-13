@@ -26,6 +26,11 @@ const SOURCE_COUNTRY_MAP: Record<string, string> = {
   'anthropic.com': 'US',
   'rsshub.app': 'US',
   'venturebeat.com': 'US',
+  'berkeley.edu': 'US',
+  'mit.edu': 'US',
+  'marktechpost.com': 'US',
+  'thegradient.pub': 'US',
+  'deepmind.google': 'GB',
 };
 
 const DOMAIN_TLD_MAP: Record<string, string> = {
