@@ -96,7 +96,7 @@ export function GeoHeatmap() {
           projectionConfig={{ scale: 140 }}
           style={{ width: "100%", height: "300px" }}
         >
-          <ZoomableGroup center={[0, 10]} maxZoom={1}>
+          <ZoomableGroup center={[0, 10]}>
             <Geographies geography={GEO_URL}>
               {({ geographies }) =>
                 geographies.map((geo) => {
