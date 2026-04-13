@@ -10,7 +10,7 @@ SignalStack is a high-performance, backend-driven signal intelligence system. It
 This is a **monorepo** containing the entire SignalStack ecosystem:
 
 - **[`/backend`](./backend)**: NestJS API, PostgreSQL data layer, and the automated Signal Crawler.
-- **[`/frontend`](./frontend)**: Next.js 16 Dashboard with dual-column desktop views and mobile optimization.
+- **[`/frontend`](./frontend)**: Next.js 16 Dashboard with triple-column desktop views and mobile optimization.
 - **[`/models`](./models)**: Local AI GGUF models (llama.cpp) - not committed to git.
 - **[`DOCS.md`](./DOCS.md)**: Full technical documentation, scoring rules, and architecture deep-dive.
 
@@ -100,7 +100,8 @@ Save signals for later review. Bookmarks are persisted in the database and synce
 
 The main dashboard features:
 
-- **Two-column layout** — Geopolitics and Technology streams side by side (tabbed on mobile, persisted)
+- **Triple-column layout** — Geopolitics, Technology, and Artificial Intelligence streams side by side (tabbed on mobile, persisted)
+- **Visibility controls** — Toggle any of the three streams on/off to customize your view, with state persisted locally
 - **Mobile bottom nav** — fixed Feed / Trends / Saved / Admin tabs with safe-area padding
 - **Grid & List modes** — dense list view or expanded card grid with severity color stripes
 - **Signal Detail Modal** — scrollable dialog with full title, AI summary, content preview (HTML-stripped), and metadata
