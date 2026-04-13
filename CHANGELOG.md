@@ -23,6 +23,23 @@ All notable changes to SignalStack will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Geographic Heatmap Optimization**: Switched to `geoEqualEarth` projection and `world-atlas` TopoJSON for accurate, distortion-free global visualization.
+- **AI Source Enrichment**: Integrated 10+ high-reliability research feeds including **OpenAI**, **Anthropic**, **Google DeepMind**, **Hugging Face**, **BAIR (Berkeley)**, **MIT AI News**, **Stanford HAI**, **The Gradient**, **MarkTechPost**, and **VentureBeat AI**.
+- **Verified Source Health**: All new AI RSS feeds verified for 2026 connectivity and schema compatibility via manual health checks.
+- **UI Footer**: Added a global footer to **Trends** and **Admin** dashboard pages for improved navigation and professional branding.
+- **Admin Layout**: Introduced a dedicated `AdminLayout` component to ensure consistent UI across all administrative sub-pages.
+
+### Fixed
+- **Geo-Mapping Logic**: Resolved the mismatch between backend ISO-A2 codes and frontend numeric IDs by implementing an explicit `ID_TO_ISO` mapping layer.
+- **Heatmap Dark Mode**: Optimized color contrast for dark mode by switching null-data fill to deep slate (`#1e293b`) and boosting heat intensity for active regions.
+- **Geo-Map Bug**: Removed invalid `maxZoom` prop from `ZoomableGroup` that was causing production build failures.
+- **Broken AI Feeds**: Replaced 404/403 errored feeds (Meta, Stability, Microsoft Research) with verified healthy alternatives.
+
+### Changed
+- **Trends Layout**: Updated Trends page to use `min-h-screen` flex-col layout to accommodate the new footer while keeping the main feed clean.
+- **Geo-Mapping Utility**: Expanded `backend/src/common/geo.util.ts` to correctly attribute new academic and research domains to their respective countries.
+
+### Added
 - **AI Content Fallback**: Signal title is now used for summarization if the RSS feed provides no description (specifically targeting TLDR AI style feeds).
 - **Boilerplate Suppression Filter**: AI providers now detect and block common LLM error messages (e.g., "I don't see any content") from being saved as summaries.
 - **Admin AI Cleanup**: New `POST /api/admin/ai/cleanup` endpoint and dashboard utility to identify and reset signals with boilerplate summaries.
