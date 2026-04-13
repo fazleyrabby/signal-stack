@@ -7,10 +7,62 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simp
 import { scaleLinear } from "d3-scale";
 import { Globe } from "lucide-react";
 
-const GEO_URL = "https://raw.githubusercontent.com/zcreativelabs/react-simple-maps/master/topojson-maps/world-110m.json";
+const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 const API_BASE = "/api/signals";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+// Mapping for world-atlas numeric IDs to ISO-A2
+const ID_TO_ISO: Record<string, string> = {
+  "840": "US",
+  "826": "GB",
+  "250": "FR",
+  "276": "DE",
+  "356": "IN",
+  "156": "CN",
+  "392": "JP",
+  "643": "RU",
+  "076": "BR",
+  "036": "AU",
+  "124": "CA",
+  "410": "KR",
+  "702": "SG",
+  "344": "HK",
+  "158": "TW",
+  "376": "IL",
+  "784": "AE",
+  "682": "SA",
+  "528": "NL",
+  "752": "SE",
+  "578": "NO",
+  "208": "DK",
+  "246": "FI",
+  "756": "CH",
+  "040": "AT",
+  "056": "BE",
+  "372": "IE",
+  "616": "PL",
+  "380": "IT",
+  "724": "ES",
+  "620": "PT",
+  "300": "GR",
+  "203": "CZ",
+  "348": "HU",
+  "642": "RO",
+  "804": "UA",
+  "792": "TR",
+  "360": "ID",
+  "458": "MY",
+  "764": "TH",
+  "608": "PH",
+  "704": "VN",
+  "554": "NZ",
+  "710": "ZA",
+  "818": "EG",
+  "566": "NG",
+  "404": "KE",
+  "634": "QA",
+};
 
 interface GeoData {
   country: string;
@@ -47,8 +99,9 @@ export function GeoHeatmap() {
   const totalSignals = data?.reduce((sum, d) => sum + d.count, 0) || 0;
 
   const handleMouseEnter = (geo: any, event: MouseEvent) => {
-    const countryName = geo.properties.NAME || geo.properties.name;
-    const countryCode = (geo.properties.ISO_A2 || geo.properties.iso_a2 || geo.id);
+    const countryName = geo.properties?.name || geo.properties?.NAME || "Unknown";
+    const numericId = String(geo.id).padStart(3, "0");
+    const countryCode = ID_TO_ISO[numericId] || (geo.properties?.ISO_A2 || geo.properties?.iso_a2 || geo.id);
     const count = countryData[String(countryCode).toUpperCase()] || 0;
     
     setTooltip({
@@ -60,9 +113,10 @@ export function GeoHeatmap() {
   };
 
   const handleClick = (geo: any) => {
-    const countryCode = (geo.properties.ISO_A2 || geo.properties.iso_a2 || geo.id);
+    const numericId = String(geo.id).padStart(3, "0");
+    const countryCode = ID_TO_ISO[numericId] || (geo.properties?.ISO_A2 || geo.properties?.iso_a2 || geo.id);
     if (countryCode) {
-      router.push(`/?country=${countryCode.toUpperCase()}`);
+      router.push(`/?country=${String(countryCode).toUpperCase()}`);
     }
   };
 
@@ -90,17 +144,18 @@ export function GeoHeatmap() {
         </span>
       </div>
 
-      <div className="relative">
+      <div className="relative overflow-hidden rounded-md">
         <ComposableMap
-          projection="geoEqualEarth"
-          projectionConfig={{ scale: 140 }}
-          style={{ width: "100%", height: "300px" }}
+          projection="geoMercator"
+          projectionConfig={{ scale: 100, center: [0, 20] }}
+          style={{ width: "100%", height: "280px" }}
         >
-          <ZoomableGroup center={[0, 10]}>
-            <Geographies geography={GEO_URL}>
-              {({ geographies }) =>
+          <Geographies geography={GEO_URL}>
+            {({ geographies }) =>
+              geographies && geographies.length > 0 ? (
                 geographies.map((geo) => {
-                  const countryCode = (geo.properties.ISO_A2 || geo.properties.iso_a2 || geo.id);
+                  const numericId = String(geo.id).padStart(3, "0");
+                  const countryCode = ID_TO_ISO[numericId] || (geo.properties?.ISO_A2 || geo.properties?.iso_a2 || geo.id);
                   const count = countryData[String(countryCode).toUpperCase()] || 0;
                   
                   return (
@@ -116,7 +171,6 @@ export function GeoHeatmap() {
                           stroke: "#334155",
                           strokeWidth: 0.5,
                           outline: "none",
-                          transition: "all 250ms",
                         },
                         hover: {
                           fill: "#a78bfa",
@@ -133,9 +187,13 @@ export function GeoHeatmap() {
                     />
                   );
                 })
-              }
-            </Geographies>
-          </ZoomableGroup>
+              ) : (
+                <text x="50%" y="50%" textAnchor="middle" fill="#94a3b8" fontSize="12">
+                  Loading map data...
+                </text>
+              )
+            }
+          </Geographies>
         </ComposableMap>
 
         {tooltip && tooltip.count > 0 && (
