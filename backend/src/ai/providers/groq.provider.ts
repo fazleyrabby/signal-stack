@@ -97,7 +97,21 @@ export class GroqProvider {
   }
 
   private cleanResponse(text: string): string {
-    return text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+    const cleaned = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+    
+    // Filter out common LLM failure/boilerplate phrases
+    const lower = cleaned.toLowerCase();
+    if (
+      lower.includes("provide the content") || 
+      lower.includes("no content provided") ||
+      lower.includes("don't see any content") ||
+      lower.includes("i am an ai") ||
+      cleaned.length < 5
+    ) {
+      return '';
+    }
+
+    return cleaned.slice(0, 200);
   }
 
   async checkHealth(): Promise<{

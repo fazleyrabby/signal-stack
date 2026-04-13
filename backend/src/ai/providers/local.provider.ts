@@ -117,6 +117,18 @@ Content: ${trimmedContent}`;
     cleaned = cleaned.replace(/\n/g, ' ');
     cleaned = cleaned.replace(/\s+/g, ' ');
     cleaned = cleaned.trim();
+    
+    // Filter out common LLM failure/boilerplate phrases
+    const lower = cleaned.toLowerCase();
+    if (
+      lower.includes("provide the content") || 
+      lower.includes("no content provided") ||
+      lower.includes("don't see any content") ||
+      lower.includes("i am an ai") ||
+      cleaned.length < 5
+    ) {
+      return '';
+    }
 
     // Prefer a complete first sentence if present.
     const firstSentence = cleaned.match(/^[^.!?]+[.!?]/)?.[0]?.trim();

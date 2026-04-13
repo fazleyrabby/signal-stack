@@ -30,7 +30,7 @@ export class AIService {
     content: string | null,
     score: number = 5,
   ) {
-    const textContent = content || '';
+    const textContent = (content && content.trim().length > 0) ? content : title;
     const trimmedContent = this.trimContent(textContent);
     let summary: string | null = null;
     let fallbackUsed = false;

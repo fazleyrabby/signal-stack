@@ -193,6 +193,22 @@ export class AdminController {
     return { queued, total: failed.length };
   }
 
+  @Post('ai/cleanup')
+  async retryBoilerplate() {
+    const reset = await this.adminService.resetBoilerplateSignals();
+    let queued = 0;
+    for (const signal of reset) {
+      await this.aiQueue.enqueue({
+        id: signal.id,
+        title: signal.title,
+        content: signal.content,
+        score: signal.score,
+      });
+      queued++;
+    }
+    return { queued, total: reset.length };
+  }
+
   @Post('ai/retry/high')
   async retryHighSeverity() {
     const high = await this.adminService.getHighSeverityUnprocessed();
