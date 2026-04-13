@@ -11,6 +11,8 @@ import {
   Filter,
   Bookmark,
   LucideIcon,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { toggleBookmark, API_BASE } from "@/lib/api";
@@ -274,6 +276,8 @@ export function Column({
   layoutMode: 'grid' | 'list';
   searchQuery: string;
   isFullWidth: boolean;
+  isFocused?: boolean;
+  onToggleFocus?: () => void;
   initialShowBookmarks?: boolean;
 }) {
   const [page, setPage] = useState(1);
@@ -410,6 +414,16 @@ export function Column({
         <span className="text-[10px] font-mono text-muted-foreground/30 ml-auto tabular-nums bg-accent/20 px-1.5 py-0.5 rounded-full">
           {isLoading ? '--' : filtered.length} / {isLoading ? '--' : signals.length}
         </span>
+        
+        {onToggleFocus && (
+          <button 
+            onClick={onToggleFocus}
+            className="p-1 rounded-md hover:bg-accent/30 text-muted-foreground/50 hover:text-primary transition-all ml-1"
+            title={isFocused ? "Exit Focus Mode" : "Focus this Column"}
+          >
+            {isFocused ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
+        )}
       </div>
 
       <ColumnControlBar
@@ -455,9 +469,9 @@ export function Column({
             <div className={cn(
               "p-2.5 pr-3.5",
               layoutMode === 'grid'
-                ? isFullWidth
+                ? (isFullWidth || isFocused)
                   ? "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-6 gap-3"
-                  : "columns-1 sm:columns-2 xl:columns-3 gap-3"
+                  : "columns-1 2xl:columns-2 gap-3"
                 : "flex flex-col space-y-2.5"
             )}>
               {showBookmarks

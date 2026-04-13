@@ -120,4 +120,27 @@
     scrollbar-width: thin;
     scrollbar-color: var(--border) var(--card);
   }
+
+  /* Custom Scrollbar Utility */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border) !important;
+    border-radius: 10px !important;
+    border: none !important;
+  }
+}
+
+@layer utilities {
+  .mask-fade-right {
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
+  .mask-fade-left {
+    mask-image: linear-gradient(to left, black 85%, transparent 100%);
+  }
 }
