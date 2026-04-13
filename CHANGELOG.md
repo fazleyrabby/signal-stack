@@ -4,6 +4,22 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-13] — 2026 AI Intel Update
+
+### Added
+- **Dedicated AI Category**: Introduced `ai` category slug for precision intelligence monitoring.
+- **Triple-Column Terminal**: Home dashboard upgraded to support 3 synchronous columns (Geopolitics | Tech | AI).
+- **Premium 2026 Feeds**: Integrated high-trust feeds from Google DeepMind, Anthropic, BAIR, NVIDIA, and independent curators (Import AI, Pragmatic Engineer).
+- **View Persistence**: Dashboard column visibility (toggle state) now persists in local storage.
+- **Mobile AI Tab**: Dedicated third tab added to mobile navigation for focus on AI signals.
+
+### Changed
+- **OpenAI Feed Polish**: Updated legacy RSS URL to the consolidated 2026 `openai.com/news/rss.xml`.
+- **MIT Tech Review Refinement**: Switched from general tech to AI-specific high-signal RSS feed.
+- **Source Migration**: Re-categorized existing AI feeds (TechCrunch AI, VentureBeat AI) into the new `ai` category.
+
+---
+
 ## [Unreleased]
 
 ### Added

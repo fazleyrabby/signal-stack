@@ -76,7 +76,7 @@ Access at [http://localhost:3001/trends](http://localhost:3001/trends). Public p
 - **KPI Stat Cards** — Total Signals (30d), High Severity, Last 24h, Top Source — displayed as prominent metric cards at the top
 - **Signal Volume** — Stacked area chart with gradient fills and glow effects showing daily signal counts split by severity (red=high, amber=medium, blue=low)
 - **Top Sources** — Ranked list with signal counts, average scores, and animated gradient progress bars
-- **Category Breakdown** — Vertical bar chart with gradient fills comparing Geopolitics vs Technology
+- **Category Breakdown** — Vertical bar chart with gradient fills comparing Geopolitics vs Technology vs AI
 - **Severity Distribution** — Donut chart with center total label and color-coded legend
 - **AI Provider Stats** — Bar chart with per-provider gradient fills (violet=local, cyan=groq, emerald=openrouter) and processed/failed counts
 - **Geographic Heatmap** — Interactive world map showing signal counts by country with hover tooltips and click-to-filter functionality
@@ -278,6 +278,7 @@ The dashboard is a pro-grade analytical terminal:
 - **Share Signal**: Copy any signal's source URL to clipboard with one click (toast confirmation).
 - **Intelligence Switcher (Mobile)**: Tactile tabs to switch between Geopolitical and Tech streams. Selection persists across page reloads via localStorage.
 - **Mobile Bottom Nav**: Fixed mobile-only navigation (`Feed`, `Trends`, `Saved`, `Admin`) with safe-area support to avoid overlap.
+- **Dynamic Visibility**: Customizable terminal layout allowing toggling of Geopolitics, Technology, and AI streams independently (persistence included).
 - **Real-time Global Search**: Debounced (300ms) full-text search passed to backend API for server-side filtering across titles, sources, and content.
 - **Severity Quick Filters**: Score-based toggles for All / High (≥8) / Medium (5–7) / Low (<5).
 - **Live Stats Bar**: Real-time signal counts, severity breakdown, and top source.
@@ -362,7 +363,7 @@ Access at `/admin`. Protected by email/password authentication with bcrypt-hashe
 |---|---|
 | `/admin/login` | Email/password authentication |
 | `/admin` | Dashboard — AI health status, feed stats, manual backup trigger, logout |
-| `/admin/categories` | Manage intelligence categories (Geopolitics, Technology) |
+| `/admin/categories` | Manage intelligence categories (Geopolitics, Technology, AI) |
 | `/admin/sources` | Manage RSS feed sources per category |
 | `/changelog` | View full project changelog |
 
@@ -498,8 +499,10 @@ SignalStack monitors high-fidelity streams divided into strategic intelligence c
 
 - **World Geopolitics**: High-impact regional news and global policy shifts.
   - *Sources*: Guardian World, NYTimes, Al Jazeera, Foreign Affairs.
-- **Technology & AI Intelligence**: Deep tech shifts, AI developments, hardware breakthroughs, and software engineering signals.
-  - *Sources*: Ars Technica, The Verge, TechCrunch, MIT Tech Review, Wired, OpenAI Blog, Google AI Blog, The Verge AI, VentureBeat AI, TechCrunch AI.
+- **Technology Intelligence**: Deep tech shifts, hardware breakthroughs, and software engineering signals.
+  - *Sources*: Ars Technica, The Verge, TechCrunch, Wired, The Pragmatic Engineer.
+- **Artificial Intelligence**: Specialized frontier research, model releases, AI policy, and deep learning breakthroughs.
+  - *Sources*: OpenAI News, Google DeepMind, Anthropic, BAIR Blog, NVIDIA AI, Import AI, MIT AI News, MIT Tech Review AI, TLDR AI, Ben's Bites.
 
 ---
 
