@@ -23,6 +23,9 @@ All notable changes to SignalStack will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **AI Content Fallback**: Signal title is now used for summarization if the RSS feed provides no description (specifically targeting TLDR AI style feeds).
+- **Boilerplate Suppression Filter**: AI providers now detect and block common LLM error messages (e.g., "I don't see any content") from being saved as summaries.
+- **Admin AI Cleanup**: New `POST /api/admin/ai/cleanup` endpoint and dashboard utility to identify and reset signals with boilerplate summaries.
 - **AI startup requeue**: On container restart, `AIQueue.onModuleInit` automatically re-queues up to 50 unprocessed signals (score ≥ 7) after a 5s delay — no manual retry needed after deploys
 - **Shell alias deploy**: `deploy-signal` alias in `~/.zshrc` SSHs into VPS and runs `deploy.sh` for one-command deploys from local machine
 - **Premium Diagnostic Suite**: `scripts/test-endpoints.sh` added with animated terminal UI, payload previewing, and latency benchmarking for all core API endpoints

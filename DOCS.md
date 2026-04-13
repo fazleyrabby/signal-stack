@@ -139,6 +139,8 @@ AI_ENABLED=true
 SignalStack features a production-grade, asynchronous AI enrichment pipeline designed for reliability and cost-efficiency.
 
 - **Asynchronous Processing**: Ingestion no longer blocks on AI. Signals are scored via keywords first, and high-impact items (score ≥ 7) are enqueued for deep analysis.
+- **Content Resilience**: Automatically falls back to the signal `title` if the RSS `content/description` is empty, ensuring high-signal feeds with minimal metadata are still enriched.
+- **Noise Suppression**: Built-in "Boilerplate Filter" prevents common LLM failure messages (e.g., "I don't see any content") from reaching the UI.
 - **Rate-Limited Execution**:
   - **Smoothing**: Processes 1 job every ~1.5 seconds to prevent API bursts.
   - **Concurrency**: Managed by 2 parallel background workers via RxJS.
@@ -151,7 +153,7 @@ SignalStack features a production-grade, asynchronous AI enrichment pipeline des
 - **Executive Summaries**: AI distills entire news articles into a single, high-impact sentence (max 150 chars).
 - **Safe Fallback**: If all AI providers fail or are paused, the system remains 100% functional via high-fidelity keyword scoring.
 - **Auto-Retry**: Failed signals automatically retry up to 3 times with exponential backoff (30s, 60s, 90s).
-- **Manual Retry**: Admins can re-queue all failed signals via `POST /api/admin/ai/retry` or the retry button on the dashboard.
+- **Manual Retry**: Admins can re-queue failed signals or perform a "Boilerplate Cleanup" via `POST /api/admin/ai/retry` and `POST /api/admin/ai/cleanup`.
 
 ### Local AI Setup (llama.cpp)
 
