@@ -178,6 +178,36 @@ async function seed() {
       categoryId: 'ai',
       trustScore: 5,
     },
+    {
+      name: 'BAIR Blog',
+      url: 'https://bair.berkeley.edu/blog/feed.xml',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'MarkTechPost',
+      url: 'https://www.marktechpost.com/feed/',
+      categoryId: 'ai',
+      trustScore: 4,
+    },
+    {
+      name: 'The Gradient',
+      url: 'https://thegradient.pub/rss/',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'MIT AI News',
+      url: 'https://news.mit.edu/rss/topic/artificial-intelligence2',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
+    {
+      name: 'Google DeepMind',
+      url: 'https://deepmind.google/blog/feed/basic/',
+      categoryId: 'ai',
+      trustScore: 5,
+    },
   ];
 
   for (const src of sourceData) {
