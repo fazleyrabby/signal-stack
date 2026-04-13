@@ -271,6 +271,7 @@ export function Column({
   isFocused,
   onToggleFocus,
   initialShowBookmarks = false,
+  initialCountry,
 }: {
   title: string;
   icon: LucideIcon;
@@ -281,12 +282,13 @@ export function Column({
   isFocused?: boolean;
   onToggleFocus?: () => void;
   initialShowBookmarks?: boolean;
+  initialCountry?: string;
 }) {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [sourceFilter, setSourceFilter] = useState('');
-  const [countryFilter, setCountryFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState(initialCountry || '');
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(initialShowBookmarks);
@@ -301,6 +303,12 @@ export function Column({
   useEffect(() => {
     setShowBookmarks(initialShowBookmarks);
   }, [initialShowBookmarks]);
+
+  useEffect(() => {
+    if (initialCountry) {
+      setCountryFilter(initialCountry);
+    }
+  }, [initialCountry]);
 
   const sourceBtnRef = useRef<HTMLButtonElement>(null);
   const sortBtnRef = useRef<HTMLButtonElement>(null);
@@ -360,7 +368,7 @@ export function Column({
   // Reset to page 1 when filters/search change
   useEffect(() => {
     setPage(1);
-  }, [filter, debouncedSearch, sortBy, sourceFilter]);
+  }, [filter, debouncedSearch, sortBy, sourceFilter, countryFilter]);
 
   // Bookmark handler with loading state + toasts
   const handleToggleBookmark = useCallback(async (signalId: string) => {
