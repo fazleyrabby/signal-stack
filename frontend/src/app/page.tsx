@@ -37,8 +37,10 @@ interface StatsData {
 
 function SignalsDashboardContent({
   showBookmarksFromQuery = false,
+  countryFromQuery = null,
 }: {
   showBookmarksFromQuery?: boolean;
+  countryFromQuery?: string | null;
 }) {
   const { searchQuery, setSearchQuery } = useSearch();
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
@@ -220,6 +222,7 @@ function SignalsDashboardContent({
                     isFocused={focusedColumn === 'geopolitics'}
                     onToggleFocus={() => handleToggleFocus('geopolitics')}
                     initialShowBookmarks={showBookmarksFromQuery}
+                    initialCountry={countryFromQuery || undefined}
                   />
                 </div>
               )}
@@ -238,6 +241,7 @@ function SignalsDashboardContent({
                     isFocused={focusedColumn === 'technology'}
                     onToggleFocus={() => handleToggleFocus('technology')}
                     initialShowBookmarks={showBookmarksFromQuery}
+                    initialCountry={countryFromQuery || undefined}
                   />
                 </div>
               )}
@@ -256,6 +260,7 @@ function SignalsDashboardContent({
                     isFocused={focusedColumn === 'ai'}
                     onToggleFocus={() => handleToggleFocus('ai')}
                     initialShowBookmarks={showBookmarksFromQuery}
+                    initialCountry={countryFromQuery || undefined}
                   />
                 </div>
               )}
@@ -311,6 +316,7 @@ function SignalsDashboardContent({
                     searchQuery={searchQuery}
                     isFullWidth={false}
                     initialShowBookmarks={showBookmarksFromQuery}
+                    initialCountry={countryFromQuery || undefined}
                   />
                 )}
                 {mobileTab === 'technology' && (
@@ -322,6 +328,7 @@ function SignalsDashboardContent({
                     searchQuery={searchQuery}
                     isFullWidth={false}
                     initialShowBookmarks={showBookmarksFromQuery}
+                    initialCountry={countryFromQuery || undefined}
                   />
                 )}
                 {mobileTab === 'ai' && (
@@ -333,6 +340,7 @@ function SignalsDashboardContent({
                     searchQuery={searchQuery}
                     isFullWidth={false}
                     initialShowBookmarks={showBookmarksFromQuery}
+                    initialCountry={countryFromQuery || undefined}
                   />
                 )}
               </div>
@@ -347,8 +355,9 @@ function SignalsDashboardContent({
 function SignalsDashboardWithQuery() {
   const searchParams = useSearchParams();
   const showBookmarksFromQuery = searchParams.get("bookmarks") === "true";
+  const countryFromQuery = searchParams.get("country");
 
-  return <SignalsDashboardContent showBookmarksFromQuery={showBookmarksFromQuery} />;
+  return <SignalsDashboardContent showBookmarksFromQuery={showBookmarksFromQuery} countryFromQuery={countryFromQuery} />;
 }
 
 export default function SignalsDashboard() {
