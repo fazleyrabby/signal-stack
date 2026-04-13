@@ -71,7 +71,7 @@ export default function CategoriesAdmin() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background font-sans">
+    <>
       <Header 
         isRefreshing={false} 
         onRefresh={() => {}} 

@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { BarChart3, TrendingUp, Tag, Cpu, AlertCircle, Activity, Shield, Clock, Database } from "lucide-react";
 import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 import { GeoHeatmap } from "@/components/geo-heatmap";
 import {
   Card,
@@ -219,10 +220,10 @@ export default function TrendsPage() {
   const topSource = data?.topSources[0]?.source ?? "—";
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-background">
       <Header isRefreshing={false} />
 
-      <div className="flex-1 overflow-auto p-4 sm:p-6 pb-16 md:pb-0">
+      <main className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="max-w-[1400px] mx-auto space-y-6">
 
           {/* KPI Cards */}
@@ -324,7 +325,7 @@ export default function TrendsPage() {
           <GeoHeatmap />
 
           {/* 2×2 Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
 
             {/* Top Sources */}
             {isLoading ? (
@@ -506,7 +507,8 @@ export default function TrendsPage() {
 
           </div>
         </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }
