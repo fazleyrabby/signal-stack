@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 import { categories, sources, signals } from '../database/schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, or, ilike } from 'drizzle-orm';
 import { BackupService } from '../database/backup.service';
 
 @Injectable()
@@ -99,5 +99,35 @@ export class AdminService {
       .where(eq(sources.id, id))
       .returning();
     return result;
+  }
+
+  async resetBoilerplateSignals() {
+    const boilerplatePhrases = [
+      '%I don\'t see any content provided%',
+      '%Please provide the content%',
+      '%No content provided%',
+      '%provide the content for me to summarize%',
+      '%As an AI language model%',
+    ];
+
+    const conditions = boilerplatePhrases.map((phrase) =>
+      ilike(signals.aiSummary, phrase),
+    );
+
+    return this.db
+      .update(signals)
+      .set({
+        aiSummary: null,
+        aiProcessed: false,
+        aiFailed: false,
+        aiProvider: null,
+      })
+      .where(or(...conditions))
+      .returning({
+        id: signals.id,
+        title: signals.title,
+        content: signals.content,
+        score: signals.score,
+      });
   }
 }
