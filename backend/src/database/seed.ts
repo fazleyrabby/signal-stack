@@ -155,10 +155,16 @@ async function seed() {
       trustScore: 4,
     },
     {
-      name: 'TechCrunch AI',
-      url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
+      name: 'OpenAI News',
+      url: 'https://openai.com/news/rss.xml',
       categoryId: 'ai',
-      trustScore: 4,
+      trustScore: 5,
+    },
+    {
+      name: 'Anthropic News',
+      url: 'https://rsshub.app/anthropic/news',
+      categoryId: 'ai',
+      trustScore: 5,
     },
     {
       name: 'Hugging Face Blog',
@@ -167,32 +173,8 @@ async function seed() {
       trustScore: 5,
     },
     {
-      name: 'Microsoft Research',
-      url: 'https://www.microsoft.com/en-us/research/feed/',
-      categoryId: 'ai',
-      trustScore: 5,
-    },
-    {
       name: 'Stanford HAI',
       url: 'https://hai.stanford.edu/news/rss.xml',
-      categoryId: 'ai',
-      trustScore: 5,
-    },
-    {
-      name: 'Stability AI',
-      url: 'https://stability.ai/news?format=rss',
-      categoryId: 'ai',
-      trustScore: 5,
-    },
-    {
-      name: 'Meta AI Blog',
-      url: 'https://ai.meta.com/blog/rss/',
-      categoryId: 'ai',
-      trustScore: 5,
-    },
-    {
-      name: 'DeepLearning.ai',
-      url: 'https://www.deeplearning.ai/the-batch/rss/',
       categoryId: 'ai',
       trustScore: 5,
     },

@@ -21,11 +21,11 @@ const SOURCE_COUNTRY_MAP: Record<string, string> = {
   'hackernews.com': 'US',
   'reddit.com': 'US',
   'huggingface.co': 'FR',
-  'microsoft.com': 'US',
   'stanford.edu': 'US',
-  'stability.ai': 'US',
-  'meta.com': 'US',
-  'deeplearning.ai': 'US',
+  'openai.com': 'US',
+  'anthropic.com': 'US',
+  'rsshub.app': 'US',
+  'venturebeat.com': 'US',
 };
 
 const DOMAIN_TLD_MAP: Record<string, string> = {
