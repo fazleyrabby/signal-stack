@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { Link } from "@/navigation";
 import { useSearch } from "@/context/SearchContext";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";

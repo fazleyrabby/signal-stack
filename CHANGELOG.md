@@ -4,6 +4,19 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-15] — i18n Routing Fixes & Language Switcher Redesign
+
+### Fixed
+- **Middleware Matcher**: Broadened next-intl middleware to catch all routes (e.g. `/trends`, `/changelog`) and redirect to locale-prefixed paths, preventing `useLocale()` crash outside `NextIntlClientProvider`.
+- **Admin Excluded from Locale Routing**: `/admin/*` bypasses locale middleware — served at `/admin` with no prefix.
+- **Locale-Aware Navigation Links**: `header.tsx`, `footer.tsx`, and `bottom-nav.tsx` now use locale-aware `Link` from `@/navigation` so URLs preserve the active locale on navigation. Admin tab in bottom-nav intentionally keeps plain `next/link`.
+- **Active State Detection**: `bottom-nav.tsx` switched to `usePathname` from `@/navigation` (strips locale prefix) so tab active states resolve correctly across all locales.
+
+### Changed
+- **Language Switcher**: Replaced button-row UI with a compact `<select>` dropdown styled to match the header aesthetic (`h-9`, `rounded-xl`, `accent/20` background).
+
+---
+
 ## [2026-04-14] — Phase 6g/h: Distributed Multi-language System (i18n)
 
 ### Added
