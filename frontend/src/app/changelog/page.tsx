@@ -53,9 +53,8 @@ const changelog = [
           "Dockerfile: multi-stage build — production stage copies only build artifacts",
           ".gitignore: expanded patterns for backups and planning docs",
           "DOCS.md: complete rewrite with production deployment guide",
-          "report.md: expanded into full study guide with code examples",
-        ],
-      },
+          "STUDY_GUIDE.md: expanded into full study guide with code examples",
+          ],      },
       {
         type: "Fixed",
         items: [

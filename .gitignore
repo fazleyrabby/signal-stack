@@ -66,7 +66,7 @@ backend/signalstack_backup.sql
 spec.md
 spec-patch.md
 rate-limit.md
-report.md
+STUDY_GUIDE.md
 
 # --- Local AI Models ---
 models/
