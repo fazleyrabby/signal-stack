@@ -373,7 +373,14 @@ describe('AIService Provider Failures', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('true'),
+            get: jest.fn((key: string) => {
+                const config: Record<string, string> = {
+                  NODE_ENV: 'production',
+                  LOCAL_AI_ENABLED: 'true',
+                  AI_EXTERNAL_ENABLED: 'true',
+                };
+                return config[key] || undefined;
+              }),
           },
         },
         {
