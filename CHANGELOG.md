@@ -4,6 +4,20 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-15] — Admin Security & Analytics Enhancement
+
+### Added
+- **Translated Signals Metric**: Added "Total Translated Signals" to the admin dashboard analytics. Tracks signals with at least one non-English translation stored in the `jsonb` translations field.
+- **Admin Auth Guards**: Implemented automatic 401/error redirects to `/admin/login` across all admin pages (`Dashboard`, `Categories`, `Sources`).
+
+### Fixed
+- **i18n Navigation Robustness**: 
+    - Marked `Footer.tsx` as a Client Component to resolve `useParams` build errors.
+    - Standardized `Link` usage in `bottom-nav.tsx` and `footer.tsx` to ensure locale prefixes are correctly applied (or bypassed for `/admin`) across all routes.
+    - Added missing `useEffect` imports in admin pages to fix TypeScript build failures.
+
+---
+
 ## [2026-04-15] — i18n Routing Fixes & Language Switcher Redesign
 
 ### Fixed
