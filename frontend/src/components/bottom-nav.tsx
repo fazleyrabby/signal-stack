@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Link as LocaleLink, usePathname } from "@/navigation";
-import { useSearchParams } from "next/navigation";
+import { Link as LocaleLink } from "@/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { locales } from "@/navigation";
 import { Home, BarChart3, Bookmark, Shield, Search as SearchIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearch } from "@/context/SearchContext";
@@ -43,11 +44,17 @@ const mainTabs = [
 ] as const;
 
 export function BottomNav() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
   const searchParams = useSearchParams();
   const { searchQuery, setSearchQuery, isMobileSearchOpen, setIsMobileSearchOpen } = useSearch();
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
+  // Strip locale prefix so active checks work: /en/trends → /trends, /en → /
+  const pathname = (locales as readonly string[]).reduce(
+    (p, l) => p.replace(new RegExp(`^/${l}(?=/|$)`), '') || '/',
+    rawPathname
+  );
+
   const bookmarksOnly =
     pathname === "/" && searchParams.get("bookmarks") === "true";
 
