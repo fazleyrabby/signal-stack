@@ -4,6 +4,15 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-14] — Phase 6f: UI Stabilization & Positioning
+
+### Fixed
+- **Dropdown Positioning Logic**: Resolved a bug where "Source" and "Sort" dropdowns were offset or overlapping content when the top analytics bar was hidden.
+- **Context-Aware Layout**: Migrated dropdowns from viewport-relative `fixed` positioning to parent-relative `absolute` positioning, ensuring they track perfectly during layout transitions.
+- **Z-Index Layering**: Enforced strict `z-index` stacking on column control bars to ensure dropdowns always overlap signal cards and scrollable content.
+
+---
+
 ## [2026-04-14] — Phase 6b: Geographic & Source Intelligence
 
 ### Added
