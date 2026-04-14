@@ -356,7 +356,8 @@ export function Column({
     if (!isLoading && onEmptyChange) {
       onEmptyChange(signals.length === 0);
     }
-  }, [signals.length, isLoading, onEmptyChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signals.length, isLoading]);
 
   const handleScroll = useCallback(() => {
     if (scrollRef.current) {
