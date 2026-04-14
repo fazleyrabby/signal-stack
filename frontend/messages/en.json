@@ -1,9 +1,16 @@
 {
   "Index": {
     "title": "SignalStack",
-    "description": "Premium Al-Powered Intelligence Feed",
+    "description": "Premium AI-Powered Intelligence Feed",
     "search": "Search signals...",
     "source": "Source",
-    "sort": "Sort"
+    "sort": "Sort",
+    "geopoliticsTitle": "World Geopolitics",
+    "technologyTitle": "Technology Intelligence",
+    "aiTitle": "Artificial Intelligence",
+    "geopoliticsTab": "GEOPOLITICS",
+    "technologyTab": "TECHNOLOGY",
+    "aiTab": "ARTIFICIAL INTELLIGENCE",
+    "aiTabShort": "AI"
   }
 }
