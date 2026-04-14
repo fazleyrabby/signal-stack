@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, Check, Users } from "lucide-react";
+import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, Check, Users, Languages } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
@@ -580,6 +580,12 @@ export default function AdminDashboard() {
               value={statsData?.aiProcessed?.toLocaleString()}
               icon={<Bot className="w-4 h-4 text-violet-400" />}
               accent="bg-violet-500/10"
+            />
+            <StatCard
+              label="Translated"
+              value={statsData?.translated?.toLocaleString()}
+              icon={<Languages className="w-4 h-4 text-cyan-400" />}
+              accent="bg-cyan-500/10"
             />
             <StatCard
               label="AI Failed"

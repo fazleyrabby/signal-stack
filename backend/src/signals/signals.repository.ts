@@ -150,6 +150,7 @@ export class SignalsRepository {
     aiProcessed: number;
     aiFailed: number;
     highPending: number;
+    translated: number;
   }> {
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -166,6 +167,7 @@ export class SignalsRepository {
       aiProcessedResult,
       aiFailedResult,
       highPendingResult,
+      translatedResult,
     ] = await Promise.all([
       this.db.select({ count: sql<number>`count(*)::int` }).from(signals),
       this.db
@@ -215,6 +217,10 @@ export class SignalsRepository {
         .where(
           and(eq(signals.severity, 'high'), eq(signals.aiProcessed, false)),
         ),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signals)
+        .where(sql`translations != '{}'::jsonb`),
     ]);
 
     return {
@@ -229,6 +235,7 @@ export class SignalsRepository {
       aiProcessed: aiProcessedResult[0]?.count || 0,
       aiFailed: aiFailedResult[0]?.count || 0,
       highPending: highPendingResult[0]?.count || 0,
+      translated: translatedResult[0]?.count || 0,
     };
   }
 

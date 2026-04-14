@@ -35,6 +35,12 @@ export interface SignalStats {
   low: number;
   last24h: number;
   topSource: string;
+  geopolitics?: number;
+  technology?: number;
+  aiProcessed?: number;
+  aiFailed?: number;
+  highPending?: number;
+  translated?: number;
 }
 
 export interface HealthStatus {
