@@ -10,8 +10,18 @@ All notable changes to SignalStack will be documented in this file.
 - **Premium Research-Grade AI Feeds**: Integrated 10+ high-reliability sources including **OpenAI**, **Anthropic**, **Google DeepMind**, **Hugging Face**, **BAIR (Berkeley)**, **MIT AI News**, **Stanford HAI**, **The Gradient**, **MarkTechPost**, and **VentureBeat AI**.
 - **Interactive Map Zoom**: Added `ZoomableGroup` to the Geographic Intelligence heatmap for precision navigation and country inspection.
 - **Global UI Footer**: Integrated a professional footer into **Trends** and **Admin** pages for improved navigation and branding.
-- **Admin Layout**: Dedicated `AdminLayout` component ensures consistent UI and footer presence across all administrative sub-pages.
-- **End-to-End Country Filtering**: Fixed signal feed logic to honor `?country=XX` parameters, enabling seamless "click-to-filter" from the geographic map.
+## [2026-04-14] — Phase 6d: Test Suite & Tooling
+
+### Added
+- **Production-grade Test Suite**: Scaffolded `backend/test/` structure emphasizing zero-regression principles. Tests simulate bot heuristics, IP extraction, and backend tracking paths dynamically.
+- **Drizzle Studio (Local Only)**: Introduced a developer-only `signalstack-drizzle-studio` service directly into `docker-compose.yml`. Bound cleanly to localhost (127.0.0.1:4983) and strictly omitted from `docker-compose.prod.yml` to ensure high operational security.
+- **GeoIP Mocking Structure**: Fully decoupled MaxMind integrations from logic pathings to allow deterministic testing regardless of host environment map presence.
+
+---
+
+## [2026-04-14] — Phase 6c: IP Resilience & Security
+
+### Added
 - **Smart Tab Hiding**: Automatically hides empty columns during filtered views (country/search) to maximize relevance and screen real-estate.
 - **UX Reset Logic**: Dashboard now force-enables all category sections when a country is selected from the heatmap to prevent empty result screens.
 - **Mobile Map-to-Feed Sync**: Auto-switches to the most relevant tab (Geopolitics) when navigating from the map on mobile devices.
