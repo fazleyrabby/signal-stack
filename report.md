@@ -50,6 +50,10 @@ Integrated on April 14, 2026, this phase professionalizes the AI stream and geog
 *   **Triple-Column Grid**: Monitoring Geopolitics | Tech | AI simultaneously.
 *   **Global Footer**: Professional navigation integrated into **Trends** and **Admin** pages while preserving the minimal feed space.
 *   **Admin Layout**: Unified `AdminLayout` for consistent navigation across dashboard sub-pages.
+### Test Suite & Tooling (Phase 6d)
+*   **Production-Grade Testing**: Constructed a `backend/test/` directory adopting strict zero-regression architectures, with mock interfaces replacing actual DB connections ensuring reliable testing.
+*   **Developer Environments**: Injected `signalstack-drizzle-studio` into local `docker-compose.yml`, tightly sandboxed to `127.0.0.1:4983`. Assured complete omittance from `docker-compose.prod.yml` to prevent production surface exposure.
+
 ### IP Resilience & Security (Phase 6c)
 *   **MaxMind Integration**: Implemented `GeoIPService` to leverage self-hosted GeoLite2-City databases. IP data is now enriched with Country, City, Latitude, Longitude, and Timezone.
 *   **Passive Bot Detection**: Integrated heuristics into the `VisitorsService` to automatically flag bots based on User-Agent patterns ("bot", "curl", "crawler") and anomalous request volume (>100 page views).

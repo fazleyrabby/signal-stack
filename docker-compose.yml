@@ -104,7 +104,19 @@ services:
     volumes:
       - ./geoip:/geoip
 
+  drizzle-studio:
+    image: ghcr.io/drizzle-team/drizzle-studio
+    container_name: signalstack-drizzle-studio
+    ports:
+      - "127.0.0.1:4983:4983"
+    environment:
+      - DATABASE_URL=postgresql://signal:signal@postgres:5432/signalstack
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   pgdata:
   geoip:
+
 
