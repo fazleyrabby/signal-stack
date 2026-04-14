@@ -41,6 +41,7 @@ export interface SignalStats {
   aiProcessed: number;
   aiFailed: number;
   highPending: number;
+  translated: number;
 }
 
 export interface VisitorStats {
