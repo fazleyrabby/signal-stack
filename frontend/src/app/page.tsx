@@ -104,6 +104,18 @@ function SignalsDashboardContent({
     trackVisit();
   }, []);
 
+  // Force-enable all categories when a country filter is active from the heatmap.
+  // This prevents the "empty results" issue if the user's persisted tab state
+  // doesn't match the available data for the selected country.
+  useEffect(() => {
+    if (countryFromQuery) {
+      setShowGeopolitics(true);
+      setShowTechnology(true);
+      setShowAi(true);
+      setMobileTab('geopolitics');
+    }
+  }, [countryFromQuery]);
+
   const stats = statsResponse || { total: 0, high: 0, low: 0, last24h: 0, topSource: 'Scanning...' };
 
   const toggleGeopolitics = () => {
