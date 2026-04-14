@@ -36,6 +36,27 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.client?.disconnect();
   }
 
+  async get(key: string): Promise<string | null> {
+    if (!this.client || this.client.status !== 'ready') return null;
+    return this.client.get(key);
+  }
+
+  async set(key: string, value: string, mode: 'EX', ttl: number) {
+    if (!this.client || this.client.status !== 'ready') return;
+    await this.client.set(key, value, mode, ttl);
+  }
+
+  async setLock(key: string, ttl: number): Promise<boolean> {
+    if (!this.client || this.client.status !== 'ready') return true; // Fail safe
+    const res = await this.client.set(key, '1', 'EX', ttl, 'NX');
+    return res === 'OK';
+  }
+
+  async del(key: string) {
+    if (!this.client || this.client.status !== 'ready') return;
+    await this.client.del(key);
+  }
+
   /**
    * Check and increment the daily AI request count.
    * Resets at UTC midnight.

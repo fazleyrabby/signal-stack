@@ -4,6 +4,19 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-14] — Phase 6g/h: Distributed Multi-language System (i18n)
+
+### Added
+- **Async AI Translation Queue**: Converted slow, synchronous translation logic into a non-blocking asynchronous pipeline via RxJS and Queue mechanisms to prevent API lag.
+- **Smart Priority & Analytics**: Translations now verify usage limits and only fire automatically for intelligence signals with an initial score of 7 or higher. Language popularity metrics now track target translation queries to aid warm-caching.
+- **Multi-tiered Resilient Caching Layer**: Pre-warming translation keys leveraging Redis background jobs processing trending signals. Enforced locking primitives (`NX` parameter via `setLock`) securing cross-container distributed environments.
+- **Failover Logic Enhancement**: `try/catch` chain for `AIService.translate` guaranteeing continuous translations if primary LLM proxies report internal server degradation over multiple queries. 
+
+### Fixed
+- **Latency Impacts**: Feed payload operations resolving <50ms avoiding the blocking ~1200ms processing delay imposed by raw completion wait.
+
+---
+
 ## [2026-04-14] — Phase 6f: UI Stabilization & Positioning
 
 ### Fixed

@@ -96,6 +96,33 @@ export class GroqProvider {
     }
   }
 
+  async complete(prompt: string, systemPrompt?: string): Promise<string | null> {
+    const model = await this.getModel();
+    try {
+      const res = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt || 'You are a helpful assistant.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 500,
+        }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.choices?.[0]?.message?.content?.trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
   private cleanResponse(text: string): string {
     const cleaned = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
     

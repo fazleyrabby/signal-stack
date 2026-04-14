@@ -24,6 +24,50 @@ export class AIService {
     private readonly configService: ConfigService,
   ) {}
 
+  async translate(title: string, summary: string, targetLang: string): Promise<{ title: string; aiSummary: string } | null> {
+    const prompt = `Translate to ${targetLang}. Return ONLY a JSON object: {"title": "localized title", "aiSummary": "localized summary"}\n\nTitle: ${title}\nSummary: ${summary}`;
+    const systemPrompt = "You are a professional translator. Output only valid JSON.";
+
+    let response: string | null = null;
+    const useExternal = this.configService.get<string>('NODE_ENV') === 'production';
+
+    try {
+      if (useExternal) {
+        // 1. Try Groq (Fast & Cheap)
+        if (!this.isCooldown('groq')) {
+          const res = await this.groq.complete(prompt, systemPrompt);
+          if (res) response = res.content;
+        }
+        
+        // 2. Fallback to OpenRouter (Reliable)
+        if (!response && !this.isCooldown('openrouter')) {
+          const res = await this.openRouter.complete(prompt, systemPrompt);
+          if (res) response = res.content;
+        }
+      } else if (this.configService.get<string>('LOCAL_AI_ENABLED') === 'true') {
+        response = await this.local.summarize('Translation Request', prompt);
+      }
+
+      if (!response) return null;
+      
+      const parsed = JSON.parse(response.replace(/```json|```/g, '').trim());
+      
+      // Log Success & Meta for Cost Tracking
+      logEvent('info', 'ai_translation_completed', { 
+        targetLang,
+        source: response ? 'external' : 'local'
+      });
+
+      return {
+        title: parsed.title || title,
+        aiSummary: parsed.aiSummary || summary
+      };
+    } catch (e) {
+      logEvent('error', 'ai_translation_failed', { error: e.message });
+      return null;
+    }
+  }
+
   async processSignal(
     id: string,
     title: string,

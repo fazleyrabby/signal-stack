@@ -23,6 +23,7 @@ export class SignalsController {
     @Query('search') search?: string,
     @Query('sort') sort?: string,
     @Query('order') order?: string,
+    @Query('lang') lang?: string,
   ) {
     return this.signalsService.getSignals({
       page: parseInt(page || '1', 10),
@@ -35,6 +36,7 @@ export class SignalsController {
       search,
       sort,
       order,
+      lang: lang || 'en',
     });
   }
 

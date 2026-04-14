@@ -71,6 +71,7 @@ function ColumnControlBar({
   showBookmarks: boolean;
   setShowBookmarks: (v: boolean) => void;
 }) {
+  const t = useTranslations('Index');
   const sortOptions = [
     { id: 'newest', label: 'Newest' },
     { id: 'oldest', label: 'Oldest' },
@@ -107,7 +108,7 @@ function ColumnControlBar({
           )}
         >
           <Filter className="w-3 h-3" />
-          <span className="max-w-[60px] truncate">{sourceFilter || 'Source'}</span>
+          <span className="max-w-[60px] truncate">{sourceFilter || t('source')}</span>
         </button>
 
         <button
@@ -116,7 +117,7 @@ function ColumnControlBar({
           className="flex items-center gap-1 h-6 px-2 bg-accent/20 border border-border/10 rounded-md hover:bg-accent/40 transition-all text-[11px] font-bold uppercase tracking-wider"
         >
           <ArrowUpDown className="w-3 h-3" />
-          <span className="max-w-[50px] truncate">{sortOptions.find(s => s.id === sortBy)?.label || 'Sort'}</span>
+          <span className="max-w-[50px] truncate">{sortOptions.find(s => s.id === sortBy)?.label || t('sort')}</span>
         </button>
 
         <button
@@ -261,6 +262,8 @@ function SortDropdown({
   );
 }
 
+import { useLocale, useTranslations } from "next-intl";
+
 export function Column({
   title,
   icon: Icon,
@@ -286,6 +289,8 @@ export function Column({
   initialCountry?: string;
   onEmptyChange?: (isEmpty: boolean) => void;
 }) {
+  const t = useTranslations('Index');
+  const locale = useLocale();
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -328,7 +333,7 @@ export function Column({
   const orderParam = sortBy === 'oldest' ? 'asc' : 'desc';
 
   const { data: response, isLoading, isValidating } = useSWR<SignalsResponse>(
-    `${SIGNALS_API_BASE}?limit=${PAGE_SIZE * page}&categoryId=${categoryId}&sort=${sortParam}&order=${orderParam}${sourceFilter ? `&source=${encodeURIComponent(sourceFilter)}` : ''}${countryFilter ? `&countryCode=${encodeURIComponent(countryFilter)}` : ''}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`,
+    `${SIGNALS_API_BASE}?limit=${PAGE_SIZE * page}&categoryId=${categoryId}&sort=${sortParam}&order=${orderParam}${sourceFilter ? `&source=${encodeURIComponent(sourceFilter)}` : ''}${countryFilter ? `&countryCode=${encodeURIComponent(countryFilter)}` : ''}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}&lang=${locale}`,
     fetcher,
     { refreshInterval: 15000, revalidateOnFocus: false, keepPreviousData: true }
   );

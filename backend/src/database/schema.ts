@@ -9,6 +9,7 @@ import {
   index,
   uniqueIndex,
   doublePrecision,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -57,6 +58,7 @@ export const signals = pgTable(
     aiProcessed: boolean('ai_processed').notNull().default(false),
     aiFailed: boolean('ai_failed').notNull().default(false),
     countryCode: varchar('country_code', { length: 2 }),
+    translations: jsonb('translations').$type<Record<string, { title: string; aiSummary: string }>>().default({}),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
