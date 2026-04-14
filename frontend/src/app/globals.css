@@ -23,6 +23,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --font-sans: var(--font-sans);
+  --font-bengali: var(--font-bengali), var(--font-bengali-fallback), sans-serif;
 }
 
 :root {
@@ -84,7 +87,15 @@
   html, body {
     background-color: var(--background);
     color: var(--foreground);
+    font-family: var(--font-sans);
     @apply antialiased scroll-smooth;
+  }
+
+  /* Bengali Font Override */
+  html[lang="bn"], 
+  html[lang="bn"] body,
+  [lang="bn"] {
+    font-family: var(--font-bengali) !important;
   }
 
   /* Smooth theme transitions — applied via class so it only runs during theme changes, not on page load */
