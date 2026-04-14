@@ -96,17 +96,17 @@ services:
     depends_on:
       - app
 
-  geoip:
-    image: maxmindinc/geoipupdate
-    container_name: signalstack-geoip
-    restart: always
-    environment:
-      GEOIPUPDATE_ACCOUNT_ID: ${GEOIPUPDATE_ACCOUNT_ID}
-      GEOIPUPDATE_LICENSE_KEY: ${GEOIPUPDATE_LICENSE_KEY}
-      GEOIPUPDATE_EDITION_IDS: 'GeoLite2-City'
-      GEOIPUPDATE_FREQUENCY: '168'
-    volumes:
-      - ./geoip:/geoip
+#  geoip:
+#    image: maxmindinc/geoipupdate
+#    container_name: signalstack-geoip
+#    restart: always
+#    environment:
+#      GEOIPUPDATE_ACCOUNT_ID: ${GEOIPUPDATE_ACCOUNT_ID}
+#      GEOIPUPDATE_LICENSE_KEY: ${GEOIPUPDATE_LICENSE_KEY}
+#      GEOIPUPDATE_EDITION_IDS: 'GeoLite2-City'
+#      GEOIPUPDATE_FREQUENCY: '168'
+#    volumes:
+#      - ./geoip:/geoip
 
   logs:
     image: amir20/dozzle:latest
