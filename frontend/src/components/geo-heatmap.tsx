@@ -150,50 +150,52 @@ export function GeoHeatmap() {
           projectionConfig={{ scale: 100, center: [0, 20] }}
           style={{ width: "100%", height: "280px" }}
         >
-          <Geographies geography={GEO_URL}>
-            {({ geographies }) =>
-              geographies && geographies.length > 0 ? (
-                geographies.map((geo) => {
-                  const numericId = String(geo.id).padStart(3, "0");
-                  const countryCode = ID_TO_ISO[numericId] || (geo.properties?.ISO_A2 || geo.properties?.iso_a2 || geo.id);
-                  const count = countryData[String(countryCode).toUpperCase()] || 0;
-                  
-                  return (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      onMouseEnter={(event) => handleMouseEnter(geo, event as unknown as MouseEvent)}
-                      onMouseLeave={() => setTooltip(null)}
-                      onClick={() => handleClick(geo)}
-                      style={{
-                        default: {
-                          fill: count > 0 ? colorScale(count) : "#1e293b",
-                          stroke: "#334155",
-                          strokeWidth: 0.5,
-                          outline: "none",
-                        },
-                        hover: {
-                          fill: "#a78bfa",
-                          stroke: "#f8fafc",
-                          strokeWidth: 1,
-                          outline: "none",
-                          cursor: "pointer",
-                        },
-                        pressed: {
-                          fill: "#8b5cf6",
-                          outline: "none",
-                        },
-                      }}
-                    />
-                  );
-                })
-              ) : (
-                <text x="50%" y="50%" textAnchor="middle" fill="#94a3b8" fontSize="12">
-                  Loading map data...
-                </text>
-              )
-            }
-          </Geographies>
+          <ZoomableGroup zoom={1} center={[0, 20]}>
+            <Geographies geography={GEO_URL}>
+              {({ geographies }) =>
+                geographies && geographies.length > 0 ? (
+                  geographies.map((geo) => {
+                    const numericId = String(geo.id).padStart(3, "0");
+                    const countryCode = ID_TO_ISO[numericId] || (geo.properties?.ISO_A2 || geo.properties?.iso_a2 || geo.id);
+                    const count = countryData[String(countryCode).toUpperCase()] || 0;
+                    
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        onMouseEnter={(event) => handleMouseEnter(geo, event as unknown as MouseEvent)}
+                        onMouseLeave={() => setTooltip(null)}
+                        onClick={() => handleClick(geo)}
+                        style={{
+                          default: {
+                            fill: count > 0 ? colorScale(count) : "#1e293b",
+                            stroke: "#334155",
+                            strokeWidth: 0.5,
+                            outline: "none",
+                          },
+                          hover: {
+                            fill: "#a78bfa",
+                            stroke: "#f8fafc",
+                            strokeWidth: 1,
+                            outline: "none",
+                            cursor: "pointer",
+                          },
+                          pressed: {
+                            fill: "#8b5cf6",
+                            outline: "none",
+                          },
+                        }}
+                      />
+                    );
+                  })
+                ) : (
+                  <text x="50%" y="50%" textAnchor="middle" fill="#94a3b8" fontSize="12">
+                    Loading map data...
+                  </text>
+                )
+              }
+            </Geographies>
+          </ZoomableGroup>
         </ComposableMap>
 
         {tooltip && tooltip.count > 0 && (
