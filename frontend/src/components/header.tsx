@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useSearch } from "@/context/SearchContext";
 
+import { useRouter } from "next/navigation";
+
 type Theme = "light" | "dark";
 
 interface HeaderProps {
@@ -35,6 +37,7 @@ export function Header({
   onToggleControls,
   visitorCount
 }: HeaderProps) {
+  const router = useRouter();
   const { searchQuery, setSearchQuery } = useSearch();
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
@@ -55,7 +58,7 @@ export function Header({
   };
 
   if (!mounted) return (
-    <header className="sticky top-0 z-50 border-b border-border/10 bg-background/80 backdrop-blur-md h-13" />
+    <header className="sticky top-0 z-50 border-b border-border/10 bg-background/80 backdrop-blur-md h-11" />
   );
 
   return (
@@ -103,6 +106,11 @@ export function Header({
         <div className="flex items-center gap-4 shrink-0">
           <Link
             href="/trends"
+            onClick={(e) => {
+              // Direct navigation fallback to resolve bug where Link sometimes doesn't trigger on homepage
+              e.preventDefault();
+              router.push("/trends");
+            }}
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
             aria-label="Trends"
           >

@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GeoIPService } from '../../src/modules/geoip/geoip.service';
 import * as maxmind from 'maxmind';
+import * as fs from 'fs';
 
 jest.mock('maxmind');
+jest.mock('fs');
 
 describe('GeoIPService', () => {
   let service: GeoIPService;
@@ -10,6 +12,8 @@ describe('GeoIPService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
+
     // Mock successful MaxMind DB load
     (maxmind.open as jest.Mock).mockResolvedValue({
       get: jest.fn().mockImplementation((ip: string) => {

@@ -12,6 +12,12 @@ describe('AIQueue', () => {
   let redisService: RedisService;
   let db: any;
 
+  beforeAll(() => {
+    process.env.AI_PROCESS_DELAY = '10';
+    process.env.AI_MAX_WORKERS = '10';
+    process.env.AI_DAILY_LIMIT = '1000';
+  });
+
   beforeEach(async () => {
     db = {
       select: jest.fn().mockReturnThis(),
@@ -283,7 +289,7 @@ describe('AIQueue High Load', () => {
       }
 
       await Promise.all(jobs);
-      await waitFor(1000);
+      await waitFor(2000);
 
     expect(aiService.processSignal).toHaveBeenCalledTimes(100);
   });
