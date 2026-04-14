@@ -3,7 +3,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN apk add --no-cache postgresql-client python3 make g++ && npm ci
+RUN apk add --no-cache postgresql-client python3 make g++ && npm install
 
 COPY . .
 RUN npm run build
