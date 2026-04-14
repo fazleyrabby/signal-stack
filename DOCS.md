@@ -45,7 +45,7 @@ Use the premium diagnostic suite to verify API health, latency, and endpoint int
 ./scripts/test-endpoints.sh http://localhost:3000
 ```
 
-This script provides an animated, high-fidelity terminal UI and validates the entire signal pipe—including RSS feeds, Trends data, and Geographic Intelligence.
+This script provides an animated, high-fidelity terminal UI and validates the entire signal pipe—including RSS feeds, Trends data, and Geographic Intelligence. For an in-depth architectural breakdown, refer to the [STUDY_GUIDE.md](./STUDY_GUIDE.md).
 
 ---
 
