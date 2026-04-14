@@ -125,7 +125,7 @@ info "Running health checks..."
 wait_http() {
   local label="$1" url="$2" retries=20
   for i in $(seq 1 "$retries"); do
-    STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+    STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
     [ "$STATUS" = "200" ] && { pass "$label: HTTP 200 (${i}s)"; return 0; }
     [ "$i" -eq "$retries" ] && { echo -e "${RED}✗${NC} $label: HTTP $STATUS after ${retries}s"; return 1; }
     sleep 1
