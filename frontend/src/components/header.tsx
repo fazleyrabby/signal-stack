@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Link } from "@/navigation";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useSearch } from "@/context/SearchContext";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -38,6 +39,8 @@ export function Header({
   visitorCount
 }: HeaderProps) {
   const { searchQuery, setSearchQuery } = useSearch();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'en';
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
@@ -66,7 +69,7 @@ export function Header({
         "mx-auto px-3 sm:px-4 h-full flex items-center justify-between gap-6 transition-all duration-500 ease-in-out",
         isFullWidth ? "max-w-full" : "max-w-[1400px]"
       )}>
-        <Link href="/" className="flex items-center gap-3 shrink-0 group">
+        <Link href={`/${locale}`} className="flex items-center gap-3 shrink-0 group">
            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20 transition-transform group-hover:scale-105 group-active:scale-95 duration-300">
               <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 12h2" />
@@ -104,7 +107,7 @@ export function Header({
 
         <div className="flex items-center gap-4 shrink-0">
           <Link
-            href="/trends"
+            href={`/${locale}/trends`}
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
             aria-label="Trends"
           >
