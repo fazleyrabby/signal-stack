@@ -12,6 +12,9 @@ All notable changes to SignalStack will be documented in this file.
 - **Global UI Footer**: Integrated a professional footer into **Trends** and **Admin** pages for improved navigation and branding.
 - **Admin Layout**: Dedicated `AdminLayout` component ensures consistent UI and footer presence across all administrative sub-pages.
 - **End-to-End Country Filtering**: Fixed signal feed logic to honor `?country=XX` parameters, enabling seamless "click-to-filter" from the geographic map.
+- **Smart Tab Hiding**: Automatically hides empty columns during filtered views (country/search) to maximize relevance and screen real-estate.
+- **UX Reset Logic**: Dashboard now force-enables all category sections when a country is selected from the heatmap to prevent empty result screens.
+- **Mobile Map-to-Feed Sync**: Auto-switches to the most relevant tab (Geopolitics) when navigating from the map on mobile devices.
 
 ### Fixed
 - **Geographic Projection**: Switched to `geoEqualEarth` and stabilized with `world-atlas` TopoJSON to resolve map distortion.

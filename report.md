@@ -42,6 +42,8 @@ Integrated on April 14, 2026, this phase professionalizes the AI stream and geog
 *   **Projection**: Switched to `geoEqualEarth` and stabilized with `world-atlas` TopoJSON to resolve distortion.
 *   **Data Mapping**: Implemented a robust `ID_TO_ISO` mapping layer to ensure backend ISO-A2 codes correctly highlight map regions.
 *   **End-to-End Filtering**: Fixed the signal feed logic to correctly handle `?country=XX` query parameters, enabling seamless "click-to-filter" from the map to the dashboard.
+*   **Smart Tab Hiding**: Columns that contain zero matching results for a specific country or search query are automatically hidden. This eliminates "empty results" noise and allows relevant content to fill the screen.
+*   **Visibility Force-Enable**: Clicking any region on the map now automatically enables all three categories (**Geopolitics**, **Tech**, **AI**) on the dashboard, ensuring a comprehensive view of that region's intelligence regardless of previous tab settings.
 
 
 ### Terminal UI Upgrades
