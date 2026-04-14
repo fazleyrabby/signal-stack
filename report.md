@@ -63,6 +63,19 @@ Integrated on April 14, 2026, this phase professionalizes the AI stream and geog
     *   Enforced **Read-Only** volume mounting for database binaries in the application container.
     *   Updated `.gitignore` and security configurations to prevent sensitive license keys and binary files from reaching version control.
 
+### Test Suite Expansion (Phase 6e)
+*   **AI Pipeline Tests**: Created comprehensive test suite in `backend/test/ai/`:
+    *   `ai.service.spec.ts` — Tests fallback chain (local → groq → openrouter), local-only mode behavior, cooldown mechanism on 429 errors, high-load concurrent processing, provider timeout handling, health check endpoints, token tracking.
+    *   `ai.queue.spec.ts` — Tests job enqueue/dequeue with deduplication, rate limiting and daily quota enforcement, retry logic with exponential backoff, queue recovery on startup, burst load handling (100 concurrent jobs).
+*   **Signals E2E Tests**: Created `backend/test/signals/signals.e2e-spec.ts` to test:
+    *   Signal insertion with proper hash generation
+    *   Duplicate rejection (same hash should not insert twice)
+    *   Filtering by severity, source, category, date range
+    *   Search functionality across title/content
+    *   Pagination with metadata
+    *   Edge cases: empty content, very long content, special characters in URLs
+*   **Test Utilities**: Added `backend/test/utils/wait-for.ts` helper for async test timing.
+*   **Dependencies**: Installed missing `maxmind` and `@types/maxmind` packages for GeoIP testing.
 
 
 ---
