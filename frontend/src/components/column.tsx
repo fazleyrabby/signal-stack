@@ -79,7 +79,7 @@ function ColumnControlBar({
   ];
 
   return (
-    <>
+    <div className="relative z-[60]">
       <div className="flex items-center gap-1.5 p-1 bg-card/30 border border-border/5 rounded-lg">
         <div className="flex items-center gap-0.5">
           {['all', 'high', 'medium', 'low'].map((f) => (
@@ -156,7 +156,7 @@ function ColumnControlBar({
           onClick={() => { setShowSourceDropdown(false); setShowSortDropdown(false); }}
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -177,14 +177,14 @@ function SourceDropdown({
 
   useLayoutEffect(() => {
     if (sourceBtnRef.current) {
-      const rect = sourceBtnRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 4, left: rect.left });
+      const btn = sourceBtnRef.current;
+      setPos({ top: btn.offsetTop + btn.offsetHeight + 4, left: btn.offsetLeft });
     }
   }, [sourceBtnRef]);
 
   return (
     <div
-      className="fixed bg-popover border border-border/40 rounded-lg shadow-xl z-[100] w-48 max-h-60 overflow-y-auto overscroll-contain"
+      className="absolute bg-popover border border-border/40 rounded-lg shadow-xl z-[100] w-48 max-h-60 overflow-y-auto overscroll-contain"
       style={{ top: pos.top, left: pos.left }}
     >
       <button
@@ -228,8 +228,8 @@ function SortDropdown({
 
   useLayoutEffect(() => {
     if (sortBtnRef.current) {
-      const rect = sortBtnRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 4, left: rect.left });
+      const btn = sortBtnRef.current;
+      setPos({ top: btn.offsetTop + btn.offsetHeight + 4, left: btn.offsetLeft });
     }
   }, [sortBtnRef]);
 
@@ -242,7 +242,7 @@ function SortDropdown({
 
   return (
     <div
-      className="fixed bg-popover border border-border/40 rounded-lg shadow-xl z-[100] w-40"
+      className="absolute bg-popover border border-border/40 rounded-lg shadow-xl z-[100] w-40"
       style={{ top: pos.top, left: pos.left }}
     >
       {sortOptions.map((s) => (
