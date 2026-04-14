@@ -10,9 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Edit2, ArrowLeft, Loader2, Database } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => r.json());
+const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
+  if (!r.ok) throw new Error("Unauthorized");
+  return r.json();
+});
 
 interface Category {
   slug: string;
@@ -21,11 +25,18 @@ interface Category {
 }
 
 export default function CategoriesAdmin() {
-  const { data: categories, isLoading: categoriesLoading } = useSWR<Category[]>(`${API_BASE}/api/admin/categories`, fetcher);
+  const router = useRouter();
+  const { data: categories, isLoading: categoriesLoading, error } = useSWR<Category[]>(`${API_BASE}/api/admin/categories`, fetcher, { shouldRetryOnError: false });
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  useEffect(() => {
+    if (error) {
+      router.replace("/admin/login");
+    }
+  }, [error, router]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

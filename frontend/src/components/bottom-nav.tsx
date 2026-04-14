@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Link as LocaleLink } from "@/navigation";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useParams } from "next/navigation";
 import { locales } from "@/navigation";
 import { Home, BarChart3, Bookmark, Shield, Search as SearchIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,6 +45,8 @@ const mainTabs = [
 export function BottomNav() {
   const rawPathname = usePathname();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'en';
   const { searchQuery, setSearchQuery, isMobileSearchOpen, setIsMobileSearchOpen } = useSearch();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +64,12 @@ export function BottomNav() {
       inputRef.current.focus();
     }
   }, [isMobileSearchOpen]);
+
+  const getFullHref = (href: string, id: string) => {
+    if (id === "admin") return href;
+    const base = href.startsWith("/") ? href : `/${href}`;
+    return `/${locale}${base}`.replace(/\/$/, '') || '/';
+  };
 
   return (
     <>
@@ -100,16 +107,16 @@ export function BottomNav() {
             const Icon = tab.icon;
             const active = tab.isActive(pathname, bookmarksOnly);
             return (
-              <LocaleLink
+              <Link
                 key={tab.id}
-                href={tab.href}
+                href={getFullHref(tab.href, tab.id)}
                 className="relative flex flex-col items-center justify-center gap-1 transition-colors duration-200"
               >
                 <Icon className={cn("w-5 h-5", active ? "text-primary" : "text-muted-foreground/60")} />
                 <span className={cn("text-[9px] font-bold uppercase tracking-wider", active ? "text-primary" : "text-muted-foreground/60")}>
                   {tab.label}
                 </span>
-              </LocaleLink>
+              </Link>
             );
           })}
 
@@ -132,19 +139,17 @@ export function BottomNav() {
           {mainTabs.slice(2).map((tab) => {
             const Icon = tab.icon;
             const active = tab.isActive(pathname, bookmarksOnly);
-            const isAdmin = tab.id === "admin";
-            const LinkComp = isAdmin ? Link : LocaleLink;
             return (
-              <LinkComp
+              <Link
                 key={tab.id}
-                href={tab.href}
+                href={getFullHref(tab.href, tab.id)}
                 className="relative flex flex-col items-center justify-center gap-1 transition-colors duration-200"
               >
                 <Icon className={cn("w-5 h-5", active ? "text-primary" : "text-muted-foreground/60")} />
                 <span className={cn("text-[8px] font-bold uppercase tracking-wider", active ? "text-primary" : "text-muted-foreground/60")}>
                   {tab.label}
                 </span>
-              </LinkComp>
+              </Link>
             );
           })}
         </div>
@@ -152,3 +157,4 @@ export function BottomNav() {
     </>
   );
 }
+
