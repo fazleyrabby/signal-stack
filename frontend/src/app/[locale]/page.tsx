@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import useSWR from "swr";
 import {
   LayoutGrid,
@@ -41,6 +42,7 @@ function SignalsDashboardContent({
   showBookmarksFromQuery?: boolean;
   countryFromQuery?: string | null;
 }) {
+  const t = useTranslations('Index');
   const { searchQuery, setSearchQuery } = useSearch();
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
   const [isFullWidth, setIsFullWidth] = useState(false);
@@ -182,7 +184,7 @@ function SignalsDashboardContent({
                   )}
                 >
                   {showGeopolitics ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                  GEOPOLITICS
+                  {t('geopoliticsTab')}
                 </button>
                 <button
                   onClick={toggleTechnology}
@@ -192,7 +194,7 @@ function SignalsDashboardContent({
                   )}
                 >
                   {showTechnology ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                  TECHNOLOGY
+                  {t('technologyTab')}
                 </button>
                 <button
                   onClick={toggleAi}
@@ -202,7 +204,7 @@ function SignalsDashboardContent({
                   )}
                 >
                   {showAi ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                  ARTIFICIAL INTELLIGENCE
+                  {t('aiTab')}
                 </button>
               </div>
 
@@ -236,7 +238,7 @@ function SignalsDashboardContent({
                   (isFiltering && emptyColumns['geopolitics']) && "hidden"
                 )}>
                   <Column
-                    title="World Geopolitics"
+                    title={t('geopoliticsTitle')}
                     icon={Globe2}
                     categoryId="geopolitics"
                     layoutMode={layoutMode}
@@ -257,7 +259,7 @@ function SignalsDashboardContent({
                   (isFiltering && emptyColumns['technology']) && "hidden"
                 )}>
                   <Column
-                    title="Technology Intelligence"
+                    title={t('technologyTitle')}
                     icon={Cpu}
                     categoryId="technology"
                     layoutMode={layoutMode}
@@ -278,7 +280,7 @@ function SignalsDashboardContent({
                   (isFiltering && emptyColumns['ai']) && "hidden"
                 )}>
                   <Column
-                    title="Artificial Intelligence"
+                    title={t('aiTitle')}
                     icon={BrainCircuit}
                     categoryId="ai"
                     layoutMode={layoutMode}
@@ -307,7 +309,7 @@ function SignalsDashboardContent({
                   )}
                 >
                   <Globe2 className="w-3.5 h-3.5" />
-                  GEOPOLITICS
+                  {t('geopoliticsTab')}
                 </button>
                 <button
                   onClick={() => setMobileTab('technology')}
@@ -320,7 +322,7 @@ function SignalsDashboardContent({
                   )}
                 >
                   <Cpu className="w-3.5 h-3.5" />
-                  TECHNOLOGY
+                  {t('technologyTab')}
                 </button>
                 <button
                   onClick={() => setMobileTab('ai')}
@@ -333,14 +335,14 @@ function SignalsDashboardContent({
                   )}
                 >
                   <BrainCircuit className="w-3.5 h-3.5" />
-                  AI
+                  {t('aiTabShort')}
                 </button>
               </div>
 
               <div className="flex-1 min-h-0">
                 {mobileTab === 'geopolitics' && (
                   <Column
-                    title="World Geopolitics"
+                    title={t('geopoliticsTitle')}
                     icon={Globe2}
                     categoryId="geopolitics"
                     layoutMode={layoutMode}
@@ -352,7 +354,7 @@ function SignalsDashboardContent({
                 )}
                 {mobileTab === 'technology' && (
                   <Column
-                    title="Technology Intelligence"
+                    title={t('technologyTitle')}
                     icon={Cpu}
                     categoryId="technology"
                     layoutMode={layoutMode}
@@ -364,7 +366,7 @@ function SignalsDashboardContent({
                 )}
                 {mobileTab === 'ai' && (
                   <Column
-                    title="Artificial Intelligence"
+                    title={t('aiTitle')}
                     icon={BrainCircuit}
                     categoryId="ai"
                     layoutMode={layoutMode}

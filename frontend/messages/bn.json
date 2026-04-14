@@ -4,6 +4,13 @@
     "description": "প্রিমিয়াম এআই-চালিত ইন্টেলিজেন্স ফিড",
     "search": "সিগন্যাল খুঁজুন...",
     "source": "উৎস",
-    "sort": "সাজান"
+    "sort": "সাজান",
+    "geopoliticsTitle": "বিশ্ব ভূরাজনীতি",
+    "technologyTitle": "প্রযুক্তি গোয়েন্দা",
+    "aiTitle": "কৃত্রিম বুদ্ধিমত্তা",
+    "geopoliticsTab": "ভূরাজনীতি",
+    "technologyTab": "প্রযুক্তি",
+    "aiTab": "কৃত্রিম বুদ্ধিমত্তা",
+    "aiTabShort": "এআই"
   }
 }

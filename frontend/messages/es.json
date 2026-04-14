@@ -4,6 +4,13 @@
     "description": "Feed de Inteligencia Premium impulsado por IA",
     "search": "Buscar señales...",
     "source": "Fuente",
-    "sort": "Ordenar"
+    "sort": "Ordenar",
+    "geopoliticsTitle": "Geopolítica Mundial",
+    "technologyTitle": "Inteligencia Tecnológica",
+    "aiTitle": "Inteligencia Artificial",
+    "geopoliticsTab": "GEOPOLÍTICA",
+    "technologyTab": "TECNOLOGÍA",
+    "aiTab": "INTELIGENCIA ARTIFICIAL",
+    "aiTabShort": "IA"
   }
 }
