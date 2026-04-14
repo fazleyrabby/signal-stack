@@ -50,6 +50,15 @@ Integrated on April 14, 2026, this phase professionalizes the AI stream and geog
 *   **Triple-Column Grid**: Monitoring Geopolitics | Tech | AI simultaneously.
 *   **Global Footer**: Professional navigation integrated into **Trends** and **Admin** pages while preserving the minimal feed space.
 *   **Admin Layout**: Unified `AdminLayout` for consistent navigation across dashboard sub-pages.
+### IP Resilience & Security (Phase 6c)
+*   **MaxMind Integration**: Implemented `GeoIPService` to leverage self-hosted GeoLite2-City databases. IP data is now enriched with Country, City, Latitude, Longitude, and Timezone.
+*   **Passive Bot Detection**: Integrated heuristics into the `VisitorsService` to automatically flag bots based on User-Agent patterns ("bot", "curl", "crawler") and anomalous request volume (>100 page views).
+*   **Performance Optimization**: MaxMind binary databases are loaded once into memory on startup (singleton) to ensure sub-millisecond lookups. Enrichment tasks occur asynchronously after the visitor is tracked to prevent any latency in the main request flow.
+*   **Infrastructure Security**: 
+    *   Added dedicated `geoip` service for automated map database updates.
+    *   Enforced **Read-Only** volume mounting for database binaries in the application container.
+    *   Updated `.gitignore` and security configurations to prevent sensitive license keys and binary files from reaching version control.
+
 
 
 ---
