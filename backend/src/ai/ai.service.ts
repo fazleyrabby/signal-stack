@@ -36,13 +36,13 @@ export class AIService {
         // 1. Try Groq (Fast & Cheap)
         if (!this.isCooldown('groq')) {
           const res = await this.groq.complete(prompt, systemPrompt);
-          if (res) response = res.content;
+          if (res) response = res;
         }
         
         // 2. Fallback to OpenRouter (Reliable)
         if (!response && !this.isCooldown('openrouter')) {
           const res = await this.openRouter.complete(prompt, systemPrompt);
-          if (res) response = res.content;
+          if (res) response = res;
         }
       } else if (this.configService.get<string>('LOCAL_AI_ENABLED') === 'true') {
         response = await this.local.summarize('Translation Request', prompt);
