@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR, { mutate } from "swr";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Edit2, Plus, Rss, ArrowLeft, Loader2, Activity, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => r.json());
+const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
+  if (!r.ok) throw new Error("Unauthorized");
+  return r.json();
+});
 
 interface Source {
   id: string;
@@ -32,9 +36,16 @@ interface Category {
 }
 
 export default function SourcesAdmin() {
-  const { data: sources, isLoading: sourcesLoading } = useSWR<Source[]>(`${API_BASE}/api/admin/sources`, fetcher);
+  const router = useRouter();
+  const { data: sources, isLoading: sourcesLoading, error: sourcesError } = useSWR<Source[]>(`${API_BASE}/api/admin/sources`, fetcher, { shouldRetryOnError: false });
   const { data: categories } = useSWR<Category[]>(`${API_BASE}/api/admin/categories`, fetcher);
   
+  useEffect(() => {
+    if (sourcesError) {
+      router.replace("/admin/login");
+    }
+  }, [sourcesError, router]);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);

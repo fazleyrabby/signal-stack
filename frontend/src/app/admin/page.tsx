@@ -13,7 +13,10 @@ import { cn } from "@/lib/utils";
 import { logoutAdmin } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => r.json());
+const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
+  if (!r.ok) throw new Error("Unauthorized or server error");
+  return r.json();
+});
 
 type ProviderHealth = {
   status: "healthy" | "unhealthy" | "no_api_key" | "disabled";
@@ -226,12 +229,19 @@ export default function AdminDashboard() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
   const [isSendingTestDigest, setIsSendingTestDigest] = useState(false);
+
   const { data: statsData, mutate: refreshStats } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
-  const { data: aiHealth, isValidating: aiLoading, mutate: refreshAI } = useSWR<AIHealth>(
+  const { data: aiHealth, isValidating: aiLoading, mutate: refreshAI, error: aiError } = useSWR<AIHealth>(
     `${API_BASE}/api/admin/ai/health`,
     fetcher,
-    { refreshInterval: 60000 }
+    { refreshInterval: 60000, shouldRetryOnError: false }
   );
+
+  useEffect(() => {
+    if (aiError) {
+      router.replace("/admin/login");
+    }
+  }, [aiError, router]);
   const { data: modelsData, mutate: refreshModels } = useSWR<ModelsResponse>(
     `${API_BASE}/api/admin/ai/models`,
     fetcher
@@ -365,11 +375,11 @@ export default function AdminDashboard() {
      { title: "Test Digest", description: "Send a test email digest of recent signals.", icon: Zap, onClick: handleTestDigest, loading: isSendingTestDigest, stat: "Ready" }
    ];
 
-  const healthyCount = aiHealth
-    ? [aiHealth.local, aiHealth.groq, aiHealth.openrouter].filter(p => p.status === "healthy").length
+  const healthyCount = aiHealth?.local
+    ? [aiHealth.local, aiHealth.groq, aiHealth.openrouter].filter(p => p?.status === "healthy").length
     : 0;
-  const totalProviders = aiHealth
-    ? [aiHealth.local, aiHealth.groq, aiHealth.openrouter].filter(p => p.status !== "disabled").length
+  const totalProviders = aiHealth?.local
+    ? [aiHealth.local, aiHealth.groq, aiHealth.openrouter].filter(p => p?.status !== "disabled").length
     : 0;
 
   return (

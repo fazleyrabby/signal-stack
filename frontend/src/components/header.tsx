@@ -124,7 +124,7 @@ export function Header({
             <Rss className="w-4 h-4 text-orange-400" />
           </a>
 
-          <LanguageSwitcher />
+          {params?.locale && <LanguageSwitcher />}
 
           <button
             onClick={toggleTheme}
