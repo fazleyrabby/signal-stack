@@ -150,7 +150,7 @@ export function GeoHeatmap() {
           projectionConfig={{ scale: 100, center: [0, 20] }}
           style={{ width: "100%", height: "280px" }}
         >
-          <ZoomableGroup zoom={1} center={[0, 20]}>
+          <ZoomableGroup scale={1} center={[0, 20]}>
             <Geographies geography={GEO_URL}>
               {({ geographies }) =>
                 geographies && geographies.length > 0 ? (
