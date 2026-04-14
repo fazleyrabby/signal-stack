@@ -272,6 +272,7 @@ export function Column({
   onToggleFocus,
   initialShowBookmarks = false,
   initialCountry,
+  onEmptyChange,
 }: {
   title: string;
   icon: LucideIcon;
