@@ -397,4 +397,11 @@ export class SignalsRepository {
       .filter((r) => r.country)
       .map((r) => ({ country: r.country!, count: r.count }));
   }
+
+  async updateTranslations(id: string, translations: any) {
+    await this.db
+      .update(signals)
+      .set({ translations })
+      .where(eq(signals.id, id));
+  }
 }

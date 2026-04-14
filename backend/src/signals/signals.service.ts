@@ -3,12 +3,14 @@ import { SignalsRepository } from './signals.repository';
 import { ScoredSignal } from '../common/types';
 import { logEvent } from '../common/logger';
 import { AIQueue } from '../ai/ai.queue';
+import { AIService } from '../ai/ai.service';
 
 @Injectable()
 export class SignalsService {
   constructor(
     private readonly repository: SignalsRepository,
     private readonly aiQueue: AIQueue,
+    private readonly aiService: AIService,
   ) {}
 
   /**
@@ -72,6 +74,7 @@ export class SignalsService {
     search?: string;
     sort?: string;
     order?: string;
+    lang?: string;
   }) {
     const page = Math.max(1, params.page || 1);
     const limit = Math.min(100, Math.max(1, params.limit || 20));
@@ -85,7 +88,7 @@ export class SignalsService {
       }
     }
 
-    const { data, total } = await this.repository.findAll({
+    const { data: rawData, total } = await this.repository.findAll({
       page,
       limit,
       severity: params.severity,
@@ -97,6 +100,29 @@ export class SignalsService {
       sort: params.sort,
       order,
     });
+
+    // Localize results
+    const lang = params.lang || 'en';
+    const data = await Promise.all(rawData.map(async (signal) => {
+      if (lang === 'en' || !signal.aiSummary) return signal;
+      
+      const translations = (signal.translations || {}) as Record<string, { title: string; aiSummary: string }>;
+      
+      if (translations[lang]) {
+        return { ...signal, title: translations[lang].title, aiSummary: translations[lang].aiSummary };
+      }
+
+      // On-demand AI translation
+      const translated = await this.aiService.translate(signal.title, signal.aiSummary, lang);
+      if (translated) {
+        // Background update DB (don't wait)
+        translations[lang] = translated;
+        this.repository.updateTranslations(signal.id, translations);
+        return { ...signal, title: translated.title, aiSummary: translated.aiSummary };
+      }
+      
+      return signal; // Fallback to English
+    }));
 
     return {
       data,

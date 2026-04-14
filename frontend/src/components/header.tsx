@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useSearch } from "@/context/SearchContext";
 
+import { LanguageSwitcher } from "./LanguageSwitcher";
+
 type Theme = "light" | "dark";
 
 interface HeaderProps {
@@ -118,6 +120,8 @@ export function Header({
           >
             <Rss className="w-4 h-4 text-orange-400" />
           </a>
+
+          <LanguageSwitcher />
 
           <button
             onClick={toggleTheme}
