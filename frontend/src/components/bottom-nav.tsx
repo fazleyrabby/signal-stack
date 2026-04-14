@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { Link as LocaleLink, usePathname } from "@/navigation";
+import { useSearchParams } from "next/navigation";
 import { Home, BarChart3, Bookmark, Shield, Search as SearchIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearch } from "@/context/SearchContext";
@@ -92,7 +93,7 @@ export function BottomNav() {
             const Icon = tab.icon;
             const active = tab.isActive(pathname, bookmarksOnly);
             return (
-              <Link
+              <LocaleLink
                 key={tab.id}
                 href={tab.href}
                 className="relative flex flex-col items-center justify-center gap-1 transition-colors duration-200"
@@ -101,7 +102,7 @@ export function BottomNav() {
                 <span className={cn("text-[9px] font-bold uppercase tracking-wider", active ? "text-primary" : "text-muted-foreground/60")}>
                   {tab.label}
                 </span>
-              </Link>
+              </LocaleLink>
             );
           })}
 
@@ -124,8 +125,10 @@ export function BottomNav() {
           {mainTabs.slice(2).map((tab) => {
             const Icon = tab.icon;
             const active = tab.isActive(pathname, bookmarksOnly);
+            const isAdmin = tab.id === "admin";
+            const LinkComp = isAdmin ? Link : LocaleLink;
             return (
-              <Link
+              <LinkComp
                 key={tab.id}
                 href={tab.href}
                 className="relative flex flex-col items-center justify-center gap-1 transition-colors duration-200"
@@ -134,7 +137,7 @@ export function BottomNav() {
                 <span className={cn("text-[8px] font-bold uppercase tracking-wider", active ? "text-primary" : "text-muted-foreground/60")}>
                   {tab.label}
                 </span>
-              </Link>
+              </LinkComp>
             );
           })}
         </div>
