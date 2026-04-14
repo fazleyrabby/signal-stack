@@ -4,9 +4,9 @@ services:
     container_name: signalstack-db
     restart: always
     environment:
-      POSTGRES_DB: signalstack
-      POSTGRES_USER: signal
-      POSTGRES_PASSWORD: signal
+      POSTGRES_DB: ${DB_NAME:-signalstack}
+      POSTGRES_USER: ${DB_USER:-signal}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-signal}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -49,7 +49,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: "postgresql://signal:signal@postgres:5432/signalstack"
+      DATABASE_URL: "postgresql://${DB_USER:-signal}:${DB_PASSWORD:-signal}@postgres:5432/${DB_NAME:-signalstack}"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
       JWT_SECRET: ${JWT_SECRET}
