@@ -283,6 +283,7 @@ export function Column({
   onToggleFocus?: () => void;
   initialShowBookmarks?: boolean;
   initialCountry?: string;
+  onEmptyChange?: (isEmpty: boolean) => void;
 }) {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState('all');
@@ -348,6 +349,13 @@ export function Column({
   const signals = response?.data ?? [];
   const hasMore = signals.length === PAGE_SIZE * page;
   const sources = sourcesData ?? [];
+
+  // Report emptiness to parent for smart hiding
+  useEffect(() => {
+    if (!isLoading && onEmptyChange) {
+      onEmptyChange(signals.length === 0);
+    }
+  }, [signals.length, isLoading, onEmptyChange]);
 
   const handleScroll = useCallback(() => {
     if (scrollRef.current) {

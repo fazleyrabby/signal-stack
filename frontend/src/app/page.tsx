@@ -55,6 +55,7 @@ function SignalsDashboardContent({
   const [showTechnology, setShowTechnology] = useState(true);
   const [showAi, setShowAi] = useState(true);
   const [focusedColumn, setFocusedColumn] = useState<'geopolitics' | 'technology' | 'ai' | null>(null);
+  const [emptyColumns, setEmptyColumns] = useState<Record<string, boolean>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load persistence from localStorage
@@ -133,9 +134,15 @@ function SignalsDashboardContent({
     setShowAi(!showAi);
   };
 
+  const handleEmptyChange = (id: string, isEmpty: boolean) => {
+    setEmptyColumns(prev => ({ ...prev, [id]: isEmpty }));
+  };
+
   const handleToggleFocus = (col: 'geopolitics' | 'technology' | 'ai') => {
     setFocusedColumn(prev => prev === col ? null : col);
   };
+
+  const isFiltering = !!(countryFromQuery || searchQuery);
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden relative">
@@ -222,7 +229,8 @@ function SignalsDashboardContent({
               {showGeopolitics && (
                 <div className={cn(
                   "h-full transition-all duration-500 min-w-[380px]",
-                  focusedColumn === 'geopolitics' ? "flex-[2.5]" : focusedColumn ? "flex-1 opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "flex-1"
+                  focusedColumn === 'geopolitics' ? "flex-[2.5]" : focusedColumn ? "flex-1 opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "flex-1",
+                  (isFiltering && emptyColumns['geopolitics']) && "hidden"
                 )}>
                   <Column
                     title="World Geopolitics"
@@ -235,13 +243,15 @@ function SignalsDashboardContent({
                     onToggleFocus={() => handleToggleFocus('geopolitics')}
                     initialShowBookmarks={showBookmarksFromQuery}
                     initialCountry={countryFromQuery || undefined}
+                    onEmptyChange={(empty) => handleEmptyChange('geopolitics', empty)}
                   />
                 </div>
               )}
               {showTechnology && (
                 <div className={cn(
                   "h-full transition-all duration-500 min-w-[380px]",
-                  focusedColumn === 'technology' ? "flex-[2.5]" : focusedColumn ? "flex-1 opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "flex-1"
+                  focusedColumn === 'technology' ? "flex-[2.5]" : focusedColumn ? "flex-1 opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "flex-1",
+                  (isFiltering && emptyColumns['technology']) && "hidden"
                 )}>
                   <Column
                     title="Technology Intelligence"
@@ -254,13 +264,15 @@ function SignalsDashboardContent({
                     onToggleFocus={() => handleToggleFocus('technology')}
                     initialShowBookmarks={showBookmarksFromQuery}
                     initialCountry={countryFromQuery || undefined}
+                    onEmptyChange={(empty) => handleEmptyChange('technology', empty)}
                   />
                 </div>
               )}
               {showAi && (
                 <div className={cn(
                   "h-full transition-all duration-500 min-w-[380px]",
-                  focusedColumn === 'ai' ? "flex-[2.5]" : focusedColumn ? "flex-1 opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "flex-1"
+                  focusedColumn === 'ai' ? "flex-[2.5]" : focusedColumn ? "flex-1 opacity-40 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "flex-1",
+                  (isFiltering && emptyColumns['ai']) && "hidden"
                 )}>
                   <Column
                     title="Artificial Intelligence"
@@ -273,6 +285,7 @@ function SignalsDashboardContent({
                     onToggleFocus={() => handleToggleFocus('ai')}
                     initialShowBookmarks={showBookmarksFromQuery}
                     initialCountry={countryFromQuery || undefined}
+                    onEmptyChange={(empty) => handleEmptyChange('ai', empty)}
                   />
                 </div>
               )}
@@ -286,7 +299,8 @@ function SignalsDashboardContent({
                     "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
                     mobileTab === 'geopolitics'
                       ? "bg-violet-600 text-white shadow-lg"
-                      : "text-muted-foreground"
+                      : "text-muted-foreground",
+                    (isFiltering && emptyColumns['geopolitics']) && "hidden"
                   )}
                 >
                   <Globe2 className="w-3.5 h-3.5" />
@@ -298,7 +312,8 @@ function SignalsDashboardContent({
                     "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
                     mobileTab === 'technology'
                       ? "bg-indigo-500 text-white shadow-lg"
-                      : "text-muted-foreground"
+                      : "text-muted-foreground",
+                    (isFiltering && emptyColumns['technology']) && "hidden"
                   )}
                 >
                   <Cpu className="w-3.5 h-3.5" />
@@ -310,7 +325,8 @@ function SignalsDashboardContent({
                     "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black tracking-widest transition-all",
                     mobileTab === 'ai'
                       ? "bg-emerald-600 text-white shadow-lg"
-                      : "text-muted-foreground"
+                      : "text-muted-foreground",
+                    (isFiltering && emptyColumns['ai']) && "hidden"
                   )}
                 >
                   <BrainCircuit className="w-3.5 h-3.5" />
