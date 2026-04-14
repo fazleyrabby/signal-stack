@@ -8,7 +8,9 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  doublePrecision,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 export const categories = pgTable('categories', {
   slug: varchar('slug', { length: 50 }).primaryKey(),
@@ -93,19 +95,33 @@ export const settings = pgTable('settings', {
     .defaultNow(),
 });
 
-export const visitors = pgTable('visitors', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  sessionId: varchar('session_id', { length: 64 }).notNull().unique(),
-  ip: varchar('ip', { length: 45 }),
-  userAgent: text('user_agent'),
-  firstSeen: timestamp('first_seen', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  lastSeen: timestamp('last_seen', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  pageViews: integer('page_views').notNull().default(1),
-});
+export const visitors = pgTable(
+  'visitors',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: varchar('session_id', { length: 64 }).notNull().unique(),
+    ip: varchar('ip', { length: 45 }),
+    userAgent: text('user_agent'),
+    firstSeen: timestamp('first_seen', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeen: timestamp('last_seen', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    pageViews: integer('page_views').notNull().default(1),
+    country: text('country'),
+    city: text('city'),
+    latitude: doublePrecision('latitude'),
+    longitude: doublePrecision('longitude'),
+    timezone: text('timezone'),
+    isp: text('isp'),
+    isBot: boolean('is_bot').notNull().default(false),
+  },
+  (table) => ({
+    ipIdx: index('idx_visitors_ip').on(table.ip),
+    countryIdx: index('idx_visitors_country').on(table.country),
+  }),
+);
 
 export const bookmarks = pgTable(
   'bookmarks',

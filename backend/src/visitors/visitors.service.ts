@@ -1,16 +1,20 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 import { visitors } from '../database/schema';
-import { eq, sql, and, gte, lt } from 'drizzle-orm';
+import { eq, sql, and, gte } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
+import { GeoIPService } from '../modules/geoip/geoip.service';
 
 @Injectable()
 export class VisitorsService {
+  private readonly logger = new Logger(VisitorsService.name);
+
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
     private readonly configService: ConfigService,
+    private readonly geoIpService: GeoIPService,
   ) {}
 
   async track(ip: string, userAgent: string | null, sessionId: string) {
@@ -22,14 +26,24 @@ export class VisitorsService {
       .limit(1);
 
     if (existing.length > 0) {
+      const visitor = existing[0];
+      const isBot = this.detectBot(userAgent, visitor.pageViews + 1);
+      
       await this.db
         .update(visitors)
         .set({
           lastSeen: now,
-          pageViews: existing[0].pageViews + 1,
+          pageViews: visitor.pageViews + 1,
+          isBot: visitor.isBot || isBot,
         })
         .where(eq(visitors.sessionId, sessionId));
+
+      // Trigger enrichment ONLY if missing
+      if (!visitor.country) {
+        this.enrichVisitor(sessionId, ip).catch(() => {});
+      }
     } else {
+      const isBot = this.detectBot(userAgent, 1);
       await this.db.insert(visitors).values({
         id: randomUUID(),
         sessionId,
@@ -38,7 +52,41 @@ export class VisitorsService {
         firstSeen: now,
         lastSeen: now,
         pageViews: 1,
+        isBot,
       });
+
+      // Enrich new visitor
+      this.enrichVisitor(sessionId, ip).catch(() => {});
+    }
+  }
+
+  private detectBot(userAgent: string | null, pageViews: number): boolean {
+    if (pageViews > 100) return true;
+    if (!userAgent) return false;
+    const ua = userAgent.toLowerCase();
+    return ['curl', 'bot', 'crawler', 'spider'].some(k => ua.includes(k));
+  }
+
+  private async enrichVisitor(sessionId: string, ip: string) {
+    try {
+      const geo = this.geoIpService.lookup(ip);
+      if (!geo) return;
+
+      await this.db
+        .update(visitors)
+        .set({
+          country: geo.country,
+          city: geo.city,
+          latitude: geo.latitude,
+          longitude: geo.longitude,
+          timezone: geo.timezone,
+        })
+        .where(and(
+          eq(visitors.sessionId, sessionId),
+          sql`${visitors.country} IS NULL`
+        ));
+    } catch (err) {
+      // Fail silently as per requirements
     }
   }
 

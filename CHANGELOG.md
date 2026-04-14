@@ -15,6 +15,10 @@ All notable changes to SignalStack will be documented in this file.
 - **Smart Tab Hiding**: Automatically hides empty columns during filtered views (country/search) to maximize relevance and screen real-estate.
 - **UX Reset Logic**: Dashboard now force-enables all category sections when a country is selected from the heatmap to prevent empty result screens.
 - **Mobile Map-to-Feed Sync**: Auto-switches to the most relevant tab (Geopolitics) when navigating from the map on mobile devices.
+- **IP Intelligence & Enrichment**: Integrated MaxMind GeoLite2 for automated visitor geolocation (Country, City, Lat/Long).
+- **Passive Bot Detection**: Implemented heuristics to identify and flag crawlers/bots (User-Agent string matching + request volume monitoring).
+- **Security Hardening**: Dockerized automated GeoIP updates and enforced read-only volume mounting for sensitive map databases.
+- **Async Enrichment Pipeline**: Implemented non-blocking ingestion for IP data to ensure zero latency impact on visitor tracking.
 
 ### Fixed
 - **Geographic Projection**: Switched to `geoEqualEarth` and stabilized with `world-atlas` TopoJSON to resolve map distortion.

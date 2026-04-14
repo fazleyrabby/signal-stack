@@ -72,3 +72,6 @@ report.md
 models/
 !models/.gitkeep
 .opencode-ignore
+
+# --- GeoIP ---
+/geoip/
