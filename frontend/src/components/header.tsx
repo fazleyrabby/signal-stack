@@ -16,8 +16,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useSearch } from "@/context/SearchContext";
 
-import { useRouter } from "next/navigation";
-
 type Theme = "light" | "dark";
 
 interface HeaderProps {
@@ -37,7 +35,6 @@ export function Header({
   onToggleControls,
   visitorCount
 }: HeaderProps) {
-  const router = useRouter();
   const { searchQuery, setSearchQuery } = useSearch();
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
@@ -58,11 +55,11 @@ export function Header({
   };
 
   if (!mounted) return (
-    <header className="sticky top-0 z-[100] border-b border-border/10 bg-background/80 backdrop-blur-md h-11" />
+    <header className="sticky top-0 z-50 border-b border-border/10 bg-background/80 backdrop-blur-md h-11" />
   );
 
   return (
-    <header className="sticky top-0 z-[100] border-b border-border/10 bg-background/80 backdrop-blur-md h-11 transition-colors duration-500">
+    <header className="sticky top-0 z-50 border-b border-border/10 bg-background/80 backdrop-blur-md h-11 transition-colors duration-500">
       <div className={cn(
         "mx-auto px-3 sm:px-4 h-full flex items-center justify-between gap-6 transition-all duration-500 ease-in-out",
         isFullWidth ? "max-w-full" : "max-w-[1400px]"
@@ -103,7 +100,7 @@ export function Header({
             )}
         </div>
 
-        <div className="flex items-center gap-4 shrink-0 relative z-[60]">
+        <div className="flex items-center gap-4 shrink-0">
           <Link
             href="/trends"
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm cursor-pointer"

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Suspense } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import {
@@ -117,7 +116,8 @@ function SignalsDashboardContent({
     }
   }, [countryFromQuery]);
 
-  const stats = statsResponse || { total: 0, high: 0, low: 0, last24h: 0, topSource: 'Scanning...' };
+  const stats = useMemo(() => statsResponse || { total: 0, high: 0, low: 0, last24h: 0, topSource: 'Scanning...' }, [statsResponse]);
+  const visitorCount = useMemo(() => visitorData?.realtime, [visitorData]);
 
   const toggleGeopolitics = () => {
     if (showGeopolitics && !showTechnology && !showAi) return; // Prevent hiding all
@@ -134,13 +134,16 @@ function SignalsDashboardContent({
     setShowAi(!showAi);
   };
 
-  const handleEmptyChange = (id: string, isEmpty: boolean) => {
-    setEmptyColumns(prev => ({ ...prev, [id]: isEmpty }));
-  };
+  const handleEmptyChange = useCallback((id: string, isEmpty: boolean) => {
+    setEmptyColumns(prev => {
+      if (prev[id] === isEmpty) return prev;
+      return { ...prev, [id]: isEmpty };
+    });
+  }, []);
 
-  const handleToggleFocus = (col: 'geopolitics' | 'technology' | 'ai') => {
+  const handleToggleFocus = useCallback((col: 'geopolitics' | 'technology' | 'ai') => {
     setFocusedColumn(prev => prev === col ? null : col);
-  };
+  }, []);
 
   const isFiltering = !!(countryFromQuery || searchQuery);
 
