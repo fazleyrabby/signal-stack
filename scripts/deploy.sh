@@ -41,8 +41,9 @@ rollback() {
     docker compose -f "$COMPOSE_FILE" up -d --no-build app frontend 2>/dev/null || true
     warn "Rolled back — verify with: docker compose -f $COMPOSE_FILE ps"
   else
-    warn "No rollback snapshots found — manual recovery required"
-    warn "Check available images with: docker images | grep signalstack"
+    warn "No rollback snapshots — this was a first deploy"
+    warn "Nothing to restore. Fix the issue and run: ./scripts/deploy.sh"
+    warn "To see what images exist: docker images | grep signal-stack"
   fi
   exit 1
 }
