@@ -133,7 +133,7 @@ wait_http() {
 }
 
 wait_http "Backend API" "http://localhost:3000/api/health"
-wait_http "Frontend"    "http://localhost:3001/"
+wait_http "Frontend"    "http://localhost:3001/en"
 
 # 10. Container status
 info "Container status:"
