@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback, useEffect, useLayoutEffect } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import useSWR, { MutatorOptions, mutate } from "swr";
 import {
   LayoutGrid,
@@ -80,7 +81,7 @@ function ColumnControlBar({
   ];
 
   return (
-    <div className="relative z-[60]">
+    <div className="relative z-10">
       <div className="flex items-center gap-1.5 p-1 bg-card/30 border border-border/5 rounded-lg">
         <div className="flex items-center gap-0.5">
           {['all', 'high', 'medium', 'low'].map((f) => (
@@ -153,7 +154,7 @@ function ColumnControlBar({
 
       {(showSourceDropdown || showSortDropdown) && (
         <div
-          className="fixed inset-0 z-[99]"
+          className="fixed inset-0 z-20"
           onClick={() => { setShowSourceDropdown(false); setShowSortDropdown(false); }}
         />
       )}
@@ -185,7 +186,7 @@ function SourceDropdown({
 
   return (
     <div
-      className="absolute bg-popover border border-border/40 rounded-lg shadow-xl z-[100] w-48 max-h-60 overflow-y-auto overscroll-contain"
+      className="absolute bg-popover border border-border/40 rounded-lg shadow-xl z-30 w-48 max-h-60 overflow-y-auto overscroll-contain"
       style={{ top: pos.top, left: pos.left }}
     >
       <button
@@ -243,7 +244,7 @@ function SortDropdown({
 
   return (
     <div
-      className="absolute bg-popover border border-border/40 rounded-lg shadow-xl z-[100] w-40"
+      className="absolute bg-popover border border-border/40 rounded-lg shadow-xl z-30 w-40"
       style={{ top: pos.top, left: pos.left }}
     >
       {sortOptions.map((s) => (
@@ -261,8 +262,6 @@ function SortDropdown({
     </div>
   );
 }
-
-import { useLocale, useTranslations } from "next-intl";
 
 export function Column({
   title,

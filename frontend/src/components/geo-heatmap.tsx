@@ -200,10 +200,10 @@ export function GeoHeatmap() {
 
         {tooltip && tooltip.count > 0 && (
           <div
-            className="absolute z-50 bg-popover/95 border border-border rounded-md shadow-xl p-2.5 text-xs pointer-events-none backdrop-blur-md"
+            className="fixed z-[100] bg-popover/95 border border-border rounded-md shadow-xl p-2.5 text-xs pointer-events-none backdrop-blur-md"
             style={{
-              left: Math.min(tooltip.x, window.innerWidth - 180),
-              top: tooltip.y - 80,
+              left: Math.min(tooltip.x + 10, window.innerWidth - 180),
+              top: tooltip.y - 40,
             }}
           >
             <p className="font-bold text-popover-foreground">{tooltip.name}</p>

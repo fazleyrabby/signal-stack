@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, Check, Users, Languages } from "lucide-react";
+import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, Check, Users, Languages, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
@@ -223,6 +223,13 @@ function SearchableModelSelect({
   );
 }
 
+type MetricsResponse = {
+  translation: { enqueued: number; completed: number; failed: number; latency: number };
+  aiSummary: { enqueued: number; completed: number; failed: number; latency: number };
+  cache: { hits: number; misses: number; hitRatio: number };
+  queue: { translationDepth: number; aiSummaryDepth: number };
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -234,6 +241,11 @@ export default function AdminDashboard() {
     `${API_BASE}/api/admin/ai/health`,
     fetcher,
     { refreshInterval: 60000, shouldRetryOnError: false }
+  );
+  const { data: metrics, mutate: refreshMetrics } = useSWR<MetricsResponse>(
+    `${API_BASE}/api/admin/metrics`,
+    fetcher,
+    { refreshInterval: 30000 }
   );
 
   useEffect(() => {
@@ -368,7 +380,8 @@ export default function AdminDashboard() {
   };
 
    const modules = [
-     { title: "News Sources", description: "Manage intelligence telemetry feeds.", icon: Rss, href: "/admin/sources", variant: "default" as const, stat: statsData?.topSource || "Connecting..." },
+     { title: "Manage Signals", description: "Review and translate intelligence signals.", icon: Activity, href: "/admin/signals", variant: "default" as const, stat: statsData?.total?.toLocaleString() || "Connecting..." },
+     { title: "News Sources", description: "Manage intelligence telemetry feeds.", icon: Rss, href: "/admin/sources", variant: "secondary" as const, stat: statsData?.topSource || "Connecting..." },
      { title: "Signal Categories", description: "Tune classification & routing logic.", icon: Layers, href: "/admin/categories", variant: "secondary" as const, stat: "Active" },
      { title: "Database Backup", description: "Create a full corpus security snapshot.", icon: ShieldCheck, onClick: handleBackup, loading: isBackingUp, stat: "Ready" },
      { title: "Test Digest", description: "Send a test email digest of recent signals.", icon: Zap, onClick: handleTestDigest, loading: isSendingTestDigest, stat: "Ready" }
@@ -612,36 +625,176 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Module Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {modules.map((module) => (
-            <Card key={module.title} className="bg-card border-border shadow-sm hover:border-primary/40 transition-all duration-500 overflow-hidden group rounded-lg">
-              <CardHeader className="pb-4">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <module.icon className="w-5 h-5 text-primary" />
+        {/* Translation & Cache Metrics */}
+        {metrics && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Languages className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold tracking-tight uppercase text-foreground">Worker Intelligence</h2>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  Queues & Translation Pipeline Status
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <StatCard
+                label="Translation Depth"
+                value={metrics.queue.translationDepth}
+                icon={<Activity className="w-4 h-4 text-blue-400" />}
+                accent="bg-blue-500/10"
+              />
+              <StatCard
+                label="AI Queue Depth"
+                value={metrics.queue.aiSummaryDepth}
+                icon={<Activity className="w-4 h-4 text-violet-400" />}
+                accent="bg-violet-500/10"
+              />
+              <StatCard
+                label="Cache Hit Ratio"
+                value={`${(metrics.cache.hitRatio * 100).toFixed(1)}%`}
+                icon={<Zap className="w-4 h-4 text-emerald-400" />}
+                accent="bg-emerald-500/10"
+              />
+              <StatCard
+                label="Translation Latency"
+                value={`${metrics.translation.latency.toFixed(0)}ms`}
+                icon={<Clock className="w-4 h-4 text-amber-400" />}
+                accent="bg-amber-500/10"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Translation Success</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-emerald-500">{metrics.translation.completed}</span>
+                    <span className="text-[10px] text-muted-foreground">processed</span>
+                  </div>
                 </div>
-                <CardTitle className="text-lg font-bold tracking-tight uppercase text-foreground">{module.title}</CardTitle>
-                <CardDescription className="text-xs text-muted-foreground font-medium">{module.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-[10px] font-sans py-2.5 px-3 rounded-md bg-secondary/50 border border-border/40 flex items-center justify-between">
-                  <span className="text-muted-foreground uppercase font-black">Status</span>
-                  <span className="font-bold text-foreground">{module.stat.toUpperCase()}</span>
+                {metrics.translation.failed > 0 && (
+                  <div className="text-right">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-red-500 mb-1">Failures</div>
+                    <div className="text-xl font-black text-red-500">{metrics.translation.failed}</div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">AI Summaries</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-violet-500">{metrics.aiSummary.completed}</span>
+                    <span className="text-[10px] text-muted-foreground">analyzed</span>
+                  </div>
                 </div>
+                {metrics.aiSummary.failed > 0 && (
+                  <div className="text-right">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-red-500 mb-1">Failures</div>
+                    <div className="text-xl font-black text-red-500">{metrics.aiSummary.failed}</div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Cache Performance</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-emerald-500">{metrics.cache.hits}</span>
+                    <span className="text-[10px] text-muted-foreground">hits</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Misses</div>
+                  <div className="text-xl font-black text-foreground">{metrics.cache.misses}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Navigation Menu */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Layers className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold tracking-tight uppercase text-foreground">Control Center</h2>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                System Management & Routing
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {modules.map((module) => (
+              <div 
+                key={module.title}
+                className="group flex flex-col p-4 rounded-xl bg-card/30 border border-border/50 hover:border-primary/40 transition-all duration-300 backdrop-blur-sm"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <module.icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/50 mb-0.5">Status</div>
+                    <div className="text-[10px] font-bold text-foreground font-mono">{module.stat.toUpperCase()}</div>
+                  </div>
+                </div>
+                
+                <div className="mb-4">
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-tight">{module.title}</h3>
+                  <p className="text-[10px] text-muted-foreground line-clamp-1">{module.description}</p>
+                </div>
+
                 {"onClick" in module ? (
-                  <Button onClick={module.onClick} disabled={module.loading} className="w-full h-10 text-[9px] font-black tracking-widest uppercase rounded-lg">
-                    {module.loading ? "Processing..." : `Run ${module.title}`}
+                  <Button 
+                    onClick={module.onClick} 
+                    disabled={module.loading} 
+                    size="sm"
+                    className="w-full h-8 text-[9px] font-black tracking-widest uppercase rounded-lg"
+                  >
+                    {module.loading ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : null}
+                    {module.loading ? "Processing" : `Execute ${module.title.split(' ').pop()}`}
                   </Button>
                 ) : (
-                  <Link href={module.href || "/"} className="block">
-                    <Button className="w-full h-10 text-[9px] font-black tracking-widest uppercase rounded-lg" variant={module.variant}>
-                      Access {module.title}
+                  <Link href={module.href || "/"} className="block w-full">
+                    <Button 
+                      size="sm"
+                      className="w-full h-8 text-[9px] font-black tracking-widest uppercase rounded-lg" 
+                      variant={module.variant}
+                    >
+                      Access {module.title.split(' ').pop()}
                     </Button>
                   </Link>
                 )}
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Global Admin Quick Access Sidebar-style Menu */}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:left-auto md:right-6 md:translate-x-0">
+          <div className="flex items-center gap-1 p-1 bg-background/80 backdrop-blur-xl border border-border/50 rounded-full shadow-2xl shadow-primary/20 ring-1 ring-white/10">
+            {modules.filter(m => "href" in m).map((m) => (
+              <Link key={m.href} href={m.href || "#"} title={m.title}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all">
+                  <m.icon className="w-4 h-4" />
+                </div>
+              </Link>
+            ))}
+            <div className="w-px h-6 bg-border/50 mx-1" />
+            <button 
+              onClick={handleLogout}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:bg-red-400/10 transition-all"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </main>
     </>

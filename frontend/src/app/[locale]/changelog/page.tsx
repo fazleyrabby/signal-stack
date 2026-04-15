@@ -1,10 +1,49 @@
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
+"use client";
 
-const changelog = [
+import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { 
+  CheckCircle2, 
+  Circle, 
+  Clock, 
+  ChevronRight,
+  Zap,
+  Shield,
+  Layout,
+  Globe,
+  Database,
+  Code2,
+  Bug,
+  Trash2,
+  RefreshCw
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ChangelogEntry {
+  version: string;
+  date?: string;
+  sections: {
+    type: "Added" | "Changed" | "Fixed" | "Removed" | "Security";
+    items: string[];
+  }[];
+}
+
+const changelogData: ChangelogEntry[] = [
   {
     version: "Unreleased",
     sections: [
+      {
+        type: "Fixed",
+        items: [
+          "Frontend: Resolved SyntaxError in next.config.mjs by removing TypeScript type annotations from JavaScript file.",
+          "Frontend: Fixed dependency resolution tree conflicts between Next.js 16, React 19, and react-simple-maps using legacy-peer-deps.",
+          "Frontend: Resolved hydration mismatch in SignalsDashboard by moving localStorage-based state initialization to useEffect.",
+          "Frontend: Fixed GeoHeatmap tooltip positioning by switching from absolute to fixed coordinates for viewport-relative tracking.",
+          "Frontend: Refactored Column component imports and structure for improved maintainability.",
+          "Documentation: Updated STUDY_GUIDE.md and DOCS.md to reflect latest architecture and deployment workflows."
+        ]
+      },
       {
         type: "Added",
         items: [
@@ -111,59 +150,116 @@ const changelog = [
           "Docker Compose multi-container setup",
           "Signal scoring engine (keyword-based)",
           "Discord webhook alerts for high-impact signals",
-          "Database backup system (daily cron + manual trigger)",
         ],
       },
     ],
   },
 ];
 
+const typeIcons = {
+  Added: <Zap className="w-4 h-4 text-emerald-400" />,
+  Changed: <RefreshCw className="w-4 h-4 text-violet-400" />,
+  Fixed: <Bug className="w-4 h-4 text-amber-400" />,
+  Removed: <Trash2 className="w-4 h-4 text-red-400" />,
+  Security: <Shield className="w-4 h-4 text-cyan-400" />,
+};
+
+const typeColors = {
+  Added: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  Changed: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  Fixed: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  Removed: "bg-red-500/10 text-red-400 border-red-500/20",
+  Security: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+};
+
 export default function ChangelogPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header isRefreshing={false} showSearch={false} />
+    <div className="min-h-screen bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto space-y-12">
+        {/* Header */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+             <div className="p-2 rounded-xl bg-violet-600/20 border border-violet-500/30">
+               <Clock className="w-6 h-6 text-violet-400" />
+             </div>
+             <h1 className="text-3xl font-black tracking-tight uppercase">
+               System <span className="text-violet-500">Changelog</span>
+             </h1>
+          </div>
+          <p className="text-muted-foreground text-lg font-medium leading-relaxed max-w-2xl">
+            Protocol updates, architectural shifts, and intelligence pipeline refinements.
+          </p>
+        </div>
 
-      <div className="mx-auto max-w-3xl w-full px-4 sm:px-6 py-8 pb-16 md:pb-0">
-        <div className="space-y-10">
-          {changelog.map((release) => (
-            <div key={release.version} className="space-y-4">
-              <h2 className="text-lg font-black uppercase tracking-[0.2em] text-foreground border-b border-border/30 pb-2">
-                {release.version}
-              </h2>
-              <div className="space-y-6">
-                {release.sections.map((section) => (
-                  <div key={section.type} className="space-y-2">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                      {section.type}
-                    </h3>
-                    <ul className="space-y-1.5">
-                      {section.items.map((item, i) => {
-                        const [label, ...rest] = item.split(": ");
-                        return (
-                          <li key={i} className="flex gap-2 text-sm leading-relaxed">
-                            <span className="text-muted-foreground/40 shrink-0 mt-0.5">•</span>
-                            <span>
-                              {rest.length > 0 ? (
-                                <>
-                                  <span className="font-semibold text-foreground">{label}:</span>
-                                  <span className="text-muted-foreground"> {rest.join(": ")}</span>
-                                </>
-                              ) : (
-                                <span className="text-muted-foreground">{item}</span>
-                              )}
+        {/* Timeline */}
+        <div className="space-y-16 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-px before:bg-border/20">
+          {changelogData.map((entry, idx) => (
+            <div key={entry.version} className="relative pl-12 group">
+              {/* Dot */}
+              <div className={cn(
+                "absolute left-0 top-1 w-9 h-9 rounded-full border-4 border-background flex items-center justify-center transition-all duration-500",
+                idx === 0 ? "bg-violet-600 shadow-[0_0_15px_rgba(124,58,237,0.4)]" : "bg-muted border-border/20"
+              )}>
+                {idx === 0 ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Circle className="w-3 h-3 text-muted-foreground" />}
+              </div>
+
+              <div className="space-y-8">
+                {/* Version Title */}
+                <div className="flex flex-col gap-1">
+                  <h2 className={cn(
+                    "text-xl font-black tracking-tight uppercase",
+                    idx === 0 ? "text-violet-400" : "text-foreground/80"
+                  )}>
+                    {entry.version}
+                  </h2>
+                  {entry.date && (
+                    <span className="text-xs font-mono text-muted-foreground tracking-widest uppercase">
+                      Released: {entry.date}
+                    </span>
+                  )}
+                </div>
+
+                {/* Sections */}
+                <div className="grid gap-6">
+                  {entry.sections.map((section) => (
+                    <Card key={section.type} className="bg-card/30 border-border/10 overflow-hidden backdrop-blur-sm group-hover:bg-card/50 transition-colors">
+                      <div className="px-4 py-3 border-b border-border/10 flex items-center justify-between">
+                         <div className="flex items-center gap-2">
+                            {typeIcons[section.type]}
+                            <span className={cn(
+                              "text-[10px] font-black uppercase tracking-widest",
+                              typeColors[section.type].split(' ')[1]
+                            )}>
+                              {section.type}
                             </span>
+                         </div>
+                         <Badge variant="outline" className={cn("text-[9px] font-bold tracking-tighter uppercase", typeColors[section.type])}>
+                           {section.items.length} {section.items.length === 1 ? 'change' : 'changes'}
+                         </Badge>
+                      </div>
+                      <ul className="p-4 space-y-3">
+                        {section.items.map((item, i) => (
+                          <li key={i} className="flex gap-3 text-[13px] leading-relaxed text-muted-foreground group/item">
+                            <ChevronRight className="w-3.5 h-3.5 mt-0.5 shrink-0 text-violet-500/40 group-hover/item:text-violet-500 transition-colors" />
+                            <span className="group-hover/item:text-foreground transition-colors">{item}</span>
                           </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))}
+                        ))}
+                      </ul>
+                    </Card>
+                  ))}
+                </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Footer info */}
+        <div className="pt-12 border-t border-border/10 text-center">
+          <p className="text-xs font-mono text-muted-foreground/40 uppercase tracking-[0.3em]">
+            End of Record // Protocol Stable
+          </p>
+        </div>
       </div>
-      <Footer />
     </div>
   );
 }

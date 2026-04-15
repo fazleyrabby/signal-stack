@@ -46,9 +46,7 @@ function SignalsDashboardContent({
   const { searchQuery, setSearchQuery } = useSearch();
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
   const [isFullWidth, setIsFullWidth] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'geopolitics' | 'technology' | 'ai'>(
-    () => (typeof window !== 'undefined' && localStorage.getItem('signalstack_mobile_tab') as 'geopolitics' | 'technology' | 'ai') || 'geopolitics'
-  );
+  const [mobileTab, setMobileTab] = useState<'geopolitics' | 'technology' | 'ai'>('geopolitics');
   const [showControls, setShowControls] = useState(false);
   
   // Section visibility states
@@ -64,10 +62,14 @@ function SignalsDashboardContent({
     const savedGeo = localStorage.getItem("signalstack_show_geopolitics");
     const savedTech = localStorage.getItem("signalstack_show_technology");
     const savedAi = localStorage.getItem("signalstack_show_ai");
+    const savedMobileTab = localStorage.getItem('signalstack_mobile_tab') as 'geopolitics' | 'technology' | 'ai';
     
     if (savedGeo !== null) setShowGeopolitics(savedGeo === "true");
     if (savedTech !== null) setShowTechnology(savedTech === "true");
     if (savedAi !== null) setShowAi(savedAi === "true");
+    if (savedMobileTab !== null && ['geopolitics', 'technology', 'ai'].includes(savedMobileTab)) {
+      setMobileTab(savedMobileTab);
+    }
     
     // Check if controls were previously shown
     const savedControls = localStorage.getItem("signalstack_show_controls");

@@ -4,6 +4,17 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-16] — Frontend Stability & Dependency Fixes
+
+### Fixed
+- **Next.js Config**: Resolved `SyntaxError` in `next.config.mjs` by removing TypeScript type annotations that were accidentally included in the ES module file.
+- **Dependency Conflicts**: Fixed a major peer dependency resolution failure between `Next.js 16`, `React 19`, and `react-simple-maps` using `--legacy-peer-deps`.
+- **Hydration Mismatch**: Fixed a critical hydration error in the main dashboard where `mobileTab` state was being initialized from `localStorage` during the initial server-render/hydration phase.
+- **Tooltip Positioning**: Corrected Geographic Heatmap tooltip positioning by switching to `fixed` coordinates, ensuring it tracks the mouse accurately regardless of viewport scrolling.
+- **Code Structure**: Reorganized `Column.tsx` imports and removed redundant definitions for better maintainability.
+
+---
+
 ## [2026-04-15] — Admin Security & Analytics Enhancement
 
 ### Added
