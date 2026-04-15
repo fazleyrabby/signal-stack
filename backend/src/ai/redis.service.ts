@@ -149,6 +149,37 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  // --- Sorted Set Queue Primitives ---
+
+  async zadd(key: string, score: number, member: string): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    return this.client.zadd(key, score, member);
+  }
+
+  async zpopmin(key: string): Promise<[string, string] | null> {
+    if (!this.client || this.client.status !== 'ready') return null;
+    const result = await this.client.zpopmin(key, 1);
+    if (!result || result.length < 2) return null;
+    return [result[0], result[1]];
+  }
+
+  async zcard(key: string): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    return this.client.zcard(key);
+  }
+
+  async zrem(key: string, member: string): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    return this.client.zrem(key, member);
+  }
+
+  async extendLock(key: string, ttl: number): Promise<boolean> {
+    if (!this.client || this.client.status !== 'ready') return false;
+    // EXPIRE returns 1 if key exists and TTL was set, 0 if key does not exist
+    const result = await this.client.expire(key, ttl);
+    return result === 1;
+  }
+
   private async sumAllKeys(pattern: string): Promise<number> {
     if (!this.client) return 0;
     let cursor = '0';

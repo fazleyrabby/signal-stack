@@ -9,6 +9,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { LogsController } from './logs.controller';
 import { AdminSourcesController } from './sources.controller';
+import { AdminSignalsController } from './admin-signals.controller';
 
 @Module({
   imports: [DatabaseModule, AIModule, FeedModule, forwardRef(() => AlertsModule)],
@@ -18,6 +19,7 @@ import { AdminSourcesController } from './sources.controller';
     AuthController,
     LogsController,
     AdminSourcesController,
+    AdminSignalsController,
   ],
   exports: [AdminService, AuthService],
 })

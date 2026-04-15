@@ -52,6 +52,8 @@ export class SignalsRepository {
     sort?: string;
     order?: 'asc' | 'desc';
     minScore?: number;
+    hasTranslation?: boolean;
+    translationLang?: string;
   }): Promise<{ data: Signal[]; total: number }> {
     const {
       page,
@@ -65,6 +67,8 @@ export class SignalsRepository {
       sort = 'created_at',
       order = 'desc',
       minScore,
+      hasTranslation,
+      translationLang,
     } = params;
     const offset = (page - 1) * limit;
 
@@ -98,6 +102,14 @@ export class SignalsRepository {
     }
     if (minScore !== undefined) {
       conditions.push(gte(signals.score, minScore));
+    }
+    if (hasTranslation === true) {
+      conditions.push(sql`translations IS NOT NULL AND translations != '{}'::jsonb`);
+    } else if (hasTranslation === false) {
+      conditions.push(sql`(translations IS NULL OR translations = '{}'::jsonb)`);
+    }
+    if (translationLang) {
+      conditions.push(sql`translations ? ${translationLang}`);
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -410,5 +422,30 @@ export class SignalsRepository {
       .update(signals)
       .set({ translations })
       .where(eq(signals.id, id));
+  }
+
+  async setTranslation(
+    id: string,
+    lang: string,
+    data: { title: string; aiSummary: string; v: number },
+  ): Promise<void> {
+    await this.db.execute(sql`
+      UPDATE signals
+      SET translations = jsonb_set(
+        COALESCE(translations, '{}'),
+        ${`{${lang}}`},
+        ${JSON.stringify(data)}::jsonb
+      )
+      WHERE id = ${id}
+    `);
+  }
+
+  async findById(id: string): Promise<Signal | null> {
+    const [result] = await this.db
+      .select()
+      .from(signals)
+      .where(eq(signals.id, id))
+      .limit(1);
+    return result || null;
   }
 }

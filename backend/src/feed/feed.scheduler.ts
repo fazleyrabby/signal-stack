@@ -1,9 +1,10 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { eq, inArray, lt, notExists, sql } from 'drizzle-orm';
+import { eq, inArray, lt, notExists, sql, and, gte, or } from 'drizzle-orm';
 import { FeedService } from './feed.service';
 import { SignalsService } from '../signals/signals.service';
 import { DiscordService } from '../alerts/discord.service';
+import { RedisService } from '../ai/redis.service';
 import { logEvent } from '../common/logger';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
@@ -13,12 +14,14 @@ import { bookmarks, signals } from '../database/schema';
 export class FeedScheduler implements OnModuleInit {
   private readonly alertCategories: Set<string>;
   private readonly signalRetentionDays: number;
+  private readonly highScoreRetentionDays: number;
 
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
     private readonly feedService: FeedService,
     private readonly signalsService: SignalsService,
     private readonly discordService: DiscordService,
+    private readonly redis: RedisService,
   ) {
     const categoriesFromEnv =
       process.env.DISCORD_ALERT_CATEGORIES
@@ -28,13 +31,20 @@ export class FeedScheduler implements OnModuleInit {
     this.alertCategories = new Set(categoriesFromEnv);
 
     const retentionDaysRaw = Number.parseInt(
-      process.env.SIGNAL_RETENTION_DAYS || '90',
+      process.env.SIGNAL_RETENTION_DAYS || '30',
       10,
     );
     this.signalRetentionDays =
       Number.isFinite(retentionDaysRaw) && retentionDaysRaw > 0
         ? retentionDaysRaw
-        : 90;
+        : 30;
+
+    const highScoreRaw = Number.parseInt(
+      process.env.HIGH_SCORE_RETENTION_DAYS || '90',
+      10,
+    );
+    this.highScoreRetentionDays =
+      Number.isFinite(highScoreRaw) && highScoreRaw > 0 ? highScoreRaw : 90;
   }
 
   async onModuleInit() {
@@ -124,26 +134,45 @@ export class FeedScheduler implements OnModuleInit {
     const cutoff = new Date(
       Date.now() - this.signalRetentionDays * 24 * 60 * 60 * 1000,
     );
+    const highScoreCutoff = new Date(
+      Date.now() - this.highScoreRetentionDays * 24 * 60 * 60 * 1000,
+    );
 
     try {
-      const oldSignalIds = await this.db
+      // Dual retention: low-score signals expire sooner, high-score signals kept longer
+      const expiredCondition = or(
+        and(lt(signals.createdAt, cutoff), sql`${signals.score} < 7`),
+        and(lt(signals.createdAt, highScoreCutoff), gte(signals.score, 7)),
+      );
+
+      const oldSignalRows = await this.db
         .select({ id: signals.id })
         .from(signals)
-        .where(lt(signals.createdAt, cutoff));
+        .where(expiredCondition);
+
+      const oldSignalIds = oldSignalRows.map((r) => r.id);
 
       let deletedBookmarksForOldSignals = 0;
       if (oldSignalIds.length > 0) {
         const deletedBookmarks = await this.db
           .delete(bookmarks)
-          .where(inArray(bookmarks.signalId, oldSignalIds.map((row) => row.id)))
+          .where(inArray(bookmarks.signalId, oldSignalIds))
           .returning({ id: bookmarks.id });
         deletedBookmarksForOldSignals = deletedBookmarks.length;
       }
 
       const deletedSignals = await this.db
         .delete(signals)
-        .where(lt(signals.createdAt, cutoff))
+        .where(expiredCondition)
         .returning({ id: signals.id });
+
+      // Invalidate Redis cache for deleted signals
+      for (const { id } of deletedSignals) {
+        for (const lang of ['en', 'es', 'bn', 'fr', 'de', 'ar', 'zh']) {
+          await this.redis.del(`sig_cache:${id}:${lang}`);
+        }
+        await this.redis.del(`ai:processed:${id}`);
+      }
 
       const deletedOrphanedBookmarks = await this.db
         .delete(bookmarks)
@@ -159,10 +188,13 @@ export class FeedScheduler implements OnModuleInit {
 
       logEvent('info', 'signal_retention_cleanup_complete', {
         retentionDays: this.signalRetentionDays,
+        highScoreRetentionDays: this.highScoreRetentionDays,
         cutoff: cutoff.toISOString(),
+        highScoreCutoff: highScoreCutoff.toISOString(),
         deletedSignals: deletedSignals.length,
         deletedBookmarksForOldSignals,
         deletedOrphanedBookmarks: deletedOrphanedBookmarks.length,
+        cacheKeysInvalidated: deletedSignals.length * 7,
       });
     } catch (error) {
       logEvent('error', 'signal_retention_cleanup_failed', {

@@ -1,14 +1,18 @@
-import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject, Logger } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { RedisService } from './redis.service';
-import { Subject, timer, zip, of } from 'rxjs';
-import { mergeMap, catchError, delay, filter } from 'rxjs/operators';
-import { logEvent } from '../common/logger';
+import { MetricsService } from './metrics.service';
 import { ConfigService } from '@nestjs/config';
+import { logEvent } from '../common/logger';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 import { signals } from '../database/schema';
-import { eq, and, gte, or } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
+import {
+  PRIORITY_SCORES,
+  AI_SUMMARY_QUEUE_KEY,
+  TranslationPriority,
+} from './translation.constants';
 
 interface AIJob {
   id: string;
@@ -16,55 +20,92 @@ interface AIJob {
   content: string | null;
   score?: number;
   retryCount?: number;
+  priority?: TranslationPriority;
+  processAfter?: number;
 }
 
-@Injectable()
-export class AIQueue implements OnModuleInit {
-  private queue$ = new Subject<AIJob>();
-  private _queueSize = 0;
+const POLL_INTERVAL_MS = 500;
 
-  // High-performance Rate-Limit Configuration
-  private readonly processDelay = parseInt(
-    process.env.AI_PROCESS_DELAY || '1500',
-  );
-  private readonly maxWorkers = parseInt(process.env.AI_MAX_WORKERS || '2');
-  private readonly dailyLimit = parseInt(process.env.AI_DAILY_LIMIT || '150');
+@Injectable()
+export class AIQueue implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(AIQueue.name);
+
+  private readonly maxWorkers: number;
+  private readonly dailyLimit: number;
+  private readonly processDelay: number;
+
+  private activeWorkers = 0;
+  private shuttingDown = false;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private lastProcessTime = 0;
 
   constructor(
     private readonly aiService: AIService,
     private readonly redis: RedisService,
+    private readonly metrics: MetricsService,
     private readonly configService: ConfigService,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
-  ) {}
+  ) {
+    this.processDelay = parseInt(process.env.AI_PROCESS_DELAY || '1500');
+    this.maxWorkers = parseInt(process.env.AI_MAX_WORKERS || '2');
+    this.dailyLimit = parseInt(process.env.AI_DAILY_LIMIT || '150');
+  }
 
   async onModuleInit() {
-    // 1. Smooth-Traffic Worker Protocol
-    // We zip the queue with a timer to ensure a hard cluster-wide gap of 1.5s
-    zip(this.queue$, timer(0, this.processDelay))
-      .pipe(
-        // Ensure concurrent lanes (though zipped sequentially, this prepares for scaling)
-        mergeMap(([job]) => this.processJob(job), this.maxWorkers),
-        catchError((err) => {
-          logEvent('error', 'ai_queue_critical_failure', {
-            error: err.message,
-          });
-          return of(null);
-        }),
-      )
-      .subscribe();
+    this.pollTimer = setInterval(() => this.poll(), POLL_INTERVAL_MS);
 
-    logEvent('info', 'ai_high_density_queue_active', {
+    logEvent('info', 'ai_queue_active', {
       delay: this.processDelay,
       workers: this.maxWorkers,
       limit: this.dailyLimit,
     });
 
-    // Re-queue unprocessed signals on startup (recovers from container restarts)
+    // Re-queue unprocessed signals on startup (crash recovery)
     setTimeout(() => this.requeuePending(), 5000);
+  }
+
+  onModuleDestroy() {
+    this.shuttingDown = true;
+    if (this.pollTimer) clearInterval(this.pollTimer);
+  }
+
+  private async poll() {
+    if (this.shuttingDown || this.activeWorkers >= this.maxWorkers) return;
+
+    // Enforce minimum spacing between jobs
+    const elapsed = Date.now() - this.lastProcessTime;
+    if (elapsed < this.processDelay) return;
+
+    const item = await this.redis.zpopmin(AI_SUMMARY_QUEUE_KEY);
+    if (!item) return;
+
+    const [memberJson] = item;
+    let job: AIJob;
+    try {
+      job = JSON.parse(memberJson);
+    } catch {
+      logEvent('error', 'ai_queue_parse_error', { raw: memberJson });
+      return;
+    }
+
+    // Delayed retry: re-enqueue if not ready yet
+    if (job.processAfter && Date.now() < job.processAfter) {
+      const priority = job.priority || 'MEDIUM';
+      const score = PRIORITY_SCORES[priority] + job.processAfter / 1e13;
+      await this.redis.zadd(AI_SUMMARY_QUEUE_KEY, score, memberJson);
+      return;
+    }
+
+    this.lastProcessTime = Date.now();
+    this.activeWorkers++;
+    this.processJob(job).finally(() => {
+      this.activeWorkers = Math.max(0, this.activeWorkers - 1);
+    });
   }
 
   private async requeuePending() {
     try {
+      // Recover ALL unprocessed signals (no score gate), ordered high-score first
       const pending = await this.db
         .select({
           id: signals.id,
@@ -73,50 +114,46 @@ export class AIQueue implements OnModuleInit {
           score: signals.score,
         })
         .from(signals)
-        .where(and(eq(signals.aiProcessed, false), gte(signals.score, 7)))
-        .limit(50);
+        .where(and(eq(signals.aiProcessed, false), eq(signals.aiFailed, false)))
+        .orderBy(desc(signals.score))
+        .limit(100);
 
       if (pending.length === 0) return;
 
       logEvent('info', 'ai_startup_requeue', { count: pending.length });
+
       for (const signal of pending) {
-        await this.enqueue({
-          id: signal.id,
-          title: signal.title,
-          content: signal.content,
-          score: signal.score ?? undefined,
-        });
+        await this.enqueue(
+          {
+            id: signal.id,
+            title: signal.title,
+            content: signal.content,
+            score: signal.score ?? undefined,
+          },
+          scoreToPriority(signal.score ?? 0),
+        );
       }
     } catch (err: any) {
       logEvent('warn', 'ai_startup_requeue_failed', { error: err.message });
     }
   }
 
-  /**
-   * Pushes a new signal to the background AI processing queue with safety checks.
-   */
-  async enqueue(job: AIJob) {
-    // 1. Skip if already processed (Deduplicate)
-    if (await this.redis.isProcessed(job.id)) {
-      return;
-    }
+  async enqueue(job: AIJob, priority: TranslationPriority = 'MEDIUM') {
+    if (await this.redis.isProcessed(job.id)) return;
 
-    // 2. Check Daily Limit
-    const withinLimit = await this.redis.checkAndIncrementLimit(
-      this.dailyLimit,
-    );
+    const withinLimit = await this.redis.checkAndIncrementLimit(this.dailyLimit);
     if (!withinLimit) {
       logEvent('warn', 'ai_daily_limit_reached', { limit: this.dailyLimit });
       return;
     }
 
-    logEvent('info', 'ai_queue_enqueue', { signalId: job.id });
-    this._queueSize++;
-    this.queue$.next(job);
-  }
+    const fullJob: AIJob = { ...job, priority, retryCount: job.retryCount || 0 };
+    const score = PRIORITY_SCORES[priority] + Date.now() / 1e13;
 
-  get queueSize(): number {
-    return this._queueSize;
+    await this.redis.zadd(AI_SUMMARY_QUEUE_KEY, score, JSON.stringify(fullJob));
+    await this.metrics.recordJob('ai_summary', 'enqueued');
+
+    logEvent('info', 'ai_queue_enqueue', { signalId: job.id, priority });
   }
 
   private async processJob(job: AIJob) {
@@ -128,28 +165,45 @@ export class AIQueue implements OnModuleInit {
         job.score,
       );
       await this.redis.markProcessed(job.id);
+      await this.metrics.recordJob('ai_summary', 'completed');
     } catch (error: any) {
       logEvent('error', 'ai_queue_job_failed', {
         jobId: job.id,
         error: error.message,
-        retry: (job.retryCount || 0) < 1,
+        retry: (job.retryCount || 0) + 1,
       });
 
-      // 3. Resilience: Retry up to 3 times with exponential backoff
+      await this.metrics.recordJob('ai_summary', 'failed');
+
       const retries = job.retryCount || 0;
       if (retries < 3) {
-        const backoff = (retries + 1) * 30000; // 30s, 60s, 90s
+        const backoffMs = (retries + 1) * 30_000;
+        const retryJob: AIJob = {
+          ...job,
+          retryCount: retries + 1,
+          processAfter: Date.now() + backoffMs,
+        };
+        const priority = job.priority || 'MEDIUM';
+        const score = PRIORITY_SCORES[priority] + retryJob.processAfter! / 1e13;
+
+        await this.redis.zadd(AI_SUMMARY_QUEUE_KEY, score, JSON.stringify(retryJob));
+
         logEvent('info', 'ai_queue_retry_scheduled', {
           jobId: job.id,
           retry: retries + 1,
-          backoffMs: backoff,
+          backoffMs,
         });
-        setTimeout(() => {
-          this.enqueue({ ...job, retryCount: retries + 1 });
-        }, backoff);
       }
-    } finally {
-      this._queueSize = Math.max(0, this._queueSize - 1);
     }
   }
+
+  get queueSize(): number {
+    return this.activeWorkers;
+  }
+}
+
+function scoreToPriority(score: number): TranslationPriority {
+  if (score >= 7) return 'HIGH';
+  if (score >= 5) return 'MEDIUM';
+  return 'LOW';
 }
