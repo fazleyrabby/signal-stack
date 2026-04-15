@@ -13,6 +13,7 @@ import { AdminService } from './admin.service';
 import { AIService } from '../ai/ai.service';
 import { AIQueue } from '../ai/ai.queue';
 import { AdminGuard } from './admin.guard';
+import { MetricsService } from '../ai/metrics.service';
 import { SettingsService } from '../ai/settings.service';
 import { EmailService } from '../alerts/email.service';
 import {
@@ -33,6 +34,7 @@ export class AdminController {
     private readonly settingsService: SettingsService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   // --- AI Health Check ---
@@ -238,6 +240,12 @@ export class AdminController {
       console.error(`❌ Admin API: Backup failed: ${err.message}`);
       throw err;
     }
+  }
+
+  // --- Metrics ---
+  @Get('metrics')
+  async getMetrics() {
+    return this.metricsService.getMetrics();
   }
 
   // --- Email Digest ---

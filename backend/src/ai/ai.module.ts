@@ -7,6 +7,7 @@ import { LocalProvider } from './providers/local.provider';
 import { GroqProvider } from './providers/groq.provider';
 import { OpenRouterProvider } from './providers/openrouter.provider';
 import { TranslationQueue } from './translation.queue';
+import { MetricsService } from './metrics.service';
 import { DatabaseModule } from '../database/database.module';
 
 @Global()
@@ -21,7 +22,8 @@ import { DatabaseModule } from '../database/database.module';
     GroqProvider,
     OpenRouterProvider,
     TranslationQueue,
+    MetricsService,
   ],
-  exports: [AIQueue, AIService, SettingsService, TranslationQueue],
+  exports: [AIQueue, AIService, SettingsService, TranslationQueue, MetricsService, RedisService],
 })
 export class AIModule {}

@@ -68,6 +68,42 @@ export class AIService {
     }
   }
 
+  async translateSpeculative(
+    title: string,
+    summary: string,
+    targetLang: string,
+  ): Promise<{ title: string; aiSummary: string } | null> {
+    const prompt = `Translate to ${targetLang}. Return ONLY a JSON object: {"title": "localized title", "aiSummary": "localized summary"}\n\nTitle: ${title}\nSummary: ${summary}`;
+    const systemPrompt = 'You are a professional translator. Output only valid JSON.';
+
+    const promises: Promise<string | null>[] = [];
+    if (!this.isCooldown('groq')) promises.push(this.groq.complete(prompt, systemPrompt).catch(() => null));
+    if (!this.isCooldown('openrouter')) promises.push(this.openRouter.complete(prompt, systemPrompt).catch(() => null));
+
+    if (promises.length === 0) return null;
+
+    try {
+      // Promise.any — first successful (non-null) response wins
+      const response = await Promise.any(
+        promises.map((p) =>
+          p.then((r) => {
+            if (!r) throw new Error('empty');
+            return r;
+          }),
+        ),
+      );
+      const parsed = JSON.parse(response.replace(/```json|```/g, '').trim());
+      logEvent('info', 'ai_translation_speculative_completed', { targetLang });
+      return {
+        title: parsed.title || title,
+        aiSummary: parsed.aiSummary || summary,
+      };
+    } catch {
+      // All failed — fall back to sequential
+      return this.translate(title, summary, targetLang);
+    }
+  }
+
   async processSignal(
     id: string,
     title: string,
