@@ -287,6 +287,11 @@ The dashboard is a pro-grade analytical terminal:
 - **Infinite Scroll**: Signals load automatically as you scroll — no manual "Load More" button.
 - **Skeleton Loading**: Shimmer placeholder cards while data loads for smoother perceived performance.
 
+### System Stability & Hydration
+- **Hydration Safe State**: All client-side persistence (localStorage/cookies) must be initialized in `useEffect` to prevent mismatches between Server-Side Rendering (SSR) and Client-Side Hydration.
+- **Dependency Management**: Standardized on `npm install --legacy-peer-deps` to resolve version tree conflicts between Next.js 16 (React 19) and older peer-dependent packages.
+- **Viewport-Relative UI**: Tooltips and overlays utilize `fixed` positioning with `clientX/Y` for accurate mouse tracking regardless of container scrolling.
+
 ---
 
 ## 📡 Public RSS Feed
