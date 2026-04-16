@@ -89,7 +89,7 @@ export default function JobsAdmin() {
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8 pb-20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black italic font-serif flex items-center gap-3">
+            <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
               <Briefcase className="w-8 h-8 text-primary" />
               Job Tactical Intelligence
             </h1>

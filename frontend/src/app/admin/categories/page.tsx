@@ -92,7 +92,7 @@ export default function CategoriesAdmin() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold italic font-serif">Category Protocols</h1>
+                <h1 className="text-3xl font-black tracking-tight">Category Protocols</h1>
                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono uppercase tracking-[0.2em] font-bold">
                   <Database className="w-3 h-3" />
                   <span>Schema Management</span>

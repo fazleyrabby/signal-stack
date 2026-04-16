@@ -127,7 +127,7 @@ export default function SourcesAdmin() {
       <div className="max-w-[1200px] mx-auto space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight uppercase">Intelligence Sources</h1>
+            <h1 className="text-3xl font-black tracking-tight">Intelligence Sources</h1>
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] flex items-center gap-2">
               <Rss className="w-3.5 h-3.5 text-primary" />
               SignalStack Ingestion Engine
