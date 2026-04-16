@@ -122,13 +122,15 @@ export class AdminController {
 
   @Put('ai/models')
   async updateModelConfig(
-    @Body() body: { provider: 'groq' | 'openrouter'; modelId: string },
+    @Body() body: { provider: 'groq' | 'openrouter' | 'local'; modelId?: string; enabled?: boolean },
   ) {
-    const { provider, modelId } = body;
-    if (provider === 'groq') {
+    const { provider, modelId, enabled } = body;
+    if (provider === 'groq' && modelId) {
       await this.settingsService.setModelConfig({ groqModel: modelId });
-    } else if (provider === 'openrouter') {
+    } else if (provider === 'openrouter' && modelId) {
       await this.settingsService.setModelConfig({ openrouterModel: modelId });
+    } else if (provider === 'local' && enabled !== undefined) {
+      await this.settingsService.setModelConfig({ localAiEnabled: enabled });
     }
     return { success: true };
   }

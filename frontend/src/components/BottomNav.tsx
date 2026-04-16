@@ -59,6 +59,9 @@ export function BottomNav() {
   const bookmarksOnly =
     pathname === "/" && searchParams.get("bookmarks") === "true";
 
+  const hideOnRoutes = ["/admin-login"];
+  const shouldHide = hideOnRoutes.some(route => pathname.startsWith(route));
+
   useEffect(() => {
     if (isMobileSearchOpen && inputRef.current) {
       inputRef.current.focus();
@@ -70,6 +73,8 @@ export function BottomNav() {
     const base = href.startsWith("/") ? href : `/${href}`;
     return `/${locale}${base}`.replace(/\/$/, '') || '/';
   };
+
+  if (shouldHide) return null;
 
   return (
     <>
@@ -86,7 +91,7 @@ export function BottomNav() {
             ref={inputRef}
             placeholder="Search signals..." 
             value={searchQuery}
-            className="w-full bg-accent/20 border-primary/20 pl-10 pr-10 h-11 text-[14px] font-bold tracking-tight rounded-xl focus:ring-1 focus:ring-primary/40 transition-all"
+            className="w-full bg-accent/20 border-primary/20 pl-10 pr-10 h-11 text-[14px] font-bold tracking-tight rounded-lg focus:ring-1 focus:ring-primary/40 transition-all"
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <button 
@@ -101,8 +106,8 @@ export function BottomNav() {
         </div>
       </div>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border/20 pb-[env(safe-area-inset-bottom)]">
-        <div className="h-[60px] grid grid-cols-5">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border/20 pb-[env(safe-area-inset-bottom)] overflow-x-auto scrollbar-hide">
+        <div className="h-[60px] grid grid-cols-5 min-w-[300px]">
           {mainTabs.slice(0, 2).map((tab) => {
             const Icon = tab.icon;
             const active = tab.isActive(pathname, bookmarksOnly);

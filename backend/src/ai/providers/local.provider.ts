@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { logEvent } from '../../common/logger';
+import { SettingsService } from '../settings.service';
 
 @Injectable()
 export class LocalProvider {
@@ -9,20 +10,28 @@ export class LocalProvider {
   private readonly maxSummaryChars = 120;
 
   public lastError: number | null = null;
-  private enabled: boolean;
   private baseUrl: string;
 
-  constructor(private readonly configService: ConfigService) {
-    this.enabled =
-      this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly settingsService: SettingsService,
+  ) {
     this.baseUrl =
       this.configService.get<string>('LOCAL_AI_URL') || 'http://llama:8080';
+  }
+
+  async isEnabled(): Promise<boolean> {
+    const masterSwitch = this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
+    if (!masterSwitch) return false;
+
+    const dynamicConfig = await this.settingsService.getModelConfig();
+    return dynamicConfig.localAiEnabled;
   }
 
   async summarize(title: string, content: string): Promise<string | null> {
     this.lastError = null;
 
-    if (!this.enabled) {
+    if (!(await this.isEnabled())) {
       return null;
     }
 
@@ -73,7 +82,7 @@ export class LocalProvider {
     latency?: number;
     error?: string;
   }> {
-    if (!this.enabled) {
+    if (!(await this.isEnabled())) {
       return { status: 'disabled' };
     }
 

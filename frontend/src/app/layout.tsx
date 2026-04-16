@@ -4,7 +4,7 @@ import { Inter, Hind_Siliguri, Noto_Sans_Bengali } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
-import { BottomNav } from "@/components/bottom-nav";
+import { BottomNav } from "@/components/BottomNav";
 import { SearchProvider } from "@/context/SearchContext";
 
 const inter = Inter({

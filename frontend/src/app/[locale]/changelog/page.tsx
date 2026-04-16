@@ -179,7 +179,7 @@ export default function ChangelogPage() {
         {/* Header */}
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-             <div className="p-2 rounded-xl bg-violet-600/20 border border-violet-500/30">
+             <div className="p-2 rounded-lg bg-violet-600/20 border border-violet-500/30">
                <Clock className="w-6 h-6 text-violet-400" />
              </div>
              <h1 className="text-3xl font-black tracking-tight uppercase">

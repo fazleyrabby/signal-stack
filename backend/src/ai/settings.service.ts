@@ -41,22 +41,27 @@ export class SettingsService {
       });
   }
 
-  async getModelConfig(): Promise<ModelConfig> {
+  async getModelConfig(): Promise<ModelConfig & { localAiEnabled: boolean }> {
     const groqModel = await this.getSetting('groq_model');
     const openrouterModel = await this.getSetting('openrouter_model');
+    const localAiEnabled = await this.getSetting('local_ai_enabled');
 
     return {
       groqModel: groqModel || 'llama-3.3-70b-versatile',
       openrouterModel: openrouterModel || 'meta-llama/llama-3.3-70b-instruct',
+      localAiEnabled: localAiEnabled !== 'false', // Default to true if not explicitly disabled
     };
   }
 
-  async setModelConfig(config: Partial<ModelConfig>): Promise<void> {
+  async setModelConfig(config: Partial<ModelConfig & { localAiEnabled: boolean }>): Promise<void> {
     if (config.groqModel) {
       await this.setSetting('groq_model', config.groqModel);
     }
     if (config.openrouterModel) {
       await this.setSetting('openrouter_model', config.openrouterModel);
+    }
+    if (config.localAiEnabled !== undefined) {
+      await this.setSetting('local_ai_enabled', String(config.localAiEnabled));
     }
   }
 

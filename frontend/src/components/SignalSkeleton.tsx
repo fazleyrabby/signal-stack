@@ -8,7 +8,7 @@ export function SignalCardSkeleton({ isCompact = false }: { isCompact?: boolean 
   return (
     <Card className={cn(
       "relative overflow-hidden bg-card border-border/40",
-      isCompact ? "rounded-none border-b" : "rounded-xl border"
+      isCompact ? "rounded-none border-b" : "rounded-lg border"
     )}>
       <CardContent className={cn("p-4", isCompact && "p-3")}>
         <div className="flex gap-4">

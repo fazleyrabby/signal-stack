@@ -184,7 +184,7 @@ export function Sidebar({
 
       {/* System Status */}
       <div className="p-4 mt-auto">
-        <div className="p-3 rounded-xl bg-accent/20 border border-border/40">
+        <div className="p-3 rounded-lg bg-accent/20 border border-border/40">
            <div className="flex items-center gap-2 mb-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-[10px] font-black uppercase tracking-tighter text-foreground/80">Systems Nominal</span>

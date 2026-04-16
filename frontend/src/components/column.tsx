@@ -12,14 +12,12 @@ import {
   Filter,
   Bookmark,
   LucideIcon,
-  Maximize2,
-  Minimize2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { toggleBookmark, API_BASE } from "@/lib/api";
-import { SignalCard } from "@/components/signal-card";
-import { FeedSkeleton } from "@/components/signal-skeleton";
-import { SignalDetailModal } from "@/components/signal-detail-modal";
+import { SignalCard } from "@/components/SignalCard";
+import { FeedSkeleton } from "@/components/SignalSkeleton";
+import { SignalDetailModal } from "@/components/SignalDetailModal";
 import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
 
@@ -27,7 +25,7 @@ const SIGNALS_API_BASE = `${API_BASE}/api/signals`;
 const BOOKMARKS_API_BASE = `${API_BASE}/api/bookmarks`;
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 30;
 
 interface SourceInfo {
   source: string;
@@ -74,63 +72,67 @@ function ColumnControlBar({
 }) {
   const t = useTranslations('Index');
   const sortOptions = [
-    { id: 'newest', label: 'Newest' },
-    { id: 'oldest', label: 'Oldest' },
-    { id: 'score', label: 'Highest Score' },
-    { id: 'published_at', label: 'Published' },
+    { id: 'newest', label: t('newest') },
+    { id: 'oldest', label: t('oldest') },
+    { id: 'score', label: t('highestScore') },
+    { id: 'published_at', label: t('published') },
   ];
 
   return (
     <div className="relative z-10">
-      <div className="flex items-center gap-1.5 p-1 bg-card/30 border border-border/5 rounded-lg">
-        <div className="flex items-center gap-0.5">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-card/40">
+        <div className="flex items-center gap-1 bg-background/40 p-0.5 rounded-lg border border-border/5 shadow-inner overflow-x-auto scrollbar-none">
           {['all', 'high', 'medium', 'low'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={cn(
-                "h-6 px-2 text-[11px] font-black uppercase tracking-wider rounded-md transition-all",
-                filter === f ? "bg-primary text-primary-foreground shadow-md" : "opacity-50 hover:opacity-100 hover:bg-accent/30"
+                "h-7 px-3 text-[10px] font-black uppercase tracking-wider rounded-md transition-all shrink-0",
+                filter === f
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground/60 hover:text-foreground hover:bg-accent/40"
               )}
             >
-              {f}
+              {t(f)}
             </button>
           ))}
         </div>
 
-        <div className="w-px h-4 bg-border/20 mx-1" />
+        <div className="hidden sm:block flex-1" />
 
-        <button
-          ref={sourceBtnRef}
-          onClick={() => { setShowSourceDropdown(!showSourceDropdown); setShowSortDropdown(false); }}
-          className={cn(
-            "flex items-center gap-1 h-6 px-2 bg-accent/20 border border-border/10 rounded-md hover:bg-accent/40 transition-all text-[9px] font-bold uppercase tracking-wider",
-            sourceFilter && "bg-primary/20 border-primary/20 text-primary"
-          )}
-        >
-          <Filter className="w-3 h-3" />
-          <span className="max-w-[60px] truncate">{sourceFilter || t('source')}</span>
-        </button>
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+          <button
+            ref={sourceBtnRef}
+            onClick={() => { setShowSourceDropdown(!showSourceDropdown); setShowSortDropdown(false); }}
+            className={cn(
+              "flex items-center gap-1.5 h-8 px-3 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all text-[9px] font-black uppercase tracking-widest shrink-0",
+              sourceFilter && "bg-primary/20 border-primary/20 text-primary shadow-sm"
+            )}
+          >
+            <Filter className="w-3.5 h-3.5" />
+            <span className="max-w-[70px] truncate">{sourceFilter || t('source')}</span>
+          </button>
 
-        <button
-          ref={sortBtnRef}
-          onClick={() => { setShowSortDropdown(!showSortDropdown); setShowSourceDropdown(false); }}
-          className="flex items-center gap-1 h-6 px-2 bg-accent/20 border border-border/10 rounded-md hover:bg-accent/40 transition-all text-[11px] font-bold uppercase tracking-wider"
-        >
-          <ArrowUpDown className="w-3 h-3" />
-          <span className="max-w-[50px] truncate">{sortOptions.find(s => s.id === sortBy)?.label || t('sort')}</span>
-        </button>
+          <button
+            ref={sortBtnRef}
+            onClick={() => { setShowSortDropdown(!showSortDropdown); setShowSourceDropdown(false); }}
+            className="flex items-center gap-1.5 h-8 px-3 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all text-[9px] font-black uppercase tracking-widest text-muted-foreground/80 hover:text-foreground shadow-sm shrink-0"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            <span className="max-w-[60px] truncate">{sortOptions.find(s => s.id === sortBy)?.label || t('sort')}</span>
+          </button>
 
-        <button
-          onClick={() => setShowBookmarks(!showBookmarks)}
-          className={cn(
-            "flex items-center gap-1 h-6 px-2 bg-accent/20 border border-border/10 rounded-md hover:bg-accent/40 transition-all text-[11px] font-bold uppercase tracking-wider",
-            showBookmarks && "bg-primary text-primary-foreground"
-          )}
-        >
-          <Bookmark className="w-3 h-3" />
-          <span className="max-w-[50px] truncate">Bookmarks</span>
-        </button>
+          <button
+            onClick={() => setShowBookmarks(!showBookmarks)}
+            className={cn(
+              "flex items-center justify-center w-8 h-8 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all shadow-sm shrink-0",
+              showBookmarks ? "bg-primary text-primary-foreground border-primary/20" : "text-muted-foreground/60"
+            )}
+            title={t('bookmarks')}
+          >
+            <Bookmark className={cn("w-4 h-4", showBookmarks && "fill-current")} />
+          </button>
+        </div>
       </div>
 
       {showSourceDropdown && (
@@ -175,18 +177,19 @@ function SourceDropdown({
   sourceBtnRef: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
 }) {
+  const t = useTranslations('Index');
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
   useLayoutEffect(() => {
     if (sourceBtnRef.current) {
-      const btn = sourceBtnRef.current;
-      setPos({ top: btn.offsetTop + btn.offsetHeight + 4, left: btn.offsetLeft });
+      const rect = sourceBtnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, left: rect.left });
     }
   }, [sourceBtnRef]);
 
   return (
     <div
-      className="absolute bg-popover border border-border/40 rounded-lg shadow-xl z-30 w-48 max-h-60 overflow-y-auto overscroll-contain"
+      className="fixed bg-popover border border-border/40 rounded-lg shadow-xl z-30 w-48 max-h-60 overflow-y-auto overscroll-contain"
       style={{ top: pos.top, left: pos.left }}
     >
       <button
@@ -196,7 +199,7 @@ function SourceDropdown({
           !sourceFilter ? "text-primary bg-accent/20" : "text-muted-foreground"
         )}
       >
-        All Sources
+        {t('allSources')}
       </button>
       {sources.map((s) => (
         <button
@@ -226,25 +229,26 @@ function SortDropdown({
   sortBtnRef: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
 }) {
+  const t = useTranslations('Index');
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
   useLayoutEffect(() => {
     if (sortBtnRef.current) {
-      const btn = sortBtnRef.current;
-      setPos({ top: btn.offsetTop + btn.offsetHeight + 4, left: btn.offsetLeft });
+      const rect = sortBtnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, left: rect.left });
     }
   }, [sortBtnRef]);
 
   const sortOptions = [
-    { id: 'newest', label: 'Newest' },
-    { id: 'oldest', label: 'Oldest' },
-    { id: 'score', label: 'Highest Score' },
-    { id: 'published_at', label: 'Published' },
+    { id: 'newest', label: t('newest') },
+    { id: 'oldest', label: t('oldest') },
+    { id: 'score', label: t('highestScore') },
+    { id: 'published_at', label: t('published') },
   ];
 
   return (
     <div
-      className="absolute bg-popover border border-border/40 rounded-lg shadow-xl z-30 w-40"
+      className="fixed bg-popover border border-border/40 rounded-lg shadow-xl z-30 w-40"
       style={{ top: pos.top, left: pos.left }}
     >
       {sortOptions.map((s) => (
@@ -270,8 +274,6 @@ export function Column({
   layoutMode,
   searchQuery,
   isFullWidth,
-  isFocused,
-  onToggleFocus,
   initialShowBookmarks = false,
   initialCountry,
   onEmptyChange,
@@ -282,8 +284,6 @@ export function Column({
   layoutMode: 'grid' | 'list';
   searchQuery: string;
   isFullWidth: boolean;
-  isFocused?: boolean;
-  onToggleFocus?: () => void;
   initialShowBookmarks?: boolean;
   initialCountry?: string;
   onEmptyChange?: (isEmpty: boolean) => void;
@@ -428,124 +428,152 @@ export function Column({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-3 py-2 flex items-center gap-2 shrink-0 bg-background/5 border-b border-border/5">
-        <div className="p-1 rounded-md bg-primary/10 text-primary">
-          <Icon className="w-3.5 h-3.5" />
+      <div className={cn(
+        "px-4 py-2.5 flex items-center gap-3 shrink-0 bg-card/20 border-b border-border/10",
+        categoryId === 'geopolitics' && "border-l-4 border-l-violet-600/40",
+        categoryId === 'technology' && "border-l-4 border-l-indigo-500/40",
+        categoryId === 'ai' && "border-l-4 border-l-emerald-500/40"
+      )}>
+        <div className={cn(
+          "p-1.5 rounded-lg shadow-inner",
+          categoryId === 'geopolitics' ? "bg-violet-600/10 text-violet-400" :
+          categoryId === 'technology' ? "bg-indigo-500/10 text-indigo-400" :
+          "bg-emerald-500/10 text-emerald-400"
+        )}>
+          <Icon className="w-4 h-4" />
         </div>
-        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
-          {title}
-        </h2>
-        <span className="text-[10px] font-mono text-muted-foreground/30 ml-auto tabular-nums bg-accent/20 px-1.5 py-0.5 rounded-full">
-          {isLoading ? '--' : filtered.length} / {isLoading ? '--' : signals.length}
-        </span>
-        
-        {onToggleFocus && (
-          <button 
-            onClick={onToggleFocus}
-            className="p-1 rounded-md hover:bg-accent/30 text-muted-foreground/50 hover:text-primary transition-all ml-1"
-            title={isFocused ? "Exit Focus Mode" : "Focus this Column"}
-          >
-            {isFocused ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-          </button>
-        )}
+        <div className="flex flex-col gap-0">
+          <h2 className={cn(
+            "text-[11px] font-black uppercase tracking-[0.2em] leading-tight",
+            categoryId === 'geopolitics' ? "text-violet-700 dark:text-violet-300" :
+            categoryId === 'technology' ? "text-indigo-700 dark:text-indigo-300" :
+            "text-emerald-700 dark:text-emerald-300"
+          )}>
+            {title}
+          </h2>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-black text-muted-foreground/50 dark:text-muted-foreground/30 uppercase tracking-[0.1em]">
+              {categoryId === 'geopolitics' ? t('geopoliticsTab') : categoryId === 'technology' ? t('technologyTab') : t('aiTab')}
+            </span>
+            <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/30 dark:bg-muted-foreground/20" />
+            <span className="text-[9px] font-mono text-muted-foreground/60 dark:text-muted-foreground/40 tabular-nums">
+              {isLoading ? '--' : signals.length} {t('active').toUpperCase()}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <ColumnControlBar
-        filter={filter}
-        setFilter={setFilter}
-        sourceFilter={sourceFilter}
-        setSourceFilter={setSourceFilter}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        sources={sources}
-        sourceBtnRef={sourceBtnRef}
-        sortBtnRef={sortBtnRef}
-        showSourceDropdown={showSourceDropdown}
-        setShowSourceDropdown={setShowSourceDropdown}
-        showSortDropdown={showSortDropdown}
-        setShowSortDropdown={setShowSortDropdown}
-        showBookmarks={showBookmarks}
-        setShowBookmarks={setShowBookmarks}
-      />
+      <div className="pt-2 pb-1">
+        <ColumnControlBar
+          filter={filter}
+          setFilter={setFilter}
+          sourceFilter={sourceFilter}
+          setSourceFilter={setSourceFilter}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          sources={sources}
+          sourceBtnRef={sourceBtnRef}
+          sortBtnRef={sortBtnRef}
+          showSourceDropdown={showSourceDropdown}
+          setShowSourceDropdown={setShowSourceDropdown}
+          showSortDropdown={showSortDropdown}
+          setShowSortDropdown={setShowSortDropdown}
+          showBookmarks={showBookmarks}
+          setShowBookmarks={setShowBookmarks}
+        />
+      </div>
 
-      <div className="flex-1 bg-card/15 border border-border/5 rounded-xl overflow-hidden backdrop-blur-sm transition-all duration-500 flex flex-col mt-1.5">
-        {/* Skeleton loading state */}
-        {isLoading && signals.length === 0 && (
-          <div className="p-2.5">
-            <FeedSkeleton layoutMode={layoutMode} />
-          </div>
-        )}
+      <div className="flex-1 pb-2 overflow-hidden">
+        <div className="h-full bg-card/5 border border-border/5 rounded-lg overflow-hidden backdrop-blur-sm transition-all duration-500 flex flex-col shadow-inner">
+          {/* Skeleton loading state */}
+          {isLoading && signals.length === 0 && (
+            <div className="p-3">
+              <FeedSkeleton layoutMode={layoutMode} />
+            </div>
+          )}
 
-        {!isLoading && !hasSignals && (
-          <div className="flex flex-col items-center justify-center py-12 text-center opacity-30">
-            <RefreshCw className="w-6 h-6 mb-2 text-muted-foreground" />
-            <span className="text-[9px] font-black tracking-widest uppercase">Awaiting signals...</span>
-          </div>
-        )}
-
-        {hasSignals && (
-          <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto relative">
-            {showScrollIndicator && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 animate-bounce pointer-events-none opacity-50">
-                <ChevronDown className="w-3.5 h-3.5 text-primary/60" />
+          {!isLoading && !hasSignals && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center mb-3 border border-border/5">
+                <RefreshCw className="w-5 h-5 text-muted-foreground/30" />
               </div>
-            )}
-            <div className={cn(
-              "p-2.5 pr-3.5",
-              layoutMode === 'grid'
-                ? (isFullWidth || isFocused)
-                  ? "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-6 gap-3"
-                  : "columns-1 2xl:columns-2 gap-3"
-                : "flex flex-col space-y-2.5"
-            )}>
-              {showBookmarks
-                ? signals
-                    .filter(signal => bookmarkedIdsSet.has(signal.id))
-                    .map((signal) => (
-                      <div key={signal.id} className="break-inside-avoid mb-4 cursor-pointer hover:opacity-90 transition-opacity"
+              <span className="text-[9px] font-black tracking-[0.2em] uppercase text-muted-foreground/20">{t('awaitingSignals')}</span>
+            </div>
+          )}
+
+          {hasSignals && (
+            <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto relative custom-scrollbar @container">
+              {showScrollIndicator && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 animate-bounce pointer-events-none opacity-30">
+                  <div className="bg-background/80 backdrop-blur-sm p-1 rounded-full border border-border/10 shadow-lg">
+                    <ChevronDown className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                </div>
+              )}
+              <div className={cn(
+                "",
+                layoutMode === 'grid'
+                  ? isFullWidth
+                    ? "columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-2"
+                    : "columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-2"
+                  : "flex flex-col space-y-3"
+              )}>
+                {showBookmarks
+                  ? signals
+                      .filter(signal => bookmarkedIdsSet.has(signal.id))
+                      .map((signal) => (
+                        <div key={signal.id} className="break-inside-avoid mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                             onClick={() => setSelectedSignal(signal)}>
+                          <SignalCard
+                            signal={signal}
+                            isCompact={layoutMode === 'list'}
+                            isBookmarked={true}
+                            isBookmarking={bookmarkingIds.has(signal.id)}
+                            onToggleBookmark={handleToggleBookmark}
+                          />
+                        </div>
+                      ))
+                  : filtered.map((signal) => (
+                      <div key={signal.id} className="break-inside-avoid mb-3 cursor-pointer hover:opacity-90 transition-opacity"
                            onClick={() => setSelectedSignal(signal)}>
                         <SignalCard
                           signal={signal}
                           isCompact={layoutMode === 'list'}
-                          isBookmarked={true}
+                          isBookmarked={bookmarkedIdsSet.has(signal.id)}
                           isBookmarking={bookmarkingIds.has(signal.id)}
                           onToggleBookmark={handleToggleBookmark}
                         />
                       </div>
-                    ))
-                : filtered.map((signal) => (
-                    <div key={signal.id} className="break-inside-avoid mb-4 cursor-pointer hover:opacity-90 transition-opacity"
-                         onClick={() => setSelectedSignal(signal)}>
-                      <SignalCard
-                        signal={signal}
-                        isCompact={layoutMode === 'list'}
-                        isBookmarked={bookmarkedIdsSet.has(signal.id)}
-                        isBookmarking={bookmarkingIds.has(signal.id)}
-                        onToggleBookmark={handleToggleBookmark}
-                      />
-                    </div>
-                  ))}
-            </div>
-
-            {/* Infinite scroll sentinel */}
-            {hasMore && (
-              <>
-                <div ref={sentinelRef} className="h-1" />
-                {isValidating && (
-                  <div className="flex justify-center py-4">
-                    <RefreshCw className="w-4 h-4 animate-spin text-primary/40" />
-                  </div>
-                )}
-              </>
-            )}
-
-            {!hasMore && signals.length > 0 && (
-              <div className="text-center py-3 text-[9px] font-mono text-muted-foreground/30 uppercase tracking-widest">
-                All signals loaded
+                    ))}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Infinite scroll sentinel */}
+              {hasMore && (
+                <>
+                  <div ref={sentinelRef} className="h-4" />
+                  {isValidating && (
+                    <div className="flex justify-center py-6">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-full border border-border/5 shadow-sm">
+                        <RefreshCw className="w-3 h-3 animate-spin text-primary/60" />
+                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60">{t('syncing')}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!hasMore && signals.length > 0 && (
+                <div className="flex items-center justify-center gap-3 py-10 px-6 overflow-hidden">
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent to-border/5" />
+                  <div className="text-[8px] font-black text-muted-foreground/10 uppercase tracking-[0.3em] whitespace-nowrap">
+                    {t('allLoaded')}
+                  </div>
+                  <div className="h-px flex-1 bg-gradient-to-l from-transparent to-border/5" />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Signal Detail Modal */}
