@@ -20,6 +20,22 @@ import { useTranslations } from "next-intl";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
+const messages = {
+  searchPlaceholder: "Search live insights...",
+  liveUplink: "Live UPLINK",
+  viewers: "viewers",
+  protocolSynced: "Protocol synced",
+};
+
+function safeUseTranslations(namespace: string) {
+  try {
+    return useTranslations(namespace);
+  } catch (e) {
+    // Fallback for when context is missing (e.g. admin pages)
+    return (key: string) => (messages as any)[key] || key;
+  }
+}
+
 type Theme = "light" | "dark";
 
 interface HeaderProps {
@@ -39,7 +55,7 @@ export function Header({
   onToggleControls,
   visitorCount
 }: HeaderProps) {
-  const t = useTranslations('Index');
+  const t = safeUseTranslations('Index');
   const { searchQuery, setSearchQuery } = useSearch();
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
