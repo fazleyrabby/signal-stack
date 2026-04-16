@@ -24,6 +24,6 @@ import { DatabaseModule } from '../database/database.module';
     TranslationQueue,
     MetricsService,
   ],
-  exports: [AIQueue, AIService, SettingsService, TranslationQueue, MetricsService, RedisService],
+  exports: [AIQueue, AIService, SettingsService, TranslationQueue, MetricsService, RedisService, GroqProvider, OpenRouterProvider],
 })
 export class AIModule {}
