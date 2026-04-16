@@ -19,7 +19,7 @@
     "test:db:up": "docker run --name signalstack-db-test -e POSTGRES_USER=signal -e POSTGRES_PASSWORD=signal -e POSTGRES_DB=signalstack -p 5434:5432 --tmpfs /var/lib/postgresql/data -d postgres:16-alpine",
     "test:db:down": "docker stop signalstack-db-test || true && docker rm signalstack-db-test || true",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:e2e:ci": "../scripts/test.sh",
+    "test:e2e:ci": "../scripts/test/test.sh",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
