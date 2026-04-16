@@ -279,6 +279,44 @@ export class AdminController {
     return { success: true };
   }
 
+  @Post('webhooks/test')
+  async testWebhook(@Body() body: { type: 'signals' | 'jobs' }) {
+    const urls = this.discordService.getWebhookUrls();
+    const url = body.type === 'jobs' ? urls.jobsWebhookUrl : urls.webhookUrl;
+    if (!url) {
+      return { success: false, error: 'No webhook URL configured' };
+    }
+    const payload = body.type === 'jobs'
+      ? {
+          embeds: [{
+            title: '🧪 Test: SignalStack Jobs Webhook',
+            description: 'Jobs webhook is connected and operational.',
+            color: 0x0077b5,
+            footer: { text: 'SignalStack Jobs · Test Message' },
+            timestamp: new Date().toISOString(),
+          }],
+        }
+      : {
+          embeds: [{
+            title: '🧪 Test: SignalStack Signals Webhook',
+            description: 'Signals webhook is connected and operational.',
+            color: 0x00ff00,
+            footer: { text: 'SignalStack · Test Message' },
+            timestamp: new Date().toISOString(),
+          }],
+        };
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      return { success: false, error: `Discord returned ${res.status}: ${text}` };
+    }
+    return { success: true };
+  }
+
   // --- Email Digest ---
   @Post('digest/test')
   async triggerTestDigest() {

@@ -285,6 +285,27 @@ export default function AdminDashboard() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [jobsWebhookUrl, setJobsWebhookUrl] = useState('');
   const [isSavingWebhooks, setIsSavingWebhooks] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState<'signals' | 'jobs' | null>(null);
+  const [webhookTestResult, setWebhookTestResult] = useState<{ type: string; ok: boolean; error?: string } | null>(null);
+  const handleTestWebhook = async (type: 'signals' | 'jobs') => {
+    setTestingWebhook(type);
+    setWebhookTestResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/webhooks/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ type }),
+      });
+      const data = await res.json();
+      setWebhookTestResult({ type, ok: data.success, error: data.error });
+    } catch (e) {
+      setWebhookTestResult({ type, ok: false, error: 'Request failed' });
+    } finally {
+      setTestingWebhook(null);
+      setTimeout(() => setWebhookTestResult(null), 5000);
+    }
+  };
   useEffect(() => {
     if (webhookData) {
       setWebhookUrl(webhookData.webhookUrl || '');
@@ -761,7 +782,22 @@ export default function AdminDashboard() {
                     placeholder="https://discord.com/api/webhooks/..."
                     className="w-full h-10 px-3 rounded-lg bg-accent/10 border border-border/30 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
-                  <p className="text-[10px] text-muted-foreground italic">Receives new signal alerts matching Discord filters.</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-muted-foreground italic">Receives new signal alerts matching Discord filters.</p>
+                    <button
+                      onClick={() => handleTestWebhook('signals')}
+                      disabled={!webhookUrl || testingWebhook === 'signals'}
+                      className="text-[10px] font-black px-3 py-1 rounded border border-border/40 bg-accent/20 hover:bg-accent/40 disabled:opacity-40 transition-all flex items-center gap-1"
+                    >
+                      {testingWebhook === 'signals' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                      TEST
+                    </button>
+                  </div>
+                  {webhookTestResult?.type === 'signals' && (
+                    <p className={cn("text-[10px] font-bold", webhookTestResult.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
+                      {webhookTestResult.ok ? '✓ Message sent to Discord' : `✗ ${webhookTestResult.error}`}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Jobs Webhook URL</label>
@@ -772,7 +808,22 @@ export default function AdminDashboard() {
                     placeholder="https://discord.com/api/webhooks/... (or leave blank to use signals webhook)"
                     className="w-full h-10 px-3 rounded-lg bg-accent/10 border border-border/30 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
-                  <p className="text-[10px] text-muted-foreground italic">Receives job match alerts. Falls back to signals webhook if empty.</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-muted-foreground italic">Falls back to signals webhook if empty.</p>
+                    <button
+                      onClick={() => handleTestWebhook('jobs')}
+                      disabled={(!jobsWebhookUrl && !webhookUrl) || testingWebhook === 'jobs'}
+                      className="text-[10px] font-black px-3 py-1 rounded border border-border/40 bg-accent/20 hover:bg-accent/40 disabled:opacity-40 transition-all flex items-center gap-1"
+                    >
+                      {testingWebhook === 'jobs' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                      TEST
+                    </button>
+                  </div>
+                  {webhookTestResult?.type === 'jobs' && (
+                    <p className={cn("text-[10px] font-bold", webhookTestResult.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
+                      {webhookTestResult.ok ? '✓ Message sent to Discord' : `✗ ${webhookTestResult.error}`}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex justify-end">
