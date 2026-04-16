@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { StatsBar } from "@/components/StatsBar";
-import { Column } from "@/components/Column";
+import { SignalColumn } from "@/components/SignalColumn";
 import { cn, trackVisit, type VisitorStats } from "@/lib/utils";
 import { useSearch } from "@/context/SearchContext";
 
@@ -136,7 +136,7 @@ function SignalsDashboardContent({
           {/* Single Active Column */}
           <div className="flex-1 overflow-hidden">
             <div className="h-full">
-              <Column
+              <SignalColumn
                 title={currentCategory ? t(`${currentCategory.id}Title`) : ''}
                 icon={currentCategory?.icon || Globe2}
                 categoryId={activeTab}

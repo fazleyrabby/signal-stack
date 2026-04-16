@@ -37,7 +37,7 @@ interface SignalsResponse {
   meta: Record<string, unknown>;
 }
 
-function ColumnControlBar({
+function SignalColumnControlBar({
   filter,
   setFilter,
   sourceFilter,
@@ -275,7 +275,7 @@ function SortDropdown({
   );
 }
 
-export function Column({
+export function SignalColumn({
   title,
   icon: Icon,
   categoryId,
