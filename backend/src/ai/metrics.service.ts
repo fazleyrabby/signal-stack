@@ -83,8 +83,8 @@ export class MetricsService {
       client?.get(`metrics:cache:miss:${today}`),
     ]);
 
-    // Latency per provider
-    const providers = ['groq', 'openrouter', 'local'];
+    // Latency per translation mode (written by translation.queue.ts)
+    const providers = ['speculative', 'sequential'];
     const latencyResults = await Promise.all(
       providers.map(async (p) => {
         const [sum, count] = await Promise.all([

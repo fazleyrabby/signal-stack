@@ -6,7 +6,7 @@ import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, ChevronRight, Check, Users, Languages, Loader2, Clock } from "lucide-react";
+import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, ChevronRight, Check, Users, Languages, Loader2, Clock, Sun, Moon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
@@ -233,6 +233,18 @@ type MetricsResponse = {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [isDark, setIsDark] = useState(true);
+  useEffect(() => {
+    const saved = localStorage.getItem("signalstack_theme");
+    setIsDark(saved !== "light");
+  }, []);
+  const toggleTheme = () => {
+    const next = isDark ? "light" : "dark";
+    setIsDark(!isDark);
+    localStorage.setItem("signalstack_theme", next);
+    document.documentElement.setAttribute("data-theme", next === "light" ? "light" : "");
+  };
+
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
@@ -251,7 +263,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (aiError) {
-      router.replace("/admin/login");
+      router.replace("/admin-login");
     }
   }, [aiError, router]);
   const { data: modelsData, mutate: refreshModels } = useSWR<ModelsResponse>(
@@ -390,17 +402,17 @@ export default function AdminDashboard() {
 
    const handleLogout = async () => {
     await logoutAdmin();
-    router.push("/admin/login");
+    router.push("/admin-login");
     router.refresh();
   };
 
-   const modules = [
-     { title: "Manage Signals", description: "Review and translate intelligence signals.", icon: Activity, href: "/admin/signals", variant: "default" as const, stat: statsData?.total?.toLocaleString() || "Connecting...", color: "bg-blue-500/10" },
-     { title: "News Sources", description: "Manage intelligence telemetry feeds.", icon: Rss, href: "/admin/sources", variant: "secondary" as const, stat: statsData?.topSource || "Connecting...", color: "bg-emerald-500/10" },
-     { title: "Signal Categories", description: "Tune classification & routing logic.", icon: Layers, href: "/admin/categories", variant: "secondary" as const, stat: "Active", color: "bg-violet-500/10" },
-     { title: "Database Backup", description: "Create a full corpus security snapshot.", icon: ShieldCheck, onClick: handleBackup, loading: isBackingUp, stat: "Ready", color: "bg-amber-500/10" },
-     { title: "Test Digest", description: "Send a test email digest of recent signals.", icon: Zap, onClick: handleTestDigest, loading: isSendingTestDigest, stat: "Ready", color: "bg-primary/10" }
-   ];
+  const modules: Array<{ title: string; description: string; icon: React.ElementType; color: string; href?: string; onClick?: () => void; loading?: boolean }> = [
+    { title: "Manage Signals",    description: "Review and translate intelligence signals.", icon: Activity,    href: "/admin/signals",    color: "bg-blue-500/10" },
+    { title: "News Sources",      description: "Manage intelligence telemetry feeds.",       icon: Rss,         href: "/admin/sources",    color: "bg-emerald-500/10" },
+    { title: "Signal Categories", description: "Tune classification & routing logic.",       icon: Layers,      href: "/admin/categories", color: "bg-violet-500/10" },
+    { title: "Database Backup",   description: "Create a full corpus security snapshot.",    icon: ShieldCheck, onClick: handleBackup,     loading: isBackingUp,       color: "bg-amber-500/10" },
+    { title: "Test Digest",       description: "Send a test email digest of recent signals.",icon: Zap,         onClick: handleTestDigest, loading: isSendingTestDigest, color: "bg-primary/10" },
+  ];
 
   const healthyCount = aiHealth?.local
     ? [aiHealth.local, aiHealth.groq, aiHealth.openrouter].filter(p => p?.status === "healthy").length
@@ -409,376 +421,349 @@ export default function AdminDashboard() {
     ? [aiHealth.local, aiHealth.groq, aiHealth.openrouter].filter(p => p?.status !== "disabled").length
     : 0;
 
+  // Shared section header pattern
+  const SectionHeader = ({ icon: Icon, title, subtitle, right }: { icon: React.ElementType; title: string; subtitle?: string; right?: React.ReactNode }) => (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-lg bg-muted/70 flex items-center justify-center shrink-0">
+          <Icon className="w-3.5 h-3.5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-xs font-black uppercase tracking-widest leading-none text-foreground">{title}</h2>
+          {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      {right}
+    </div>
+  );
+
   return (
-    <div className="flex-1 p-4 md:p-8 space-y-12">
-      <div className="max-w-6xl mx-auto space-y-12 pb-16 md:pb-0">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight uppercase">Command Center</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] flex items-center gap-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+    <div className="p-6 md:p-8 min-h-full">
+      <div className="max-w-6xl mx-auto pb-20 md:pb-10">
+
+        {/* Page header */}
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight uppercase">Command Center</h1>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.25em] flex items-center gap-1.5 mt-1">
+              <ShieldCheck className="w-3 h-3 text-primary" />
               Strategic Operational Overview
             </p>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-8 w-8 rounded-lg border border-border/50 hover:border-border shrink-0"
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </Button>
         </div>
 
-        {/* AI Health Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Brain className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold uppercase text-foreground">AI Providers</span>
-              <span className="text-[10px] text-muted-foreground">
-                {aiHealth ? `${healthyCount}/${totalProviders}` : "..."}
-                {aiHealth?.queueSize ? ` · ${aiHealth.queueSize}q` : ""}
-              </span>
-              {modelsData?.cached && <span className="text-[8px] text-yellow-500">cached</span>}
-            </div>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => refreshModels()} className="h-6 px-2">
-                <RefreshCw className={cn("w-3 h-3", !modelsData && "animate-spin")} />
-                <span className="ml-1 text-[9px]">Refresh Models</span>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => refreshAI()} disabled={aiLoading} className="h-6 px-2">
-                <RefreshCw className={cn("w-3 h-3", aiLoading && "animate-spin")} />
-                <span className="ml-1 text-[9px]">Refresh Status</span>
-              </Button>
-            </div>
-          </div>
+        <div className="space-y-8">
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div className="py-2 px-3 rounded-lg bg-secondary/30 border border-border/40 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={aiHealth?.local?.status || "unhealthy"} />
-                  <div>
-                    <div className="text-sm font-bold text-foreground">Local (Qwen)</div>
-                    {aiHealth?.local?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.local.model}</div>}
-                  </div>
+          {/* ── AI Providers ──────────────────────────────── */}
+          <section className="space-y-3">
+            <SectionHeader
+              icon={Brain}
+              title="AI Providers"
+              subtitle={
+                aiHealth
+                  ? `${healthyCount}/${totalProviders} online${aiHealth.queueSize ? ` · ${aiHealth.queueSize} queued` : ""}${modelsData?.cached ? " · cached" : ""}`
+                  : "Loading..."
+              }
+              right={
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => refreshModels()} className="h-7 px-2 text-[10px] gap-1">
+                    <RefreshCw className={cn("w-3 h-3", !modelsData && "animate-spin")} />
+                    Models
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => refreshAI()} disabled={aiLoading} className="h-7 px-2 text-[10px] gap-1">
+                    <RefreshCw className={cn("w-3 h-3", aiLoading && "animate-spin")} />
+                    Status
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[8px] font-black uppercase text-muted-foreground">{aiHealth?.localEnabled ? 'Enabled' : 'Disabled'}</span>
-                  <Switch 
-                    checked={aiHealth?.localEnabled ?? false} 
-                    onCheckedChange={handleLocalAIToggle}
-                    className="scale-75 origin-right"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="py-2 px-3 rounded-lg bg-secondary/30 border border-border/40 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={aiHealth?.groq?.status || "unhealthy"} />
-                  <div>
-                    <div className="text-sm font-bold text-foreground">Groq</div>
-                    {aiHealth?.groq?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.groq.model}</div>}
-                    {(() => { const t = aiHealth?.tokenUsage?.groq?.today?.total ?? 0; return t > 0 ? <div className="text-[10px] text-blue-400">{t.toLocaleString()} tokens</div> : null; })()}
-                  </div>
-                </div>
-                <StatusLabel status={aiHealth?.groq?.status || "unhealthy"} />
-              </div>
-              {modelsData?.groq && (
-                <SearchableModelSelect
-                  models={modelsData.groq}
-                  value={modelsData.selected.groqModel || ''}
-                  onValueChange={(v) => handleModelChange('groq', v)}
-                  disabled={isUpdatingModel}
-                />
-              )}
-            </div>
-            <div className="py-2 px-3 rounded-lg bg-secondary/30 border border-border/40 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={aiHealth?.openrouter?.status || "unhealthy"} />
-                  <div>
-                    <div className="text-sm font-bold text-foreground">OpenRouter</div>
-                    {aiHealth?.openrouter?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.openrouter.model}</div>}
-                    {(() => { const t = aiHealth?.tokenUsage?.openrouter?.today?.total ?? 0; return t > 0 ? <div className="text-[10px] text-blue-400">{t.toLocaleString()} tokens</div> : null; })()}
-                  </div>
-                </div>
-                <StatusLabel status={aiHealth?.openrouter?.status || "unhealthy"} />
-              </div>
-              {modelsData?.openrouter && (
-                <SearchableModelSelect
-                  models={modelsData.openrouter}
-                  value={modelsData.selected.openrouterModel || ''}
-                  onValueChange={(v) => handleModelChange('openrouter', v)}
-                  disabled={isUpdatingModel}
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="text-[10px] text-muted-foreground bg-secondary/20 px-3 py-2 rounded border border-border/30 flex items-start gap-2">
-            <Lightbulb className="w-3 h-3 text-yellow-500 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-semibold text-foreground">Recommended for summarization:</span> <span className="text-emerald-400">Local (Qwen2.5-0.5B)</span> · <span className="text-blue-400">Groq (llama-3.1-8b-instant)</span> · <span className="text-blue-400">OpenRouter (gemma-4-26b-a4b-it:free)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* AI Provider Stats */}
-        {providerStats && providerStats.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold uppercase text-foreground">AI Provider Breakdown</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {providerStats.map((stat) => {
-                const label = stat.provider === 'local' ? 'Local' : stat.provider === 'groq' ? 'Groq' : stat.provider === 'openrouter' ? 'OpenRouter' : 'None';
-                const color = stat.provider === 'local' ? 'bg-emerald-500/10' : stat.provider === 'groq' ? 'bg-blue-500/10' : stat.provider === 'openrouter' ? 'bg-violet-500/10' : 'bg-zinc-500/10';
-                const icon = stat.provider === 'local' ? <Bot className="w-3 h-3 text-emerald-400" /> : stat.provider === 'groq' ? <Bot className="w-3 h-3 text-blue-400" /> : stat.provider === 'openrouter' ? <Bot className="w-3 h-3 text-violet-400" /> : <Bot className="w-3 h-3 text-zinc-400" />;
-                return (
-                  <div key={stat.provider} className="flex items-center gap-2 py-2 px-3 rounded-lg bg-secondary/30 border border-border/40">
-                    <div className={color + " w-7 h-7 rounded-md flex items-center justify-center"}>
-                      {icon}
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-foreground">{stat.count.toLocaleString()}</div>
-                      <div className="text-[9px] text-muted-foreground font-medium uppercase">{label}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Signal Stats */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold tracking-tight uppercase text-foreground">Signal Intelligence</h2>
-              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                {statsData ? `${statsData.last24h} signals in last 24h` : "Loading..."}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <StatCard
-              label="Total Signals"
-              value={statsData?.total?.toLocaleString()}
-              icon={<TrendingUp className="w-4 h-4 text-primary" />}
+              }
             />
-            <StatCard
-              label="Total Today"
-              value={visitorStats?.today?.toLocaleString()}
-              icon={<Users className="w-4 h-4 text-blue-400" />}
-              accent="bg-blue-500/10"
-            />
-            <StatCard
-              label="Realtime"
-              value={visitorStats?.realtime?.toLocaleString()}
-              icon={<Users className="w-4 h-4 text-emerald-400" />}
-              accent="bg-emerald-500/10"
-            />
-            <StatCard
-              label="High"
-              value={statsData?.high?.toLocaleString()}
-              icon={<AlertTriangle className="w-4 h-4 text-red-400" />}
-              accent="bg-red-500/10"
-            />
-            <StatCard
-              label="Medium"
-              value={statsData?.medium?.toLocaleString()}
-              icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
-              accent="bg-amber-500/10"
-            />
-            <StatCard
-              label="Low"
-              value={statsData?.low?.toLocaleString()}
-              icon={<AlertTriangle className="w-4 h-4 text-emerald-400" />}
-              accent="bg-emerald-500/10"
-            />
-            <StatCard
-              label="Geopolitics"
-              value={statsData?.geopolitics?.toLocaleString()}
-              icon={<Globe className="w-4 h-4 text-blue-400" />}
-              accent="bg-blue-500/10"
-            />
-            <StatCard
-              label="Tech"
-              value={statsData?.technology?.toLocaleString()}
-              icon={<Cpu className="w-4 h-4 text-emerald-400" />}
-              accent="bg-emerald-500/10"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <StatCard
-              label="AI Processed"
-              value={statsData?.aiProcessed?.toLocaleString()}
-              icon={<Bot className="w-4 h-4 text-violet-400" />}
-              accent="bg-violet-500/10"
-            />
-            <StatCard
-              label="Translated"
-              value={statsData?.translated?.toLocaleString()}
-              icon={<Languages className="w-4 h-4 text-cyan-400" />}
-              accent="bg-cyan-500/10"
-            />
-            <StatCard
-              label="AI Failed"
-              value={statsData?.aiFailed?.toLocaleString()}
-              icon={<XCircle className="w-4 h-4 text-orange-400" />}
-              accent="bg-orange-500/10"
-              action={(statsData?.aiFailed ?? 0) > 0 ? (
-                <Button variant="ghost" size="sm" onClick={handleRetryAI} disabled={isRetrying} className="h-6 w-6 rounded-full p-0">
-                  <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
-                </Button>
-              ) : undefined}
-            />
-            <StatCard
-              label="High Pending"
-              value={statsData?.highPending?.toLocaleString()}
-              icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
-              accent="bg-amber-500/10"
-              action={(statsData?.highPending ?? 0) > 0 ? (
-                <Button variant="ghost" size="sm" onClick={handleRetryHigh} disabled={isRetrying} className="h-6 w-6 rounded-full p-0">
-                  <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
-                </Button>
-              ) : undefined}
-            />
-          </div>
-        </div>
-
-        {/* Translation & Cache Metrics */}
-        {metrics && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Languages className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-sm font-black tracking-tight uppercase text-foreground">Worker Intelligence</h2>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  Queues & Translation Pipeline Status
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatCard
-                label="Translation Depth"
-                value={metrics.queue.translationDepth}
-                icon={<Activity className="w-4 h-4 text-blue-400" />}
-                accent="bg-blue-500/10"
-              />
-              <StatCard
-                label="AI Queue Depth"
-                value={metrics.queue.aiSummaryDepth}
-                icon={<Activity className="w-4 h-4 text-violet-400" />}
-                accent="bg-violet-500/10"
-              />
-              <StatCard
-                label="Cache Hit Ratio"
-                value={`${(metrics.cache.hitRatio * 100).toFixed(1)}%`}
-                icon={<Zap className="w-4 h-4 text-emerald-400" />}
-                accent="bg-emerald-500/10"
-              />
-              <StatCard
-                label="Translation Latency"
-                value={(() => { const entries = Object.values(metrics.translation.latency); const avg = entries.length > 0 ? entries.reduce((s, p) => s + p.avgMs, 0) / entries.length : 0; return `${Math.round(avg)}ms`; })()}
-                icon={<Clock className="w-4 h-4 text-amber-400" />}
-                accent="bg-amber-500/10"
-              />
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
-                <div>
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Translation Success</div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-black text-emerald-500">{metrics.translation.completed}</span>
-                    <span className="text-[10px] text-muted-foreground">processed</span>
+              {/* Local */}
+              <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={aiHealth?.local?.status || "unhealthy"} />
+                    <span className="text-sm font-bold">Local · Qwen</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-black uppercase text-muted-foreground">
+                      {aiHealth?.localEnabled ? "On" : "Off"}
+                    </span>
+                    <Switch checked={aiHealth?.localEnabled ?? false} onCheckedChange={handleLocalAIToggle} className="scale-75 origin-right" />
                   </div>
                 </div>
-                {metrics.translation.failed > 0 && (
-                  <div className="text-right">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-red-500 mb-1">Failures</div>
-                    <div className="text-xl font-black text-red-500">{metrics.translation.failed}</div>
-                  </div>
+                {aiHealth?.local?.model && (
+                  <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.local.model}</p>
+                )}
+                {aiHealth?.local?.latency !== undefined && (
+                  <p className="text-[10px] text-muted-foreground">{aiHealth.local.latency}ms latency</p>
                 )}
               </div>
-              <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
-                <div>
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">AI Summaries</div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-black text-violet-500">{metrics.aiSummary.completed}</span>
-                    <span className="text-[10px] text-muted-foreground">analyzed</span>
-                  </div>
-                </div>
-                {metrics.aiSummary.failed > 0 && (
-                  <div className="text-right">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-red-500 mb-1">Failures</div>
-                    <div className="text-xl font-black text-red-500">{metrics.aiSummary.failed}</div>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
-                <div>
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Cache Performance</div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-black text-emerald-500">{metrics.cache.hits}</span>
-                    <span className="text-[10px] text-muted-foreground">hits</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Misses</div>
-                  <div className="text-xl font-black text-foreground">{metrics.cache.misses}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Global Admin Quick Actions */}
-        <div className="space-y-4 pt-6 border-t border-border/10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Server className="w-4 h-4 text-primary" />
+              {/* Groq */}
+              <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={aiHealth?.groq?.status || "unhealthy"} />
+                    <span className="text-sm font-bold">Groq</span>
+                  </div>
+                  <StatusLabel status={aiHealth?.groq?.status || "unhealthy"} />
+                </div>
+                {aiHealth?.groq?.model && (
+                  <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.groq.model}</p>
+                )}
+                {(() => { const t = aiHealth?.tokenUsage?.groq?.today?.total ?? 0; return t > 0 ? <p className="text-[10px] text-blue-400">{t.toLocaleString()} tokens today</p> : null; })()}
+                {modelsData?.groq && (
+                  <SearchableModelSelect models={modelsData.groq} value={modelsData.selected.groqModel || ""} onValueChange={(v) => handleModelChange("groq", v)} disabled={isUpdatingModel} />
+                )}
+              </div>
+
+              {/* OpenRouter */}
+              <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={aiHealth?.openrouter?.status || "unhealthy"} />
+                    <span className="text-sm font-bold">OpenRouter</span>
+                  </div>
+                  <StatusLabel status={aiHealth?.openrouter?.status || "unhealthy"} />
+                </div>
+                {aiHealth?.openrouter?.model && (
+                  <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.openrouter.model}</p>
+                )}
+                {(() => { const t = aiHealth?.tokenUsage?.openrouter?.today?.total ?? 0; return t > 0 ? <p className="text-[10px] text-blue-400">{t.toLocaleString()} tokens today</p> : null; })()}
+                {modelsData?.openrouter && (
+                  <SearchableModelSelect models={modelsData.openrouter} value={modelsData.selected.openrouterModel || ""} onValueChange={(v) => handleModelChange("openrouter", v)} disabled={isUpdatingModel} />
+                )}
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-black tracking-tight uppercase text-foreground">Administrative Protocols</h2>
-              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                Direct Kernel & Database Interaction
+
+            <div className="flex items-start gap-2 text-[10px] bg-muted/40 px-3 py-2 rounded-lg border border-border/30">
+              <Lightbulb className="w-3 h-3 text-yellow-500 shrink-0 mt-0.5" />
+              <p className="text-muted-foreground">
+                <span className="font-semibold text-foreground">Recommended: </span>
+                <span className="text-emerald-500 dark:text-emerald-400">Local (Qwen2.5-0.5B)</span>
+                {" · "}
+                <span className="text-blue-400">Groq (llama-3.1-8b-instant)</span>
+                {" · "}
+                <span className="text-blue-400">OpenRouter (gemma-4-26b-a4b-it:free)</span>
               </p>
             </div>
-          </div>
+          </section>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {modules.filter(m => "onClick" in m).map((module) => (
-              <Button 
-                key={module.title}
-                onClick={module.onClick} 
-                disabled={module.loading}
-                variant="outline"
-                className="group flex flex-col h-auto p-4 rounded-lg bg-card/30 border border-border/50 hover:border-primary/40 transition-all duration-300 backdrop-blur-sm"
-              >
-                <div className="flex items-center gap-3 w-full mb-2">
-                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform", module.color)}>
-                    <module.icon className="w-4 h-4 text-white" />
+          {/* ── Signal Intelligence ───────────────────────── */}
+          <section className="space-y-3">
+            <SectionHeader
+              icon={BarChart3}
+              title="Signal Intelligence"
+              subtitle={statsData ? `${statsData.last24h?.toLocaleString()} signals in last 24h` : "Loading..."}
+            />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <StatCard label="Total Signals"   value={statsData?.total?.toLocaleString()}       icon={<TrendingUp className="w-4 h-4 text-primary" />} />
+              <StatCard label="Last 24H"        value={statsData?.last24h?.toLocaleString()}      icon={<Activity className="w-4 h-4 text-blue-400" />}    accent="bg-blue-500/10" />
+              <StatCard label="High Severity"   value={statsData?.high?.toLocaleString()}         icon={<AlertTriangle className="w-4 h-4 text-red-400" />} accent="bg-red-500/10" />
+              <StatCard label="Medium Severity" value={statsData?.medium?.toLocaleString()}       icon={<AlertTriangle className="w-4 h-4 text-amber-400" />} accent="bg-amber-500/10" />
+              <StatCard label="Low Severity"    value={statsData?.low?.toLocaleString()}          icon={<AlertTriangle className="w-4 h-4 text-emerald-400" />} accent="bg-emerald-500/10" />
+              <StatCard label="Geopolitics"     value={statsData?.geopolitics?.toLocaleString()}  icon={<Globe className="w-4 h-4 text-blue-400" />}      accent="bg-blue-500/10" />
+              <StatCard label="Technology"      value={statsData?.technology?.toLocaleString()}   icon={<Cpu className="w-4 h-4 text-indigo-400" />}      accent="bg-indigo-500/10" />
+              <StatCard label="AI Processed"    value={statsData?.aiProcessed?.toLocaleString()}  icon={<Bot className="w-4 h-4 text-violet-400" />}      accent="bg-violet-500/10" />
+              <StatCard label="Translated"      value={statsData?.translated?.toLocaleString()}   icon={<Languages className="w-4 h-4 text-cyan-400" />}  accent="bg-cyan-500/10" />
+              <StatCard
+                label="AI Failed"
+                value={statsData?.aiFailed?.toLocaleString()}
+                icon={<XCircle className="w-4 h-4 text-orange-400" />}
+                accent="bg-orange-500/10"
+                action={(statsData?.aiFailed ?? 0) > 0 ? (
+                  <Button variant="ghost" size="sm" onClick={handleRetryAI} disabled={isRetrying} className="h-6 w-6 rounded-full p-0">
+                    <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
+                  </Button>
+                ) : undefined}
+              />
+              <StatCard
+                label="High Pending"
+                value={statsData?.highPending?.toLocaleString()}
+                icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
+                accent="bg-amber-500/10"
+                action={(statsData?.highPending ?? 0) > 0 ? (
+                  <Button variant="ghost" size="sm" onClick={handleRetryHigh} disabled={isRetrying} className="h-6 w-6 rounded-full p-0">
+                    <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
+                  </Button>
+                ) : undefined}
+              />
+              <StatCard label="Visitors Today" value={visitorStats?.today?.toLocaleString()}    icon={<Users className="w-4 h-4 text-pink-400" />}      accent="bg-pink-500/10" />
+              <StatCard label="Live Viewers"   value={visitorStats?.realtime?.toLocaleString()} icon={<Users className="w-4 h-4 text-emerald-400" />}   accent="bg-emerald-500/10" />
+            </div>
+          </section>
+
+          {/* ── AI Provider Breakdown (conditional) ──────── */}
+          {providerStats && providerStats.length > 0 && (
+            <section className="space-y-3">
+              <SectionHeader
+                icon={Cpu}
+                title="AI Processing Breakdown"
+                subtitle="Signals processed per provider (all time)"
+              />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {providerStats.map((stat) => {
+                  const cfg = {
+                    local:       { label: "Local",       accent: "bg-emerald-500/10", icon: <Bot className="w-4 h-4 text-emerald-400" /> },
+                    groq:        { label: "Groq",        accent: "bg-blue-500/10",    icon: <Bot className="w-4 h-4 text-blue-400" /> },
+                    openrouter:  { label: "OpenRouter",  accent: "bg-violet-500/10",  icon: <Bot className="w-4 h-4 text-violet-400" /> },
+                  }[stat.provider] ?? { label: stat.provider, accent: "bg-zinc-500/10", icon: <Bot className="w-4 h-4 text-zinc-400" /> };
+                  return (
+                    <StatCard key={stat.provider} label={cfg.label} value={stat.count.toLocaleString()} icon={cfg.icon} accent={cfg.accent} />
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* ── Worker Intelligence (conditional) ─────────── */}
+          {metrics && (
+            <section className="space-y-3">
+              <SectionHeader
+                icon={Activity}
+                title="Worker Intelligence"
+                subtitle="Live queue depths · today's throughput · cache"
+              />
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <StatCard label="Translation Queue"     value={metrics.queue.translationDepth}  icon={<Activity className="w-4 h-4 text-blue-400" />}    accent="bg-blue-500/10" />
+                <StatCard label="AI Summary Queue"      value={metrics.queue.aiSummaryDepth}    icon={<Activity className="w-4 h-4 text-violet-400" />}  accent="bg-violet-500/10" />
+                <StatCard label="Cache Hit Ratio"       value={`${(metrics.cache.hitRatio * 100).toFixed(1)}%`} icon={<Zap className="w-4 h-4 text-emerald-400" />} accent="bg-emerald-500/10" />
+                <StatCard
+                  label="Avg Translate Latency"
+                  value={(() => {
+                    const entries = Object.values(metrics.translation.latency);
+                    if (entries.length === 0) return "—";
+                    return `${Math.round(entries.reduce((s, p) => s + p.avgMs, 0) / entries.length)}ms`;
+                  })()}
+                  icon={<Clock className="w-4 h-4 text-amber-400" />}
+                  accent="bg-amber-500/10"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Translation */}
+                <div className="p-4 rounded-xl bg-card border border-border/50 space-y-3">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Translation · Today</p>
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <span className="text-2xl font-black text-emerald-500">{metrics.translation.completed}</span>
+                      <span className="text-[10px] text-muted-foreground ml-1.5">done</span>
+                    </div>
+                    <div className="text-right space-y-0.5">
+                      <p className="text-[9px] text-muted-foreground">enqueued <span className="font-bold text-foreground">{metrics.translation.enqueued}</span></p>
+                      {metrics.translation.failed > 0 && (
+                        <p className="text-[9px] text-red-500">failed <span className="font-bold">{metrics.translation.failed}</span></p>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <div className="text-[10px] font-bold text-foreground uppercase tracking-tight">{module.title}</div>
-                    <div className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/50">{module.stat}</div>
+                  {Object.entries(metrics.translation.latency).length > 0 && (
+                    <div className="flex gap-4 pt-2 border-t border-border/20">
+                      {Object.entries(metrics.translation.latency).map(([mode, { avgMs, count }]) => (
+                        <p key={mode} className="text-[9px] text-muted-foreground">
+                          <span className="font-bold uppercase">{mode}</span> {avgMs}ms <span className="opacity-40">×{count}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* AI Summaries */}
+                <div className="p-4 rounded-xl bg-card border border-border/50 space-y-3">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">AI Summaries · Today</p>
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <span className="text-2xl font-black text-violet-500">{metrics.aiSummary.completed}</span>
+                      <span className="text-[10px] text-muted-foreground ml-1.5">done</span>
+                    </div>
+                    <div className="text-right space-y-0.5">
+                      <p className="text-[9px] text-muted-foreground">enqueued <span className="font-bold text-foreground">{metrics.aiSummary.enqueued}</span></p>
+                      {metrics.aiSummary.failed > 0 && (
+                        <p className="text-[9px] text-red-500">failed <span className="font-bold">{metrics.aiSummary.failed}</span></p>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <p className="text-[9px] text-muted-foreground line-clamp-1 w-full text-left opacity-60 italic">{module.description}</p>
-                
-                <div className="mt-4 w-full flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                  {module.loading ? "Executing..." : "Execute Command"}
-                  {module.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ChevronRight className="w-3 h-3" />}
+
+                {/* Cache */}
+                <div className="p-4 rounded-xl bg-card border border-border/50 space-y-3">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Cache · Today</p>
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <span className="text-2xl font-black text-emerald-500">{metrics.cache.hits}</span>
+                      <span className="text-[10px] text-muted-foreground ml-1.5">hits</span>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">misses <span className="font-bold text-foreground">{metrics.cache.misses}</span></p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${(metrics.cache.hitRatio * 100).toFixed(1)}%` }} />
+                    </div>
+                    <p className="text-[9px] text-muted-foreground text-right">{(metrics.cache.hitRatio * 100).toFixed(1)}% hit rate</p>
+                  </div>
                 </div>
-              </Button>
-            ))}
-          </div>
+              </div>
+            </section>
+          )}
+
+          {/* ── Quick Actions ──────────────────────────────── */}
+          <section className="space-y-3">
+            <SectionHeader
+              icon={Server}
+              title="Quick Actions"
+              subtitle="Navigation shortcuts & system operations"
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Navigation links */}
+              {modules.filter(m => "href" in m).map((module) => (
+                <Link key={module.title} href={module.href!}>
+                  <div className="group flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer">
+                    <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105", module.color)}>
+                      <module.icon className="w-4 h-4 text-foreground/70" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold">{module.title}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{module.description}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0" />
+                  </div>
+                </Link>
+              ))}
+              {/* Action buttons */}
+              {modules.filter(m => "onClick" in m).map((module) => (
+                <button
+                  key={module.title}
+                  onClick={module.onClick}
+                  disabled={module.loading}
+                  className="group flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 hover:border-primary/40 hover:bg-muted/30 transition-all text-left disabled:opacity-60 disabled:cursor-not-allowed w-full"
+                >
+                  <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105", module.color)}>
+                    {module.loading
+                      ? <Loader2 className="w-4 h-4 animate-spin text-foreground/70" />
+                      : <module.icon className="w-4 h-4 text-foreground/70" />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold">{module.title}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{module.description}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0" />
+                </button>
+              ))}
+            </div>
+          </section>
+
         </div>
       </div>
     </div>

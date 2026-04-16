@@ -80,8 +80,9 @@ function ColumnControlBar({
 
   return (
     <div className="relative z-10">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-card/40">
-        <div className="flex items-center gap-1 bg-background/40 p-0.5 rounded-lg border border-border/5 shadow-inner overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        {/* Severity filters */}
+        <div className="flex items-center gap-1 bg-background/40 p-0.5 rounded-lg border border-border/5 shadow-inner shrink-0">
           {['all', 'high', 'medium', 'low'].map((f) => (
             <button
               key={f}
@@ -98,41 +99,48 @@ function ColumnControlBar({
           ))}
         </div>
 
-        <div className="hidden sm:block flex-1" />
+        <div className="w-px h-5 bg-border/30 shrink-0" />
 
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-          <button
-            ref={sourceBtnRef}
-            onClick={() => { setShowSourceDropdown(!showSourceDropdown); setShowSortDropdown(false); }}
-            className={cn(
-              "flex items-center gap-1.5 h-8 px-3 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all text-[9px] font-black uppercase tracking-widest shrink-0",
-              sourceFilter && "bg-primary/20 border-primary/20 text-primary shadow-sm"
-            )}
-          >
-            <Filter className="w-3.5 h-3.5" />
-            <span className="max-w-[70px] truncate">{sourceFilter || t('source')}</span>
-          </button>
+        {/* Source filter — icon only, dot when active */}
+        <button
+          ref={sourceBtnRef}
+          onClick={() => { setShowSourceDropdown(!showSourceDropdown); setShowSortDropdown(false); }}
+          className={cn(
+            "relative flex items-center justify-center w-8 h-8 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all shrink-0",
+            sourceFilter && "bg-primary/20 border-primary/20 text-primary"
+          )}
+          title={sourceFilter || t('source')}
+        >
+          <Filter className="w-3.5 h-3.5" />
+          {sourceFilter && (
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+          )}
+        </button>
 
-          <button
-            ref={sortBtnRef}
-            onClick={() => { setShowSortDropdown(!showSortDropdown); setShowSourceDropdown(false); }}
-            className="flex items-center gap-1.5 h-8 px-3 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all text-[9px] font-black uppercase tracking-widest text-muted-foreground/80 hover:text-foreground shadow-sm shrink-0"
-          >
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            <span className="max-w-[60px] truncate">{sortOptions.find(s => s.id === sortBy)?.label || t('sort')}</span>
-          </button>
+        {/* Sort — icon only, dot when non-default */}
+        <button
+          ref={sortBtnRef}
+          onClick={() => { setShowSortDropdown(!showSortDropdown); setShowSourceDropdown(false); }}
+          className="relative flex items-center justify-center w-8 h-8 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all text-muted-foreground/80 hover:text-foreground shrink-0"
+          title={sortOptions.find(s => s.id === sortBy)?.label || t('sort')}
+        >
+          <ArrowUpDown className="w-3.5 h-3.5" />
+          {sortBy !== 'newest' && (
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+          )}
+        </button>
 
-          <button
-            onClick={() => setShowBookmarks(!showBookmarks)}
-            className={cn(
-              "flex items-center justify-center w-8 h-8 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all shadow-sm shrink-0",
-              showBookmarks ? "bg-primary text-primary-foreground border-primary/20" : "text-muted-foreground/60"
-            )}
-            title={t('bookmarks')}
-          >
-            <Bookmark className={cn("w-4 h-4", showBookmarks && "fill-current")} />
-          </button>
-        </div>
+        {/* Bookmark toggle */}
+        <button
+          onClick={() => setShowBookmarks(!showBookmarks)}
+          className={cn(
+            "flex items-center justify-center w-8 h-8 bg-accent/20 border border-border/10 rounded-lg hover:bg-accent/40 transition-all shrink-0",
+            showBookmarks ? "bg-primary text-primary-foreground border-primary/20" : "text-muted-foreground/60"
+          )}
+          title={t('bookmarks')}
+        >
+          <Bookmark className={cn("w-4 h-4", showBookmarks && "fill-current")} />
+        </button>
       </div>
 
       {showSourceDropdown && (
@@ -436,9 +444,9 @@ export function Column({
       )}>
         <div className={cn(
           "p-1.5 rounded-lg shadow-inner",
-          categoryId === 'geopolitics' ? "bg-violet-600/10 text-violet-400" :
-          categoryId === 'technology' ? "bg-indigo-500/10 text-indigo-400" :
-          "bg-emerald-500/10 text-emerald-400"
+          categoryId === 'geopolitics' ? "bg-violet-600/10 text-violet-600 dark:text-violet-400" :
+          categoryId === 'technology' ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" :
+          "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
         )}>
           <Icon className="w-4 h-4" />
         </div>

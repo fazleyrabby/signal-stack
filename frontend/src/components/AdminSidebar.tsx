@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -30,8 +30,6 @@ const navItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const params = useParams();
-  const locale = (params?.locale as string) || 'en';
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -47,12 +45,9 @@ export function AdminSidebar() {
     localStorage.setItem("admin_sidebar_collapsed", String(next));
   };
 
-  const getFullHref = (href: string) => `/${locale}${href}`;
-
   const isActive = (href: string) => {
-    const fullHref = getFullHref(href);
-    if (href === '/admin') return pathname === fullHref;
-    return pathname.startsWith(fullHref);
+    if (href === '/admin') return pathname === '/admin';
+    return pathname.startsWith(href);
   };
 
   return (
@@ -105,7 +100,7 @@ export function AdminSidebar() {
             return (
               <Link
                 key={item.name}
-                href={getFullHref(item.href)}
+                href={item.href}
                 onClick={() => setIsMobileOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all group",
@@ -130,7 +125,7 @@ export function AdminSidebar() {
         {/* Action Controls */}
         <div className="p-4 border-t border-border/10 space-y-2">
           {!isCollapsed && (
-            <Link href={getFullHref('/')} className="block">
+            <Link href="/" className="block">
               <Button variant="ghost" className="w-full justify-start gap-3 h-10 px-3 text-muted-foreground hover:text-foreground rounded-lg">
                 <Globe className="w-5 h-5" />
                 <span>Public Feed</span>
@@ -147,7 +142,7 @@ export function AdminSidebar() {
             onClick={() => {
               if (confirm("Terminate admin session?")) {
                 logoutAdmin();
-                window.location.href = getFullHref('/admin/login');
+                window.location.href = '/admin-login';
               }
             }}
           >

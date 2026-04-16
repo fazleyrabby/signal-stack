@@ -102,7 +102,7 @@ export default function SignalsAdmin() {
 
   useEffect(() => {
     if (signalsError) {
-      router.replace("/admin/login");
+      router.replace("/admin-login");
     }
   }, [signalsError, router]);
 
@@ -236,83 +236,104 @@ export default function SignalsAdmin() {
         </div>
 
           {/* Filters Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 bg-card/30 p-4 rounded-lg border border-border/50 backdrop-blur-sm shadow-sm">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
-              <Input 
-                placeholder="Search keywords..." 
-                className="pl-9 h-9 text-xs" 
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              />
+          <div className="bg-card/30 p-4 rounded-lg border border-border/50 backdrop-blur-sm shadow-sm space-y-3">
+            {/* Row 1: Search + Sort */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative group flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
+                <Input
+                  placeholder="Search title, source, content..."
+                  className="pl-9 h-9 text-xs w-full"
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                />
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Select value={sort} onValueChange={(val) => { if (typeof val === 'string') { setSort(val); setPage(1); } }}>
+                  <SelectTrigger className="h-9 text-xs w-[160px]">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="createdAt">Sort: Created</SelectItem>
+                    <SelectItem value="publishedAt">Sort: Published</SelectItem>
+                    <SelectItem value="score">Sort: Score</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 border border-border/50"
+                  onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}
+                  title={order === 'asc' ? 'Ascending' : 'Descending'}
+                >
+                  <SlidersHorizontal className={cn("w-3.5 h-3.5 transition-transform", order === 'asc' && "rotate-180")} />
+                </Button>
+              </div>
             </div>
 
-            <Select value={severity} onValueChange={(val) => { if (typeof val === 'string') { setSeverity(val); setPage(1); } }}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Severity" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Severities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={minScore} onValueChange={(val) => { if (typeof val === 'string') { setMinScore(val); setPage(1); } }}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Min Score" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">Min Score: Any</SelectItem>
-                {[5, 10, 15, 20, 25].map(s => (
-                  <SelectItem key={s} value={s.toString()}>Min Score: {s}+</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={categoryId} onValueChange={(val) => { if (typeof val === 'string') { setCategoryId(val); setPage(1); } }}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories?.map((cat) => (
-                  <SelectItem key={cat.slug} value={cat.slug}>{cat.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={hasTranslation} onValueChange={(val) => { if (typeof val === 'string') { setHasTranslation(val); setPage(1); } }}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Translation" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Translation Status</SelectItem>
-                <SelectItem value="true">Translated</SelectItem>
-                <SelectItem value="false">Not Translated</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex gap-1">
-              <Select value={sort} onValueChange={(val) => { if (typeof val === 'string') { setSort(val); setPage(1); } }}>
-                <SelectTrigger className="h-9 text-xs flex-1">
-                  <SelectValue placeholder="Sort By" />
+            {/* Row 2: Dimension filters */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+              <Select value={severity} onValueChange={(val) => { if (typeof val === 'string') { setSeverity(val); setPage(1); } }}>
+                <SelectTrigger className="h-9 text-xs w-full">
+                  <SelectValue placeholder="Severity" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="createdAt">Created Date</SelectItem>
-                  <SelectItem value="score">Score</SelectItem>
-                  <SelectItem value="publishedAt">Published Date</SelectItem>
+                  <SelectItem value="all">All Severities</SelectItem>
+                  <SelectItem value="high">High (≥8)</SelectItem>
+                  <SelectItem value="medium">Medium (5–7)</SelectItem>
+                  <SelectItem value="low">Low (&lt;5)</SelectItem>
                 </SelectContent>
               </Select>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 shrink-0 border border-border/50"
-                onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}
-              >
-                <SlidersHorizontal className={cn("w-3.5 h-3.5 transition-transform", order === 'asc' && "rotate-180")} />
-              </Button>
+
+              <Select value={minScore} onValueChange={(val) => { if (typeof val === 'string') { setMinScore(val); setPage(1); } }}>
+                <SelectTrigger className="h-9 text-xs w-full">
+                  <SelectValue placeholder="Min Score" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Min Score: Any</SelectItem>
+                  <SelectItem value="5">Min Score: 5+</SelectItem>
+                  <SelectItem value="6">Min Score: 6+</SelectItem>
+                  <SelectItem value="7">Min Score: 7+ (High)</SelectItem>
+                  <SelectItem value="8">Min Score: 8+ (Critical)</SelectItem>
+                  <SelectItem value="9">Min Score: 9+</SelectItem>
+                  <SelectItem value="10">Min Score: 10+</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={categoryId} onValueChange={(val) => { if (typeof val === 'string') { setCategoryId(val); setPage(1); } }}>
+                <SelectTrigger className="h-9 text-xs w-full">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories?.map((cat) => (
+                    <SelectItem key={cat.slug} value={cat.slug}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={hasTranslation} onValueChange={(val) => { if (typeof val === 'string') { setHasTranslation(val); setPage(1); } }}>
+                <SelectTrigger className="h-9 text-xs w-full">
+                  <SelectValue placeholder="Translation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Translations</SelectItem>
+                  <SelectItem value="true">Has Translation</SelectItem>
+                  <SelectItem value="false">No Translation</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={lang} onValueChange={(val) => { if (typeof val === 'string') { setLang(val); setPage(1); } }}>
+                <SelectTrigger className="h-9 text-xs w-full">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Languages</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="bn">Bengali</SelectItem>
+                  <SelectItem value="es">Spanish</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

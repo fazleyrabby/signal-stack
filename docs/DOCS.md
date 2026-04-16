@@ -793,3 +793,19 @@ The system prioritizes:
   - **VentureBeat AI** (USA)
 - **Signal Integrity**: All sources assigned a `trustScore` of 4-5 and mapped geographically in `backend/src/common/geo.util.ts`.
 - **Feed Health**: Conducted a full audit of all RSS endpoints to ensure 2026 schema compatibility and HTTP 200/302 status.
+
+### Update: April 17, 2026
+**Admin Navigation, Light Mode Fixes**
+
+#### 1. Feed Column Icon Colors (Light Mode)
+- `Column.tsx`: Icon containers used `text-violet-400 / text-indigo-400 / text-emerald-400` unconditionally — these are dark-optimized and wash out on light backgrounds.
+- Fixed to `text-violet-600 dark:text-violet-400` (same pattern as column title text).
+
+#### 2. Admin Sidebar Navigation
+- `AdminSidebar.tsx`: `getFullHref()` prepended `/${locale}` to all admin routes, creating broken paths like `/en/admin`. Admin pages live at `/admin/*` (outside the `[locale]` segment).
+- Fixed: removed locale prefix from admin links entirely. Admin is English-only, no i18n segment needed.
+- Also fixed logout redirect: was targeting `/admin/login` (nonexistent); corrected to `/admin-login`.
+
+#### 3. Drizzle Studio Access
+- `localhost:4983` returns 404 because the local server only exposes API endpoints.
+- Correct access: open `https://local.drizzle.studio` in browser — it connects back to `localhost:4983`.

@@ -34,7 +34,7 @@ export default function CategoriesAdmin() {
 
   useEffect(() => {
     if (error) {
-      router.replace("/admin/login");
+      router.replace("/admin-login");
     }
   }, [error, router]);
 

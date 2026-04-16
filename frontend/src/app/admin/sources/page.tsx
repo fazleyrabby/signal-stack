@@ -42,7 +42,7 @@ export default function SourcesAdmin() {
   
   useEffect(() => {
     if (sourcesError) {
-      router.replace("/admin/login");
+      router.replace("/admin-login");
     }
   }, [sourcesError, router]);
   
