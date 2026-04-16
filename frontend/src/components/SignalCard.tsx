@@ -145,9 +145,9 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
                 <span className={cn("text-[12px] font-semibold uppercase tracking-wide", impact.text)}>
                   {signal.score >= 7 ? t('critical') : signal.score >= 5 ? t('elevated') : t('stable')}
                 </span>
-                {isCompact && signal.country && (
+                {isCompact && signal.countryCode && (
                   <span className="text-[11px] text-muted-foreground/50">
-                    {signal.country}
+                    {signal.countryCode}
                   </span>
                 )}
             </div>

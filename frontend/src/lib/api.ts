@@ -17,6 +17,7 @@ export interface Signal {
   aiProvider: string | null;
   aiProcessed: boolean;
   aiFailed: boolean;
+  countryCode: string | null;
 }
 
 export interface SignalsResponse {
