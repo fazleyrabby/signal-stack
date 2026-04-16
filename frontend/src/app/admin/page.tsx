@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import useSWR from "swr";
-import { Header } from "@/components/header";
+import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, Check, Users, Languages } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, ChevronRight, Check, Users, Languages, Loader2, Clock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
@@ -223,18 +224,29 @@ function SearchableModelSelect({
   );
 }
 
+type MetricsResponse = {
+  translation: { enqueued: number; completed: number; failed: number; latency: Record<string, { avgMs: number; count: number }> };
+  aiSummary: { enqueued: number; completed: number; failed: number };
+  cache: { hits: number; misses: number; hitRatio: number };
+  queue: { translationDepth: number; aiSummaryDepth: number };
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
   const [isSendingTestDigest, setIsSendingTestDigest] = useState(false);
-
   const { data: statsData, mutate: refreshStats } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
   const { data: aiHealth, isValidating: aiLoading, mutate: refreshAI, error: aiError } = useSWR<AIHealth>(
     `${API_BASE}/api/admin/ai/health`,
     fetcher,
     { refreshInterval: 60000, shouldRetryOnError: false }
+  );
+  const { data: metrics, mutate: refreshMetrics } = useSWR<MetricsResponse>(
+    `${API_BASE}/api/admin/metrics`,
+    fetcher,
+    { refreshInterval: 30000 }
   );
 
   useEffect(() => {
@@ -271,6 +283,20 @@ export default function AdminDashboard() {
       console.error('Failed to update model:', err);
     } finally {
       setIsUpdatingModel(false);
+    }
+  };
+
+  const handleLocalAIToggle = async (enabled: boolean) => {
+    try {
+      await fetch(`${API_BASE}/api/admin/ai/models`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'local', enabled }),
+        credentials: 'include',
+      });
+      await refreshAI();
+    } catch (err) {
+      console.error('Failed to toggle local AI:', err);
     }
   };
 
@@ -369,10 +395,11 @@ export default function AdminDashboard() {
   };
 
    const modules = [
-     { title: "News Sources", description: "Manage intelligence telemetry feeds.", icon: Rss, href: "/admin/sources", variant: "default" as const, stat: statsData?.topSource || "Connecting..." },
-     { title: "Signal Categories", description: "Tune classification & routing logic.", icon: Layers, href: "/admin/categories", variant: "secondary" as const, stat: "Active" },
-     { title: "Database Backup", description: "Create a full corpus security snapshot.", icon: ShieldCheck, onClick: handleBackup, loading: isBackingUp, stat: "Ready" },
-     { title: "Test Digest", description: "Send a test email digest of recent signals.", icon: Zap, onClick: handleTestDigest, loading: isSendingTestDigest, stat: "Ready" }
+     { title: "Manage Signals", description: "Review and translate intelligence signals.", icon: Activity, href: "/admin/signals", variant: "default" as const, stat: statsData?.total?.toLocaleString() || "Connecting...", color: "bg-blue-500/10" },
+     { title: "News Sources", description: "Manage intelligence telemetry feeds.", icon: Rss, href: "/admin/sources", variant: "secondary" as const, stat: statsData?.topSource || "Connecting...", color: "bg-emerald-500/10" },
+     { title: "Signal Categories", description: "Tune classification & routing logic.", icon: Layers, href: "/admin/categories", variant: "secondary" as const, stat: "Active", color: "bg-violet-500/10" },
+     { title: "Database Backup", description: "Create a full corpus security snapshot.", icon: ShieldCheck, onClick: handleBackup, loading: isBackingUp, stat: "Ready", color: "bg-amber-500/10" },
+     { title: "Test Digest", description: "Send a test email digest of recent signals.", icon: Zap, onClick: handleTestDigest, loading: isSendingTestDigest, stat: "Ready", color: "bg-primary/10" }
    ];
 
   const healthyCount = aiHealth?.local
@@ -383,18 +410,16 @@ export default function AdminDashboard() {
     : 0;
 
   return (
-    <>
-      <Header isRefreshing={false} onRefresh={() => {}} showSearch={false} />
-
-      <main className="max-w-6xl mx-auto py-12 px-6 pb-16 md:pb-0 space-y-12">
+    <div className="flex-1 p-4 md:p-8 space-y-12">
+      <div className="max-w-6xl mx-auto space-y-12 pb-16 md:pb-0">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span className="text-sm font-bold uppercase text-foreground">Admin</span>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black tracking-tight uppercase">Command Center</h1>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] flex items-center gap-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+              Strategic Operational Overview
+            </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="h-7 text-[10px]">
-            <LogOut className="w-3 h-3" />
-          </Button>
         </div>
 
         {/* AI Health Section */}
@@ -422,12 +447,22 @@ export default function AdminDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 border border-border/40">
-              <div className="flex items-center gap-2">
-                <StatusDot status={aiHealth?.local?.status || "unhealthy"} />
-                <div>
-                  <div className="text-sm font-bold text-foreground">Local (Qwen)</div>
-                  {aiHealth?.local?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.local.model}</div>}
+            <div className="py-2 px-3 rounded-lg bg-secondary/30 border border-border/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={aiHealth?.local?.status || "unhealthy"} />
+                  <div>
+                    <div className="text-sm font-bold text-foreground">Local (Qwen)</div>
+                    {aiHealth?.local?.model && <div className="text-[10px] text-muted-foreground">{aiHealth.local.model}</div>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[8px] font-black uppercase text-muted-foreground">{aiHealth?.localEnabled ? 'Enabled' : 'Disabled'}</span>
+                  <Switch 
+                    checked={aiHealth?.localEnabled ?? false} 
+                    onCheckedChange={handleLocalAIToggle}
+                    className="scale-75 origin-right"
+                  />
                 </div>
               </div>
             </div>
@@ -613,38 +648,139 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Module Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {modules.map((module) => (
-            <Card key={module.title} className="bg-card border-border shadow-sm hover:border-primary/40 transition-all duration-500 overflow-hidden group rounded-lg">
-              <CardHeader className="pb-4">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <module.icon className="w-5 h-5 text-primary" />
+        {/* Translation & Cache Metrics */}
+        {metrics && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Languages className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-sm font-black tracking-tight uppercase text-foreground">Worker Intelligence</h2>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  Queues & Translation Pipeline Status
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <StatCard
+                label="Translation Depth"
+                value={metrics.queue.translationDepth}
+                icon={<Activity className="w-4 h-4 text-blue-400" />}
+                accent="bg-blue-500/10"
+              />
+              <StatCard
+                label="AI Queue Depth"
+                value={metrics.queue.aiSummaryDepth}
+                icon={<Activity className="w-4 h-4 text-violet-400" />}
+                accent="bg-violet-500/10"
+              />
+              <StatCard
+                label="Cache Hit Ratio"
+                value={`${(metrics.cache.hitRatio * 100).toFixed(1)}%`}
+                icon={<Zap className="w-4 h-4 text-emerald-400" />}
+                accent="bg-emerald-500/10"
+              />
+              <StatCard
+                label="Translation Latency"
+                value={(() => { const entries = Object.values(metrics.translation.latency); const avg = entries.length > 0 ? entries.reduce((s, p) => s + p.avgMs, 0) / entries.length : 0; return `${Math.round(avg)}ms`; })()}
+                icon={<Clock className="w-4 h-4 text-amber-400" />}
+                accent="bg-amber-500/10"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Translation Success</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-emerald-500">{metrics.translation.completed}</span>
+                    <span className="text-[10px] text-muted-foreground">processed</span>
+                  </div>
                 </div>
-                <CardTitle className="text-lg font-bold tracking-tight uppercase text-foreground">{module.title}</CardTitle>
-                <CardDescription className="text-xs text-muted-foreground font-medium">{module.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-[10px] font-sans py-2.5 px-3 rounded-md bg-secondary/50 border border-border/40 flex items-center justify-between">
-                  <span className="text-muted-foreground uppercase font-black">Status</span>
-                  <span className="font-bold text-foreground">{module.stat.toUpperCase()}</span>
-                </div>
-                {"onClick" in module ? (
-                  <Button onClick={module.onClick} disabled={module.loading} className="w-full h-10 text-[9px] font-black tracking-widest uppercase rounded-lg">
-                    {module.loading ? "Processing..." : `Run ${module.title}`}
-                  </Button>
-                ) : (
-                  <Link href={module.href || "/"} className="block">
-                    <Button className="w-full h-10 text-[9px] font-black tracking-widest uppercase rounded-lg" variant={module.variant}>
-                      Access {module.title}
-                    </Button>
-                  </Link>
+                {metrics.translation.failed > 0 && (
+                  <div className="text-right">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-red-500 mb-1">Failures</div>
+                    <div className="text-xl font-black text-red-500">{metrics.translation.failed}</div>
+                  </div>
                 )}
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+              <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">AI Summaries</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-violet-500">{metrics.aiSummary.completed}</span>
+                    <span className="text-[10px] text-muted-foreground">analyzed</span>
+                  </div>
+                </div>
+                {metrics.aiSummary.failed > 0 && (
+                  <div className="text-right">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-red-500 mb-1">Failures</div>
+                    <div className="text-xl font-black text-red-500">{metrics.aiSummary.failed}</div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-secondary/30 border border-border/40">
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Cache Performance</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-emerald-500">{metrics.cache.hits}</span>
+                    <span className="text-[10px] text-muted-foreground">hits</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Misses</div>
+                  <div className="text-xl font-black text-foreground">{metrics.cache.misses}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Global Admin Quick Actions */}
+        <div className="space-y-4 pt-6 border-t border-border/10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Server className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black tracking-tight uppercase text-foreground">Administrative Protocols</h2>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                Direct Kernel & Database Interaction
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {modules.filter(m => "onClick" in m).map((module) => (
+              <Button 
+                key={module.title}
+                onClick={module.onClick} 
+                disabled={module.loading}
+                variant="outline"
+                className="group flex flex-col h-auto p-4 rounded-lg bg-card/30 border border-border/50 hover:border-primary/40 transition-all duration-300 backdrop-blur-sm"
+              >
+                <div className="flex items-center gap-3 w-full mb-2">
+                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform", module.color)}>
+                    <module.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-[10px] font-bold text-foreground uppercase tracking-tight">{module.title}</div>
+                    <div className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/50">{module.stat}</div>
+                  </div>
+                </div>
+                <p className="text-[9px] text-muted-foreground line-clamp-1 w-full text-left opacity-60 italic">{module.description}</p>
+                
+                <div className="mt-4 w-full flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  {module.loading ? "Executing..." : "Execute Command"}
+                  {module.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ChevronRight className="w-3 h-3" />}
+                </div>
+              </Button>
+            ))}
+          </div>
         </div>
-      </main>
-    </>
+      </div>
+    </div>
   );
 }

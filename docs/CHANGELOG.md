@@ -4,6 +4,23 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-17] — AI Pipeline Reorder, Mobile UX & Dev Tooling
+
+### Changed
+- **AI Provider Order**: Reversed provider chain from `local → groq → openrouter` to `groq → openrouter → local`. Local llama.cpp is now last resort only, preventing 100% CPU usage on the VPS during normal operation. Admin toggle for local AI remains in the dashboard.
+- **Critical Alerts Stat**: "Critical Alerts" in the stats bar now shows last 24 hours only (consistent with "Activity 24h"). Previously showed all-time count.
+- **Column Control Bar (Mobile)**: Restructured from a single overflowing flex row to a two-row responsive layout — filter pills on top, source/sort/bookmark on bottom. Both rows scroll horizontally on small screens. All buttons marked `shrink-0`.
+- **Column Dropdowns**: Switched from `absolute` + `offsetLeft` positioning to `fixed` + `getBoundingClientRect`, fixing clipping inside scrollable containers on mobile.
+
+### Fixed
+- **Admin Metrics TypeError**: `metrics.translation.latency.toFixed is not a function` — backend returns latency as `Record<string, {avgMs, count}>` (per-provider), not a number. Frontend type corrected and display now shows average across active providers.
+- **Stats Bar Light Mode Contrast**: Icon colors bumped from `*-600` to `*-700` in light mode (emerald, red, amber) for improved visibility against `*-100` backgrounds.
+
+### Added
+- **Drizzle Studio (Dev)**: Added `drizzle-studio` service to `docker-compose.dev.yml`. Runs `npx drizzle-kit studio` on `127.0.0.1:4983` — localhost only, not exposed in production. Shares `node_modules_backend` volume to avoid reinstall overhead.
+
+---
+
 ## [2026-04-16] — Frontend Stability & Dependency Fixes
 
 ### Fixed
