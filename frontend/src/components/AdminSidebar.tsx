@@ -16,9 +16,7 @@ import {
   Menu,
   X,
   Globe,
-  Database,
-  Briefcase,
-  Layers
+  Database
 } from "lucide-react";
 import { logoutAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -26,9 +24,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Signals', href: '/admin/signals', icon: Activity },
-  { name: 'Categories', href: '/admin/categories', icon: Layers },
   { name: 'Sources', href: '/admin/sources', icon: Rss },
-  { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
   { name: 'Logs', href: '/admin/logs', icon: Database },
 ];
 
