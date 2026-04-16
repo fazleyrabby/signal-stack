@@ -472,7 +472,7 @@ export function SignalColumn({
       </div>
 
       <div className="pt-2 pb-1">
-        <ColumnControlBar
+        <SignalColumnControlBar
           filter={filter}
           setFilter={setFilter}
           sourceFilter={sourceFilter}
