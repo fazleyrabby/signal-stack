@@ -2380,3 +2380,45 @@ Admin pages were importing and rendering the public `<Header>` component despite
 
 `frontend/src/components/ui/tabs.tsx` uses `@base-ui/react/tabs` with `data-horizontal:flex-col` variant. The root sets `data-orientation="horizontal"` not `data-horizontal`, so the Tailwind variant never activated → TabsList and TabsContent rendered side-by-side in a row. Fix: added `flex-col` directly to the `<Tabs>` className in `jobs/page.tsx`.
 
+
+---
+
+## 22. API Key & Webhook Management (April 2026) <a name="api-key-management"></a>
+
+AI API keys and Discord webhook URLs can now be configured through the admin dashboard without editing `.env` files. All values are stored in the `settings` table and applied in-memory immediately on save.
+
+### Priority Order
+
+DB setting (admin UI) → `.env` variable → disabled (no key)
+
+On `onModuleInit`, each provider reads its stored key from the DB and overwrites the env-loaded value if present.
+
+### Settings Keys Used
+
+| Setting Key | Provider | Purpose |
+|---|---|---|
+| `groq_api_key` | Groq | AI summarization / translation |
+| `openrouter_api_key` | OpenRouter | AI summarization fallback |
+| `discord_webhook_url` | DiscordService | Signal alerts |
+| `discord_jobs_webhook_url` | DiscordService | Job match alerts |
+
+### Security Notes
+
+- Keys are stored plain-text in PostgreSQL (same risk level as `.env` file on disk)
+- The GET `/api/admin/keys` endpoint returns only masked values (`gsk_ab••••••••1234`) — the full key is never sent to the frontend
+- PUT `/api/admin/keys` accepts the full key and stores it, updating the provider in-memory via `updateApiKey()`
+
+### Files Changed
+
+| File | Change |
+|---|---|
+| `backend/src/ai/providers/groq.provider.ts` | `OnModuleInit` loads DB key; `updateApiKey()` method |
+| `backend/src/ai/providers/openrouter.provider.ts` | Same pattern |
+| `backend/src/alerts/discord.service.ts` | `OnModuleInit` loads DB webhook URLs; `updateWebhookUrls()` + `getWebhookUrls()` |
+| `backend/src/admin/admin.controller.ts` | GET/PUT `/api/admin/keys`, GET/PUT `/api/admin/webhooks`, POST `/api/admin/webhooks/test` |
+| `frontend/src/app/admin/page.tsx` | API Keys section + Discord Webhooks section with test buttons |
+
+### Webhook Test Endpoint
+
+`POST /api/admin/webhooks/test` with `{ type: "signals" | "jobs" }` sends a test Discord embed to the configured webhook URL. Returns `{ success: true }` or `{ success: false, error: "..." }`.
+

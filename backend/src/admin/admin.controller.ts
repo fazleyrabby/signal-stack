@@ -23,6 +23,8 @@ import {
 } from '../ai/models';
 import { ConfigService } from '@nestjs/config';
 import { DiscordService } from '../alerts/discord.service';
+import { GroqProvider } from '../ai/providers/groq.provider';
+import { OpenRouterProvider } from '../ai/providers/openrouter.provider';
 
 @Controller('api/admin')
 @UseGuards(AdminGuard)
@@ -37,6 +39,8 @@ export class AdminController {
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
     private readonly discordService: DiscordService,
+    private readonly groqProvider: GroqProvider,
+    private readonly openRouterProvider: OpenRouterProvider,
   ) {}
 
   // --- AI Health Check ---
@@ -63,9 +67,8 @@ export class AdminController {
       };
     }
 
-    // Fetch fresh models if no cache
-    const groqKey = this.configService.get<string>('GROQ_API_KEY');
-    const openrouterKey = this.configService.get<string>('OPENROUTER_API_KEY');
+    // Fetch fresh models if no cache — DB keys take priority over env
+    const [groqKey, openrouterKey] = await this.getEffectiveApiKeys();
 
     const [groqModels, openrouterModels] = await Promise.all([
       groqKey
@@ -96,10 +99,20 @@ export class AdminController {
     };
   }
 
+  private async getEffectiveApiKeys(): Promise<[string | undefined, string | undefined]> {
+    const [groqDb, openrouterDb] = await Promise.all([
+      this.settingsService.getSetting('groq_api_key'),
+      this.settingsService.getSetting('openrouter_api_key'),
+    ]);
+    return [
+      groqDb || this.configService.get<string>('GROQ_API_KEY'),
+      openrouterDb || this.configService.get<string>('OPENROUTER_API_KEY'),
+    ];
+  }
+
   @Post('ai/models/refresh')
   async refreshModelsCache() {
-    const groqKey = this.configService.get<string>('GROQ_API_KEY');
-    const openrouterKey = this.configService.get<string>('OPENROUTER_API_KEY');
+    const [groqKey, openrouterKey] = await this.getEffectiveApiKeys();
 
     const [groqModels, openrouterModels] = await Promise.all([
       groqKey
@@ -313,6 +326,42 @@ export class AdminController {
     if (!res.ok) {
       const text = await res.text();
       return { success: false, error: `Discord returned ${res.status}: ${text}` };
+    }
+    return { success: true };
+  }
+
+  // --- API Keys ---
+  @Get('keys')
+  async getApiKeys() {
+    const groqStored = await this.settingsService.getSetting('groq_api_key');
+    const openrouterStored = await this.settingsService.getSetting('openrouter_api_key');
+    // Return masked values — never expose full key
+    const mask = (k: string | null, env: string | undefined) => {
+      const val = k ?? env ?? '';
+      if (!val) return '';
+      return val.slice(0, 6) + '••••••••••••••••' + val.slice(-4);
+    };
+    return {
+      groq: {
+        masked: mask(groqStored, this.configService.get('GROQ_API_KEY')),
+        source: groqStored ? 'db' : (this.configService.get('GROQ_API_KEY') ? 'env' : 'none'),
+      },
+      openrouter: {
+        masked: mask(openrouterStored, this.configService.get('OPENROUTER_API_KEY')),
+        source: openrouterStored ? 'db' : (this.configService.get('OPENROUTER_API_KEY') ? 'env' : 'none'),
+      },
+    };
+  }
+
+  @Put('keys')
+  async updateApiKeys(@Body() body: { provider: 'groq' | 'openrouter'; key: string }) {
+    const { provider, key } = body;
+    if (provider === 'groq') {
+      await this.settingsService.setSetting('groq_api_key', key);
+      this.groqProvider.updateApiKey(key);
+    } else if (provider === 'openrouter') {
+      await this.settingsService.setSetting('openrouter_api_key', key);
+      this.openRouterProvider.updateApiKey(key);
     }
     return { success: true };
   }

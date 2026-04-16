@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../redis.service';
 import { SettingsService } from '../settings.service';
 import { logEvent } from '../../common/logger';
 
 @Injectable()
-export class OpenRouterProvider {
-  private readonly apiKey: string | undefined;
+export class OpenRouterProvider implements OnModuleInit {
+  private apiKey: string | undefined;
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
   private defaultModel = 'meta-llama/llama-3.3-70b-instruct';
 
@@ -19,6 +19,15 @@ export class OpenRouterProvider {
     private readonly settingsService: SettingsService,
   ) {
     this.apiKey = this.configService.get<string>('OPENROUTER_API_KEY');
+  }
+
+  async onModuleInit() {
+    const stored = await this.settingsService.getSetting('openrouter_api_key');
+    if (stored) this.apiKey = stored;
+  }
+
+  updateApiKey(key: string) {
+    this.apiKey = key || undefined;
   }
 
   private async getModel(): Promise<string> {

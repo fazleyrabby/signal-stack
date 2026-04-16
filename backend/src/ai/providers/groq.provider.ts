@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../redis.service';
 import { SettingsService } from '../settings.service';
 import { logEvent } from '../../common/logger';
 
 @Injectable()
-export class GroqProvider {
-  private readonly apiKey: string | undefined;
+export class GroqProvider implements OnModuleInit {
+  private apiKey: string | undefined;
   private readonly apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
   private defaultModel = 'llama-3.3-70b-versatile';
 
@@ -19,6 +19,15 @@ export class GroqProvider {
     private readonly settingsService: SettingsService,
   ) {
     this.apiKey = this.configService.get<string>('GROQ_API_KEY');
+  }
+
+  async onModuleInit() {
+    const stored = await this.settingsService.getSetting('groq_api_key');
+    if (stored) this.apiKey = stored;
+  }
+
+  updateApiKey(key: string) {
+    this.apiKey = key || undefined;
   }
 
   private async getModel(): Promise<string> {
