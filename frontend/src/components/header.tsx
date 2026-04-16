@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useSearch } from "@/context/SearchContext";
+import { useTranslations } from "next-intl";
 
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
@@ -38,6 +39,7 @@ export function Header({
   onToggleControls,
   visitorCount
 }: HeaderProps) {
+  const t = useTranslations('Index');
   const { searchQuery, setSearchQuery } = useSearch();
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
@@ -96,9 +98,9 @@ export function Header({
               <div className="relative group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                 <Input 
-                  placeholder="Search live insights..." 
+                  placeholder={t('searchPlaceholder')} 
                   value={searchQuery}
-                  className="w-full bg-accent/10 border-border/10 pl-10 h-9 text-[13px] font-bold tracking-tight rounded-xl focus:ring-1 focus:ring-primary/20 transition-all font-sans"
+                  className="w-full bg-accent/10 border-border/10 pl-10 h-9 text-[13px] font-bold tracking-tight rounded-lg focus:ring-1 focus:ring-primary/20 transition-all font-sans"
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
@@ -108,7 +110,7 @@ export function Header({
         <div className="flex items-center gap-4 shrink-0">
           <Link
             href={`/${locale}/trends`}
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
+            className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
             aria-label="Trends"
           >
             <BarChart3 className="w-4 h-4 text-violet-400" />
@@ -118,7 +120,7 @@ export function Header({
             href="/api/feed.xml"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden md:flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
+            className="hidden md:flex items-center justify-center w-9 h-9 rounded-lg bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
             aria-label="RSS Feed"
           >
             <Rss className="w-4 h-4 text-orange-400" />
@@ -128,7 +130,7 @@ export function Header({
 
           <button
             onClick={toggleTheme}
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
+            className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent/20 border border-border/10 hover:bg-accent/40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
             aria-label="Toggle theme"
           >
             {theme === "dark" ? (
@@ -138,45 +140,25 @@ export function Header({
             )}
           </button>
 
-          {onToggleControls && (
-            <button
-              onClick={onToggleControls}
-              className={cn(
-                "flex items-center gap-2 p-2 rounded-xl transition-all duration-300 shadow-sm",
-                showControls 
-                  ? "bg-primary/20 border border-primary/20 text-primary" 
-                  : "bg-accent/20 border border-border/10 text-muted-foreground hover:bg-accent/40"
-              )}
-              title={showControls ? "Hide stats" : "Show stats"}
-            >
-              <span className="text-[10px] font-bold tracking-wide">
-                Stats
-              </span>
-              {showControls ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronUp className="w-4 h-4 opacity-50" />
-              )}
-            </button>
-          )}
+          
 
-          <div className="flex items-center gap-4 border-l border-border/10 pl-4 hidden md:flex h-6">
-             <div className="flex flex-col items-end leading-none">
-                <div className="flex items-center gap-2">
-                   {visitorCount !== undefined && visitorCount > 0 ? (
-                     <>
-                       <Users className="w-3 h-3 text-emerald-500" />
-                       <span className="text-[10px] font-black tracking-widest text-emerald-500">{visitorCount}</span>
-                     </>
-                   ) : (
-                     <>
-                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-[pulse_2s_infinite]" />
-                       <span className="text-[10px] font-black tracking-widest text-emerald-500 uppercase">Live UPLINK</span>
-                     </>
-                   )}
-                </div>
+<div className="flex items-center gap-4 border-l border-border/10 pl-4 hidden md:flex h-6">
+              <div className="flex flex-col items-end leading-none">
+                 <div className="flex items-center gap-2">
+                    {visitorCount !== undefined && visitorCount > 0 ? (
+                      <>
+                        <Users className="w-3 h-3 text-emerald-600 dark:text-emerald-500" />
+                        <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-500">{visitorCount}</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-500 animate-[pulse_2s_infinite]" />
+                        <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-500 uppercase">{t('liveUplink')}</span>
+                      </>
+                    )}
+                 </div>
                 <span className="text-[8px] font-black text-muted-foreground/30 uppercase tracking-widest mt-1">
-                  {visitorCount !== undefined ? "viewers" : "Protocol synced"}
+                  {visitorCount !== undefined ? t('viewers') : t('protocolSynced')}
                 </span>
              </div>
           </div>

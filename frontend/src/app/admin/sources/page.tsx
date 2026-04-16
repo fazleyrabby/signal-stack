@@ -45,7 +45,7 @@ export default function SourcesAdmin() {
       router.replace("/admin/login");
     }
   }, [sourcesError, router]);
-
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
@@ -124,35 +124,24 @@ export default function SourcesAdmin() {
   }
 
   return (
-    <>
-      <Header 
-        isRefreshing={false} 
-        onRefresh={() => {}} 
-        showSearch={false} 
-      />
+    <div className="flex-1 p-4 md:p-8 space-y-8">
+      <div className="max-w-[1200px] mx-auto space-y-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black tracking-tight uppercase">Intelligence Sources</h1>
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] flex items-center gap-2">
+              <Rss className="w-3.5 h-3.5 text-primary" />
+              SignalStack Ingestion Engine
+            </p>
+          </div>
 
-      <main className="flex-1 p-8 pb-16 md:pb-0">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold">Manage Sources</h1>
-                <p className="text-sm text-muted-foreground italic font-mono">SignalStack Ingestion Engine</p>
-              </div>
-            </div>
-
-            <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingSource(null); }}>
-              <DialogTrigger render={
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                Add Source
-              </Button>
-            } />
+          <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingSource(null); }}>
+            <DialogTrigger render={
+            <Button className="gap-2 rounded-lg shadow-lg shadow-primary/20 h-10 px-6">
+              <Plus className="w-4 h-4" />
+              Add Source
+            </Button>
+          } />
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>{editingSource ? "Edit Source" : "Add New Feed Source"}</DialogTitle>
@@ -194,7 +183,7 @@ export default function SourcesAdmin() {
             </Dialog>
           </div>
 
-          <div className="rounded-xl border border-border/50 bg-card/30 overflow-hidden backdrop-blur-sm shadow-xl">
+          <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden backdrop-blur-sm shadow-xl">
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
@@ -273,7 +262,6 @@ export default function SourcesAdmin() {
             </Table>
           </div>
         </div>
-      </main>
-    </>
+      </div>
   );
 }

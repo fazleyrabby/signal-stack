@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit2, ArrowLeft, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Trash2, Edit2, ArrowLeft, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, XCircle, Clock, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -203,49 +203,40 @@ export default function SignalsAdmin() {
   }
 
   return (
-    <>
-      <Header isRefreshing={false} onRefresh={() => {}} showSearch={false} />
-
-      <main className="flex-1 p-4 md:p-8 pb-16 md:pb-0">
-        <div className="max-w-[1600px] mx-auto space-y-6">
-          {/* Header & Back */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Link href="/admin">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold">Signal Intelligence Management</h1>
-                <p className="text-sm text-muted-foreground italic font-mono uppercase tracking-wider">
-                  {signalsData?.meta.total.toLocaleString() || "..."} total signals detected
-                </p>
-              </div>
-            </div>
-
-            {/* Bulk Translate Bar */}
-            <form onSubmit={handleBulkTranslate} className="flex items-center gap-2 bg-secondary/30 p-2 rounded-lg border border-border/40">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2">Bulk Translate</span>
-              <Select value={bulkLang} onValueChange={setBulkLang}>
-                <SelectTrigger className="w-[80px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bn">BN</SelectItem>
-                  <SelectItem value="es">ES</SelectItem>
-                  <SelectItem value="en">EN</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button type="submit" size="sm" className="h-8 gap-2" disabled={isBulkTranslating}>
-                {isBulkTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
-                <span className="text-[10px] font-bold uppercase">Queue Jobs</span>
-              </Button>
-            </form>
+    <div className="flex-1 p-4 md:p-8 space-y-8">
+      <div className="max-w-[1600px] mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black tracking-tight">Signals Intelligence</h1>
+            <p className="text-sm text-muted-foreground font-medium uppercase tracking-[0.2em] flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary" />
+              {signalsData?.meta.total.toLocaleString() || "..."} total signals detected
+            </p>
           </div>
 
+          {/* Bulk Translate Bar */}
+          <form onSubmit={handleBulkTranslate} className="flex items-center gap-2 bg-card/50 p-2 rounded-2xl border border-border/10 shadow-sm backdrop-blur-sm">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-3">Bulk Queue</span>
+            <Select value={bulkLang} onValueChange={(val) => { if (typeof val === 'string') setBulkLang(val); }}>
+              <SelectTrigger className="w-[90px] h-9 text-xs rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bn">Bengali</SelectItem>
+                <SelectItem value="es">Spanish</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button type="submit" size="sm" className="h-9 gap-2 px-4 rounded-lg shadow-lg shadow-primary/20" disabled={isBulkTranslating}>
+              {isBulkTranslating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Languages className="w-3.5 h-3.5" />}
+              <span className="text-[10px] font-bold uppercase tracking-widest">Execute</span>
+            </Button>
+          </form>
+        </div>
+
           {/* Filters Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 bg-card/30 p-4 rounded-xl border border-border/50 backdrop-blur-sm shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 bg-card/30 p-4 rounded-lg border border-border/50 backdrop-blur-sm shadow-sm">
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
               <Input 
@@ -256,7 +247,7 @@ export default function SignalsAdmin() {
               />
             </div>
 
-            <Select value={severity} onValueChange={(v) => { setSeverity(v); setPage(1); }}>
+            <Select value={severity} onValueChange={(val) => { if (typeof val === 'string') { setSeverity(val); setPage(1); } }}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="Severity" />
               </SelectTrigger>
@@ -268,7 +259,7 @@ export default function SignalsAdmin() {
               </SelectContent>
             </Select>
 
-            <Select value={minScore} onValueChange={(v) => { setMinScore(v); setPage(1); }}>
+            <Select value={minScore} onValueChange={(val) => { if (typeof val === 'string') { setMinScore(val); setPage(1); } }}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="Min Score" />
               </SelectTrigger>
@@ -280,7 +271,7 @@ export default function SignalsAdmin() {
               </SelectContent>
             </Select>
 
-            <Select value={categoryId} onValueChange={(v) => { setCategoryId(v); setPage(1); }}>
+            <Select value={categoryId} onValueChange={(val) => { if (typeof val === 'string') { setCategoryId(val); setPage(1); } }}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -292,7 +283,7 @@ export default function SignalsAdmin() {
               </SelectContent>
             </Select>
 
-            <Select value={hasTranslation} onValueChange={(v) => { setHasTranslation(v); setPage(1); }}>
+            <Select value={hasTranslation} onValueChange={(val) => { if (typeof val === 'string') { setHasTranslation(val); setPage(1); } }}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="Translation" />
               </SelectTrigger>
@@ -304,7 +295,7 @@ export default function SignalsAdmin() {
             </Select>
 
             <div className="flex gap-1">
-              <Select value={sort} onValueChange={(v) => { setSort(v); setPage(1); }}>
+              <Select value={sort} onValueChange={(val) => { if (typeof val === 'string') { setSort(val); setPage(1); } }}>
                 <SelectTrigger className="h-9 text-xs flex-1">
                   <SelectValue placeholder="Sort By" />
                 </SelectTrigger>
@@ -326,7 +317,7 @@ export default function SignalsAdmin() {
           </div>
 
           {/* Signals Table */}
-          <div className="rounded-xl border border-border/50 bg-card/30 overflow-hidden backdrop-blur-sm shadow-xl">
+          <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden backdrop-blur-sm shadow-xl">
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow className="hover:bg-transparent">
@@ -445,7 +436,7 @@ export default function SignalsAdmin() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           {/* Translate Dropdown */}
-                          <Select onValueChange={(v) => handleTranslate(signal.id, v)}>
+                          <Select onValueChange={(val) => { if (typeof val === 'string') handleTranslate(signal.id, val); }}>
                             <SelectTrigger className="h-8 w-8 p-0 bg-transparent border-none shadow-none hover:bg-muted focus:ring-0">
                                <Languages className="w-3.5 h-3.5" />
                             </SelectTrigger>
@@ -511,11 +502,9 @@ export default function SignalsAdmin() {
               </div>
             )}
           </div>
-        </div>
-      </main>
+          </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={(open) => { setIsEditDialogOpen(open); if(!open) setEditingSignal(null); }}>
+          {/* Edit Dialog */}      <Dialog open={isEditDialogOpen} onOpenChange={(open) => { setIsEditDialogOpen(open); if(!open) setEditingSignal(null); }}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-2 text-primary">
@@ -590,6 +579,6 @@ export default function SignalsAdmin() {
           </form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

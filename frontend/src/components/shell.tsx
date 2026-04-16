@@ -1,7 +1,7 @@
 "use client";
 
-import { Sidebar } from "@/components/sidebar";
-import { Header } from "@/components/header";
+import { Sidebar } from "@/components/Sidebar";
+import { Header } from "@/components/Header";
 import { cn } from "@/lib/utils";
 
 export function Shell({ 

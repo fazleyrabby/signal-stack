@@ -23,7 +23,7 @@ export function LanguageSwitcher() {
     <select
       value={locale}
       onChange={handleChange}
-      className="h-9 px-2 text-[11px] font-bold bg-accent/20 border border-border/10 rounded-xl text-foreground hover:bg-accent/40 transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20"
+      className="h-9 px-2 text-[11px] font-bold bg-accent/20 border border-border/10 rounded-lg text-foreground hover:bg-accent/40 transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20"
     >
       {locales.map((l) => (
         <option key={l} value={l}>

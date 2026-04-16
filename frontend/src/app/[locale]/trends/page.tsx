@@ -16,10 +16,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { Header } from "@/components/Header";
 import { BarChart3, TrendingUp, Tag, Cpu, AlertCircle, Activity, Shield, Clock, Database } from "lucide-react";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
-import { GeoHeatmap } from "@/components/geo-heatmap";
+import { Footer } from "@/components/Footer";
+import { GeoHeatmap } from "@/components/GeoHeatmap";
 import {
   Card,
   CardContent,
