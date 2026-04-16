@@ -2268,3 +2268,115 @@ AppModule
 4.  **Application Clustering**:
     - Run multiple instances of the `app` container behind a load balancer.
     - Containerize the `Feed Scheduler` separately so ingestion doesn't compete with API traffic.
+
+---
+
+## 20. Job Signal Extension (April 2026) <a name="job-signal-extension"></a>
+
+The Jobs module adds a parallel intelligence stream for job listings — private, preference-filtered, Discord-alerted. It reuses all existing patterns (RSS ingestion, hashing, Discord webhooks, settings storage) without touching the signals domain.
+
+### Architecture Decisions
+
+| Decision | Choice | Why |
+|---|---|---|
+| Storage | Separate `jobs` table | Orthogonal fields (company, salary, remote), no AI scoring, different retention |
+| Sources | Shared `sources` table + `type` discriminator | Zero new CRUD endpoints needed |
+| Preferences | JSON blob in `settings` table, key `job_preferences` | Single user, no dedicated table needed |
+
+### Data Flow
+
+```
+[JobsScheduler — every 30min]
+    ↓
+JobsService.processJobs()
+    ├─ getActiveSources()          → sources WHERE type='job' AND isActive=true
+    ├─ JobsFeedService.fetchJobs() → RSS parse → RawJob[]
+    ├─ getPreferences()            → settings WHERE key='job_preferences'
+    └─ For each RawJob:
+         ├─ generateHash(title, url)
+         ├─ hashExists()           → skip duplicates
+         ├─ repository.insert()
+         ├─ matchesPreferences()   → deterministic filter
+         └─ if match: DiscordService.sendJobAlert()
+```
+
+### Key Files
+
+| File | Purpose |
+|---|---|
+| `backend/src/jobs/jobs.service.ts` | Core orchestration + matching engine |
+| `backend/src/jobs/jobs-feed.service.ts` | RSS parsing, HTML decode, stale filter (14d) |
+| `backend/src/jobs/jobs.repository.ts` | DB queries, pagination, dedup |
+| `backend/src/jobs/jobs.scheduler.ts` | Cron: fetch every 30m, cleanup daily 2AM |
+| `backend/src/jobs/jobs.controller.ts` | REST: GET /api/admin/jobs, PUT preferences |
+| `backend/src/common/types.ts` | `RawJob`, `JobPreferences` interfaces |
+| `frontend/src/app/admin/jobs/page.tsx` | Admin UI: Live Feed + Discord Filters tabs |
+
+### JobPreferences Interface
+
+```typescript
+class JobPreferences {
+  keywords: string[];          // match title/desc/tags/company (OR logic)
+  excludeKeywords: string[];   // immediate discard on match
+  locations: string[];         // substring match on location field
+  remote: boolean | null;      // true=remote only, false=on-site, null=all
+  experienceLevels: string[];  // entry/mid/senior exact match
+  strictGlobalRemote?: boolean;// Phase 1 geo-filter (see below)
+}
+```
+
+### Phase 1: Strict Global Remote Filter
+
+`strictGlobalRemote: true` activates `isCountryLocked()` — a regex heuristic engine that scans `title + location + description` for geo-restriction patterns:
+
+**Patterns detected:**
+- Country-explicit: `US Only`, `UK Only`, `Canada Only`, `Australia Only`, `EMEA Only`, `Europe Only`
+- Authorization language: `authorized to work in the US`, `US work authorization`, `right to work in the UK`
+- Residency: `based in [country]`, `must be located in [country]`
+- Timezone restrictions: `EST timezone required/only`, `PST timezone only`
+
+**Logic:** Only applies to jobs where `remote === true`. On-site jobs are not filtered — the assumption is a job that claims to be "remote" but restricts to one country is misleading; a job listed as "on-site in USA" is honest.
+
+**Key principle:** This is a false-negative-tolerant filter. It misses some country-locked jobs but never incorrectly blocks a genuinely global role.
+
+### matchesPreferences() Logic (ordered)
+
+1. **Exclude keywords** — discard if title OR description contains any
+2. **Strict Global Remote** — discard if `strictGlobalRemote=true`, `job.remote=true`, and `isCountryLocked()=true`
+3. **Remote preference** — filter by remote/on-site/all
+4. **Keywords** — must match at least one in title/desc/tags/company (if any specified)
+5. **Locations** — substring match; remote jobs bypass location check
+6. **Experience levels** — exact match if job specifies level
+
+### Admin UI
+
+`/admin/jobs` has two tabs:
+- **LIVE FEED** — paginated job cards, search, manual fetch trigger
+- **DISCORD FILTERS** — keyword inputs, remote toggle, Strict Global Remote toggle
+
+---
+
+## 21. UI Light Mode Fixes (April 2026) <a name="light-mode-fixes"></a>
+
+Several components used opacity-based color classes (`text-*-400`, `bg-*/10`) designed for dark backgrounds. These became invisible or "blobby" in light mode.
+
+### Pattern Applied
+
+| Before | After | Reason |
+|---|---|---|
+| `text-blue-400` | `text-blue-600 dark:text-blue-400` | `-400` too light on white |
+| `bg-blue-500/10` | `bg-blue-500/15 dark:bg-blue-500/10` | Too transparent in light |
+| `bg-emerald-500/20 ring-1` | `bg-emerald-500 dark:bg-emerald-500/20` | StatsBar blobs → solid icons |
+
+### Files Changed
+- `frontend/src/app/admin/page.tsx` — all StatCard icon/accent props
+- `frontend/src/components/StatsBar.tsx` — icon backgrounds: solid colored in light, transparent in dark
+
+### Double Header Bug Fix
+
+Admin pages were importing and rendering the public `<Header>` component despite `admin/layout.tsx` already wrapping all children with `<AdminSidebar>`. Removed `<Header>` render from `jobs/page.tsx` and `categories/page.tsx`; removed unused imports from `sources/page.tsx`, `signals/page.tsx`, `admin/page.tsx`.
+
+### Jobs Tab Layout Fix
+
+`frontend/src/components/ui/tabs.tsx` uses `@base-ui/react/tabs` with `data-horizontal:flex-col` variant. The root sets `data-orientation="horizontal"` not `data-horizontal`, so the Tailwind variant never activated → TabsList and TabsContent rendered side-by-side in a row. Fix: added `flex-col` directly to the `<Tabs>` className in `jobs/page.tsx`.
+

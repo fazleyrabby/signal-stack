@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import useSWR, { mutate } from "swr";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -53,6 +52,7 @@ interface JobPreferences {
   remote: boolean | null;
   excludeKeywords: string[];
   experienceLevels: string[];
+  strictGlobalRemote?: boolean;
 }
 
 export default function JobsAdmin() {
@@ -86,8 +86,6 @@ export default function JobsAdmin() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header isRefreshing={false} onRefresh={() => {}} showSearch={false} isFullWidth={true} />
-      
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8 pb-20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -114,12 +112,12 @@ export default function JobsAdmin() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/50 p-1">
-            <TabsTrigger value="feed" className="font-bold data-[state=active]:bg-background">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-col">
+          <TabsList className="flex w-full max-w-sm bg-muted/50 p-1 h-auto">
+            <TabsTrigger value="feed" className="flex-1 font-bold data-active:bg-background data-active:text-foreground">
               LIVE FEED
             </TabsTrigger>
-            <TabsTrigger value="preferences" className="font-bold data-[state=active]:bg-background">
+            <TabsTrigger value="preferences" className="flex-1 font-bold data-active:bg-background data-active:text-foreground">
               DISCORD FILTERS
             </TabsTrigger>
           </TabsList>
@@ -240,7 +238,8 @@ function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPrefer
     locations: [],
     remote: null,
     excludeKeywords: [],
-    experienceLevels: []
+    experienceLevels: [],
+    strictGlobalRemote: false,
   });
 
   useEffect(() => {
@@ -341,7 +340,32 @@ function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPrefer
           </div>
         </div>
 
-        <div className="pt-8 border-t border-border/10 flex justify-end">
+        <div className="pt-4 border-t border-border/10">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label className="font-black text-[12px] uppercase tracking-wider flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-orange-500" />
+                Strict Global Remote
+              </Label>
+              <p className="text-[11px] text-muted-foreground italic max-w-md">
+                Filter out "remote" jobs that are actually country-locked (e.g. US Only, UK Only, EST timezone required). Scans title, location, and description for geo-restriction patterns.
+              </p>
+            </div>
+            <button
+              onClick={() => setPrefs(p => ({ ...p, strictGlobalRemote: !p.strictGlobalRemote }))}
+              className={cn(
+                "shrink-0 px-5 py-2 rounded-lg text-xs font-black transition-all border",
+                prefs.strictGlobalRemote
+                  ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/20"
+                  : "bg-accent/20 border-border/40 hover:bg-accent/40"
+              )}
+            >
+              {prefs.strictGlobalRemote ? "ENABLED" : "DISABLED"}
+            </button>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-border/10 flex justify-end">
           <Button 
             className="w-full md:w-auto px-12 h-12 font-black gap-2 shadow-xl shadow-primary/10"
             disabled={isSaving}

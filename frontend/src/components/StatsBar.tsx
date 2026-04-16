@@ -2,10 +2,10 @@
 
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
-import { 
-  AlertTriangle, 
-  Zap, 
-  Globe2 
+import {
+  AlertTriangle,
+  Zap,
+  Globe2
 } from "lucide-react";
 
 interface StatsBarProps {
@@ -20,12 +20,12 @@ interface StatsBarProps {
 
 export function StatsBar({ stats }: StatsBarProps) {
   const t = useTranslations('Index');
-  
+
   return (
     <div className="flex items-center gap-4 overflow-x-auto scrollbar-none">
       <div className="flex items-center gap-2 shrink-0">
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500/20 dark:bg-emerald-900/30 ring-1 ring-emerald-500/20 dark:ring-0">
-          <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500 dark:bg-emerald-500/20 shadow-sm">
+          <Zap className="w-4 h-4 text-white dark:text-emerald-400" />
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("activity24h")}</span>
@@ -36,8 +36,8 @@ export function StatsBar({ stats }: StatsBarProps) {
       </div>
       <div className="w-px h-8 bg-border/40 shrink-0" />
       <div className="flex items-center gap-2 shrink-0">
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-500/20 dark:bg-red-900/30 ring-1 ring-red-500/20 dark:ring-0">
-          <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500 dark:bg-red-500/20 shadow-sm">
+          <AlertTriangle className="w-4 h-4 text-white dark:text-red-400" />
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("criticalAlerts")}</span>
@@ -52,8 +52,8 @@ export function StatsBar({ stats }: StatsBarProps) {
       <div className="hidden md:flex items-center gap-2 ml-auto shrink-0">
         <div className="w-px h-8 bg-border/40" />
         <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/20 dark:bg-amber-900/30 ring-1 ring-amber-500/20 dark:ring-0">
-            <Globe2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 dark:bg-amber-500/20 shadow-sm">
+            <Globe2 className="w-4 h-4 text-white dark:text-amber-400" />
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("primarySource")}</span>

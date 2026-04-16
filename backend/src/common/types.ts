@@ -30,6 +30,7 @@ export class JobPreferences {
   remote: boolean | null;
   excludeKeywords: string[];
   experienceLevels: string[];
+  strictGlobalRemote?: boolean;
 }
 
 export interface ScoredSignal extends RawSignal {

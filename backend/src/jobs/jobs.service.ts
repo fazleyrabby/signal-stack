@@ -82,6 +82,40 @@ export class JobsService {
   }
 
   /**
+   * Detect if a "remote" job is actually country/region locked.
+   * Returns true if job should be filtered out due to geo-restriction.
+   */
+  private isCountryLocked(job: RawJob): boolean {
+    const haystack = [job.title, job.location, job.description]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    // Country/region-specific restrictions
+    const geoLockPatterns = [
+      // US-specific
+      /\bus[\s-]?only\b/, /\bunited states only\b/, /\busa only\b/,
+      /\bmust be (based|located|residing) in (the )?us\b/,
+      /\bauthorized to work in the us\b/, /\bus work authorization\b/,
+      /\bgreen card\b/, /\buses residents only\b/,
+      // UK-specific
+      /\buk[\s-]?only\b/, /\bunited kingdom only\b/,
+      /\bright to work in the uk\b/,
+      // EU/specific countries
+      /\beu[\s-]?only\b/, /\beurope only\b/, /\bemea only\b/,
+      /\bcanada only\b/, /\baustralia only\b/,
+      // Timezone restrictions that imply geography
+      /\best timezone (required|only|preferred)\b/,
+      /\bpst timezone (required|only|preferred)\b/,
+      /\b(must|need to) (work|overlap|be available).{0,30}\best\b/,
+      // "based in" specific country
+      /\bbased in (the )?(us|usa|uk|canada|australia|germany|france)\b/,
+    ];
+
+    return geoLockPatterns.some(pattern => pattern.test(haystack));
+  }
+
+  /**
    * Matching engine (deterministic, case-insensitive)
    */
   private matchesPreferences(job: RawJob, prefs: JobPreferences): boolean {
@@ -93,6 +127,11 @@ export class JobsService {
 
     // 1. Exclude keywords (Title or Description)
     if (prefs.excludeKeywords?.some(k => title.includes(k.toLowerCase()) || desc.includes(k.toLowerCase()))) {
+      return false;
+    }
+
+    // 1b. Strict Global Remote: filter out country-locked remote jobs
+    if (prefs.strictGlobalRemote && job.remote === true && this.isCountryLocked(job)) {
       return false;
     }
 

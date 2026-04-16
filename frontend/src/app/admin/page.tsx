@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import useSWR from "swr";
-import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -569,19 +568,19 @@ export default function AdminDashboard() {
             />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               <StatCard label="Total Signals"   value={statsData?.total?.toLocaleString()}       icon={<TrendingUp className="w-4 h-4 text-primary" />} />
-              <StatCard label="Last 24H"        value={statsData?.last24h?.toLocaleString()}      icon={<Activity className="w-4 h-4 text-blue-400" />}    accent="bg-blue-500/10" />
-              <StatCard label="High Severity"   value={statsData?.high?.toLocaleString()}         icon={<AlertTriangle className="w-4 h-4 text-red-400" />} accent="bg-red-500/10" />
-              <StatCard label="Medium Severity" value={statsData?.medium?.toLocaleString()}       icon={<AlertTriangle className="w-4 h-4 text-amber-400" />} accent="bg-amber-500/10" />
-              <StatCard label="Low Severity"    value={statsData?.low?.toLocaleString()}          icon={<AlertTriangle className="w-4 h-4 text-emerald-400" />} accent="bg-emerald-500/10" />
-              <StatCard label="Geopolitics"     value={statsData?.geopolitics?.toLocaleString()}  icon={<Globe className="w-4 h-4 text-blue-400" />}      accent="bg-blue-500/10" />
-              <StatCard label="Technology"      value={statsData?.technology?.toLocaleString()}   icon={<Cpu className="w-4 h-4 text-indigo-400" />}      accent="bg-indigo-500/10" />
-              <StatCard label="AI Processed"    value={statsData?.aiProcessed?.toLocaleString()}  icon={<Bot className="w-4 h-4 text-violet-400" />}      accent="bg-violet-500/10" />
-              <StatCard label="Translated"      value={statsData?.translated?.toLocaleString()}   icon={<Languages className="w-4 h-4 text-cyan-400" />}  accent="bg-cyan-500/10" />
+              <StatCard label="Last 24H"        value={statsData?.last24h?.toLocaleString()}      icon={<Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />}          accent="bg-blue-500/15 dark:bg-blue-500/10" />
+              <StatCard label="High Severity"   value={statsData?.high?.toLocaleString()}         icon={<AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />}        accent="bg-red-500/15 dark:bg-red-500/10" />
+              <StatCard label="Medium Severity" value={statsData?.medium?.toLocaleString()}       icon={<AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />}    accent="bg-amber-500/15 dark:bg-amber-500/10" />
+              <StatCard label="Low Severity"    value={statsData?.low?.toLocaleString()}          icon={<AlertTriangle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />} accent="bg-emerald-500/15 dark:bg-emerald-500/10" />
+              <StatCard label="Geopolitics"     value={statsData?.geopolitics?.toLocaleString()}  icon={<Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />}              accent="bg-blue-500/15 dark:bg-blue-500/10" />
+              <StatCard label="Technology"      value={statsData?.technology?.toLocaleString()}   icon={<Cpu className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}            accent="bg-indigo-500/15 dark:bg-indigo-500/10" />
+              <StatCard label="AI Processed"    value={statsData?.aiProcessed?.toLocaleString()}  icon={<Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" />}            accent="bg-violet-500/15 dark:bg-violet-500/10" />
+              <StatCard label="Translated"      value={statsData?.translated?.toLocaleString()}   icon={<Languages className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />}          accent="bg-cyan-500/15 dark:bg-cyan-500/10" />
               <StatCard
                 label="AI Failed"
                 value={statsData?.aiFailed?.toLocaleString()}
-                icon={<XCircle className="w-4 h-4 text-orange-400" />}
-                accent="bg-orange-500/10"
+                icon={<XCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />}
+                accent="bg-orange-500/15 dark:bg-orange-500/10"
                 action={(statsData?.aiFailed ?? 0) > 0 ? (
                   <Button variant="ghost" size="sm" onClick={handleRetryAI} disabled={isRetrying} className="h-6 w-6 rounded-full p-0">
                     <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
@@ -591,16 +590,16 @@ export default function AdminDashboard() {
               <StatCard
                 label="High Pending"
                 value={statsData?.highPending?.toLocaleString()}
-                icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
-                accent="bg-amber-500/10"
+                icon={<AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                accent="bg-amber-500/15 dark:bg-amber-500/10"
                 action={(statsData?.highPending ?? 0) > 0 ? (
                   <Button variant="ghost" size="sm" onClick={handleRetryHigh} disabled={isRetrying} className="h-6 w-6 rounded-full p-0">
                     <RefreshCw className={cn("w-3 h-3", isRetrying && "animate-spin")} />
                   </Button>
                 ) : undefined}
               />
-              <StatCard label="Visitors Today" value={visitorStats?.today?.toLocaleString()}    icon={<Users className="w-4 h-4 text-pink-400" />}      accent="bg-pink-500/10" />
-              <StatCard label="Live Viewers"   value={visitorStats?.realtime?.toLocaleString()} icon={<Users className="w-4 h-4 text-emerald-400" />}   accent="bg-emerald-500/10" />
+              <StatCard label="Visitors Today" value={visitorStats?.today?.toLocaleString()}    icon={<Users className="w-4 h-4 text-pink-600 dark:text-pink-400" />}        accent="bg-pink-500/15 dark:bg-pink-500/10" />
+              <StatCard label="Live Viewers"   value={visitorStats?.realtime?.toLocaleString()} icon={<Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />} accent="bg-emerald-500/15 dark:bg-emerald-500/10" />
             </div>
           </section>
 
@@ -615,10 +614,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {providerStats.map((stat) => {
                   const cfg = {
-                    local:       { label: "Local",       accent: "bg-emerald-500/10", icon: <Bot className="w-4 h-4 text-emerald-400" /> },
-                    groq:        { label: "Groq",        accent: "bg-blue-500/10",    icon: <Bot className="w-4 h-4 text-blue-400" /> },
-                    openrouter:  { label: "OpenRouter",  accent: "bg-violet-500/10",  icon: <Bot className="w-4 h-4 text-violet-400" /> },
-                  }[stat.provider] ?? { label: stat.provider, accent: "bg-zinc-500/10", icon: <Bot className="w-4 h-4 text-zinc-400" /> };
+                    local:       { label: "Local",       accent: "bg-emerald-500/15 dark:bg-emerald-500/10", icon: <Bot className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> },
+                    groq:        { label: "Groq",        accent: "bg-blue-500/15 dark:bg-blue-500/10",       icon: <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /> },
+                    openrouter:  { label: "OpenRouter",  accent: "bg-violet-500/15 dark:bg-violet-500/10",   icon: <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" /> },
+                  }[stat.provider] ?? { label: stat.provider, accent: "bg-zinc-500/15 dark:bg-zinc-500/10", icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> };
                   return (
                     <StatCard key={stat.provider} label={cfg.label} value={stat.count.toLocaleString()} icon={cfg.icon} accent={cfg.accent} />
                   );
@@ -637,9 +636,9 @@ export default function AdminDashboard() {
               />
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <StatCard label="Translation Queue"     value={metrics.queue.translationDepth}  icon={<Activity className="w-4 h-4 text-blue-400" />}    accent="bg-blue-500/10" />
-                <StatCard label="AI Summary Queue"      value={metrics.queue.aiSummaryDepth}    icon={<Activity className="w-4 h-4 text-violet-400" />}  accent="bg-violet-500/10" />
-                <StatCard label="Cache Hit Ratio"       value={`${(metrics.cache.hitRatio * 100).toFixed(1)}%`} icon={<Zap className="w-4 h-4 text-emerald-400" />} accent="bg-emerald-500/10" />
+                <StatCard label="Translation Queue"     value={metrics.queue.translationDepth}  icon={<Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />}      accent="bg-blue-500/15 dark:bg-blue-500/10" />
+                <StatCard label="AI Summary Queue"      value={metrics.queue.aiSummaryDepth}    icon={<Activity className="w-4 h-4 text-violet-600 dark:text-violet-400" />}  accent="bg-violet-500/15 dark:bg-violet-500/10" />
+                <StatCard label="Cache Hit Ratio"       value={`${(metrics.cache.hitRatio * 100).toFixed(1)}%`} icon={<Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />} accent="bg-emerald-500/15 dark:bg-emerald-500/10" />
                 <StatCard
                   label="Avg Translate Latency"
                   value={(() => {
@@ -647,8 +646,8 @@ export default function AdminDashboard() {
                     if (entries.length === 0) return "—";
                     return `${Math.round(entries.reduce((s, p) => s + p.avgMs, 0) / entries.length)}ms`;
                   })()}
-                  icon={<Clock className="w-4 h-4 text-amber-400" />}
-                  accent="bg-amber-500/10"
+                  icon={<Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                  accent="bg-amber-500/15 dark:bg-amber-500/10"
                 />
               </div>
 
