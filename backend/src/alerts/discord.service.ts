@@ -6,40 +6,42 @@ import { logEvent } from '../common/logger';
 
 const MIN_INTERVAL_MS = 2000; // 2 seconds between webhook calls
 
+type DiscordAlert = { type: 'signal'; data: ScoredSignal } | { type: 'job'; data: any };
+
 @Injectable()
 export class DiscordService {
   private webhookUrl: string | undefined;
-  private queue: ScoredSignal[] = [];
+  private jobsWebhookUrl: string | undefined;
+  private queue: DiscordAlert[] = [];
   private processing = false;
   private filterTechOnly: boolean;
 
   constructor(private readonly configService: ConfigService) {
     this.webhookUrl = this.configService.get<string>('DISCORD_WEBHOOK_URL');
+    this.jobsWebhookUrl = this.configService.get<string>('DISCORD_JOBS_WEBHOOK_URL') || this.webhookUrl;
     this.filterTechOnly =
       this.configService.get<string>('DISCORD_FILTER_TECH') === 'true';
   }
 
   /**
-   * Queue an alert for sending. Rate-limited to 1 per 2 seconds.
+   * Queue a signal alert.
    */
   async sendAlert(signal: ScoredSignal): Promise<void> {
-    if (!this.webhookUrl) {
-      logEvent('warn', 'alert_skipped', {
-        reason: 'No DISCORD_WEBHOOK_URL configured',
-      });
-      return;
-    }
+    if (!this.webhookUrl) return;
 
-    if (this.filterTechOnly && signal.aiCategory !== 'Tech') {
-      logEvent('info', 'alert_skipped', {
-        reason: 'non_tech',
-        aiCategory: signal.aiCategory,
-        title: signal.title.slice(0, 50),
-      });
-      return;
-    }
+    if (this.filterTechOnly && signal.aiCategory !== 'Tech') return;
 
-    this.queue.push(signal);
+    this.queue.push({ type: 'signal', data: signal });
+    this.processQueue();
+  }
+
+  /**
+   * Queue a job alert.
+   */
+  async sendJobAlert(job: any): Promise<void> {
+    if (!this.jobsWebhookUrl) return;
+
+    this.queue.push({ type: 'job', data: job });
     this.processQueue();
   }
 
@@ -48,62 +50,98 @@ export class DiscordService {
     this.processing = true;
 
     while (this.queue.length > 0) {
-      const signal = this.queue.shift()!;
-
+      const alert = this.queue.shift()!;
+      
       try {
-        const color =
-          signal.severity === 'high'
-            ? 0xff0000
-            : signal.severity === 'medium'
-              ? 0xffa500
-              : 0x00ff00;
-
-        const res = await fetch(this.webhookUrl!, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            embeds: [
-              {
-                title: signal.title.slice(0, 256),
-                url: signal.url,
-                description: signal.content ? striptags(signal.content).slice(0, 200) : '',
-                color,
-                fields: [
-                  { name: 'Source', value: signal.source, inline: true },
-                  { name: 'Score', value: String(signal.score), inline: true },
-                  {
-                    name: 'Severity',
-                    value: signal.severity.toUpperCase(),
-                    inline: true,
-                  },
-                ],
-                timestamp:
-                  signal.publishedAt?.toISOString() || new Date().toISOString(),
-                footer: { text: 'SignalStack' },
-              },
-            ],
-          }),
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        logEvent('info', 'alert_sent', {
-          source: signal.source,
-          title: signal.title.slice(0, 80),
-        });
+        if (alert.type === 'signal') {
+          await this.processSignalAlert(alert.data);
+        } else {
+          await this.processJobAlert(alert.data);
+        }
       } catch (error) {
         logEvent('error', 'alert_failed', {
+          type: alert.type,
           error: error instanceof Error ? error.message : 'Unknown error',
-          title: signal.title.slice(0, 80),
         });
       }
 
-      // Rate limit: wait 2 seconds between calls
       if (this.queue.length > 0) {
         await new Promise((resolve) => setTimeout(resolve, MIN_INTERVAL_MS));
       }
     }
 
     this.processing = false;
+  }
+
+  private async processSignalAlert(signal: ScoredSignal) {
+    const color =
+      signal.severity === 'high'
+        ? 0xff0000
+        : signal.severity === 'medium'
+          ? 0xffa500
+          : 0x00ff00;
+
+    const res = await fetch(this.webhookUrl!, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        embeds: [
+          {
+            title: signal.title.slice(0, 256),
+            url: signal.url,
+            description: signal.content ? striptags(signal.content).slice(0, 200) : '',
+            color,
+            fields: [
+              { name: 'Source', value: signal.source, inline: true },
+              { name: 'Score', value: String(signal.score), inline: true },
+              {
+                name: 'Severity',
+                value: signal.severity.toUpperCase(),
+                inline: true,
+              },
+            ],
+            timestamp: signal.publishedAt?.toISOString() || new Date().toISOString(),
+            footer: { text: 'SignalStack' },
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  }
+
+  private async processJobAlert(job: any) {
+    const fields = [
+      { name: 'Company', value: job.company || 'Unknown', inline: true },
+      { name: 'Location', value: job.location || 'Remote', inline: true },
+    ];
+
+    if (job.salaryRange) {
+      fields.push({ name: 'Salary', value: job.salaryRange, inline: true });
+    }
+
+    if (job.jobType) {
+      fields.push({ name: 'Type', value: job.jobType, inline: true });
+    }
+
+    const res = await fetch(this.jobsWebhookUrl!, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        embeds: [
+          {
+            title: `New Job: ${job.title}`.slice(0, 256),
+            url: job.url,
+            description: job.description ? striptags(job.description).slice(0, 300) : '',
+            color: 0x0077b5, // LinkedIn Blue
+            fields,
+            timestamp: job.publishedAt ? new Date(job.publishedAt).toISOString() : new Date().toISOString(),
+            footer: { text: 'SignalStack Jobs' },
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
   }
 }

@@ -29,12 +29,45 @@ export const sources = pgTable('sources', {
   categoryId: varchar('category_id', { length: 50 })
     .notNull()
     .references(() => categories.slug),
+  type: varchar('type', { length: 20 }).notNull().default('signal'),
+  parserHint: varchar('parser_hint', { length: 20 }).default('rss'),
+  parserConfig: jsonb('parser_config').$type<Record<string, any>>().default({}),
   trustScore: integer('trust_score').notNull().default(3),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
+
+export const jobs = pgTable(
+  'jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sourceId: uuid('source_id').references(() => sources.id),
+    source: varchar('source', { length: 100 }).notNull(),
+    title: text('title').notNull(),
+    company: varchar('company', { length: 200 }),
+    location: varchar('location', { length: 200 }),
+    remote: boolean('remote'),
+    jobType: varchar('job_type', { length: 50 }),
+    salaryRange: varchar('salary_range', { length: 100 }),
+    experienceLevel: varchar('experience_level', { length: 50 }),
+    description: text('description'),
+    url: text('url').notNull(),
+    hash: varchar('hash', { length: 64 }).notNull().unique(),
+    tags: jsonb('tags').$type<string[]>().default([]),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    hashIdx: index('idx_jobs_hash').on(table.hash),
+    createdAtIdx: index('idx_jobs_created_at').on(table.createdAt),
+    companyIdx: index('idx_jobs_company').on(table.company),
+    remoteIdx: index('idx_jobs_remote').on(table.remote),
+  }),
+);
 
 export const signals = pgTable(
   'signals',
