@@ -61,10 +61,10 @@ tmp/
 # --- Backup Files ---
 backups/
 
-# --- Spec / Planning Docs ---
-STUDY_GUIDE.md
-CHANGES.md
-CLAUDE.md
+# --- Spec / Planning Docs (root-level only, docs/ folder is tracked) ---
+/STUDY_GUIDE.md
+/CHANGES.md
+/CLAUDE.md
 
 
 # --- Local AI Models ---
