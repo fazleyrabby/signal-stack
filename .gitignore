@@ -59,13 +59,9 @@ tmp/
 *.log
 
 # --- Backup Files ---
-signalstack_backup.sql
-backend/signalstack_backup.sql
+backups/
 
 # --- Spec / Planning Docs ---
-spec.md
-spec-patch.md
-rate-limit.md
 STUDY_GUIDE.md
 CHANGES.md
 CLAUDE.md
