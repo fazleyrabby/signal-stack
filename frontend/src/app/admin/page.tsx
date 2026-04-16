@@ -278,6 +278,33 @@ export default function AdminDashboard() {
     fetcher,
     { refreshInterval: 30000 }
   );
+  const { data: webhookData, mutate: refreshWebhooks } = useSWR<{ webhookUrl: string; jobsWebhookUrl: string }>(
+    `${API_BASE}/api/admin/webhooks`,
+    fetcher
+  );
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [jobsWebhookUrl, setJobsWebhookUrl] = useState('');
+  const [isSavingWebhooks, setIsSavingWebhooks] = useState(false);
+  useEffect(() => {
+    if (webhookData) {
+      setWebhookUrl(webhookData.webhookUrl || '');
+      setJobsWebhookUrl(webhookData.jobsWebhookUrl || '');
+    }
+  }, [webhookData]);
+  const handleSaveWebhooks = async () => {
+    setIsSavingWebhooks(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/webhooks`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ webhookUrl, jobsWebhookUrl }),
+      });
+      await refreshWebhooks();
+    } finally {
+      setIsSavingWebhooks(false);
+    }
+  };
 
   const handleModelChange = async (provider: 'groq' | 'openrouter', modelId: string | null) => {
     if (!modelId) return;
@@ -717,6 +744,50 @@ export default function AdminDashboard() {
           )}
 
           {/* ── Quick Actions ──────────────────────────────── */}
+          <section className="space-y-3">
+            <SectionHeader
+              icon={Rss}
+              title="Discord Webhooks"
+              subtitle="Override .env webhook URLs — stored in database, applied immediately"
+            />
+            <div className="p-5 rounded-xl bg-card border border-border/50 space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Signals Webhook URL</label>
+                  <input
+                    type="url"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder="https://discord.com/api/webhooks/..."
+                    className="w-full h-10 px-3 rounded-lg bg-accent/10 border border-border/30 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <p className="text-[10px] text-muted-foreground italic">Receives new signal alerts matching Discord filters.</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Jobs Webhook URL</label>
+                  <input
+                    type="url"
+                    value={jobsWebhookUrl}
+                    onChange={(e) => setJobsWebhookUrl(e.target.value)}
+                    placeholder="https://discord.com/api/webhooks/... (or leave blank to use signals webhook)"
+                    className="w-full h-10 px-3 rounded-lg bg-accent/10 border border-border/30 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <p className="text-[10px] text-muted-foreground italic">Receives job match alerts. Falls back to signals webhook if empty.</p>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveWebhooks}
+                  disabled={isSavingWebhooks}
+                  className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-white text-xs font-black transition-all hover:opacity-90 disabled:opacity-50"
+                >
+                  {isSavingWebhooks ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                  SAVE WEBHOOKS
+                </button>
+              </div>
+            </div>
+          </section>
+
           <section className="space-y-3">
             <SectionHeader
               icon={Server}

@@ -233,28 +233,43 @@ function JobCard({ job }: { job: Job }) {
 
 function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPreferences, onSave: (p: JobPreferences) => Promise<void> }) {
   const [isSaving, setIsSaving] = useState(false);
-  const [prefs, setPrefs] = useState<JobPreferences>({
-    keywords: [],
-    locations: [],
-    remote: null,
-    excludeKeywords: [],
-    experienceLevels: [],
-    strictGlobalRemote: false,
+  const [remote, setRemote] = useState<boolean | null>(null);
+  const [strictGlobalRemote, setStrictGlobalRemote] = useState(false);
+  // Raw string state — lets user type commas and spaces freely
+  const [raw, setRaw] = useState({
+    keywords: '',
+    locations: '',
+    excludeKeywords: '',
+    experienceLevels: '',
   });
 
   useEffect(() => {
-    if (initialPrefs) setPrefs(initialPrefs);
+    if (initialPrefs) {
+      setRemote(initialPrefs.remote);
+      setStrictGlobalRemote(initialPrefs.strictGlobalRemote ?? false);
+      setRaw({
+        keywords: initialPrefs.keywords.join(', '),
+        locations: initialPrefs.locations.join(', '),
+        excludeKeywords: initialPrefs.excludeKeywords.join(', '),
+        experienceLevels: initialPrefs.experienceLevels.join(', '),
+      });
+    }
   }, [initialPrefs]);
 
-  const updateArrayField = (field: keyof JobPreferences, value: string) => {
-    const items = value.split(',').map(s => s.trim()).filter(s => s.length > 0);
-    setPrefs(p => ({ ...p, [field]: items }));
-  };
+  const parseField = (value: string): string[] =>
+    value.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSave(prefs);
+      await onSave({
+        keywords: parseField(raw.keywords),
+        locations: parseField(raw.locations),
+        excludeKeywords: parseField(raw.excludeKeywords),
+        experienceLevels: parseField(raw.experienceLevels),
+        remote,
+        strictGlobalRemote,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -279,9 +294,9 @@ function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPrefer
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               Target Keywords (Comma Separated)
             </Label>
-            <Input 
-              value={prefs.keywords.join(', ')}
-              onChange={(e) => updateArrayField('keywords', e.target.value)}
+            <Input
+              value={raw.keywords}
+              onChange={(e) => setRaw(r => ({ ...r, keywords: e.target.value }))}
               placeholder="php, laravel, typescript, node..."
               className="bg-accent/10 border-border/30 h-11"
             />
@@ -293,9 +308,9 @@ function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPrefer
               <XCircle className="w-4 h-4 text-red-500" />
               Exclusion Keywords
             </Label>
-            <Input 
-              value={prefs.excludeKeywords.join(', ')}
-              onChange={(e) => updateArrayField('excludeKeywords', e.target.value)}
+            <Input
+              value={raw.excludeKeywords}
+              onChange={(e) => setRaw(r => ({ ...r, excludeKeywords: e.target.value }))}
               placeholder="senior, lead, manager, recruitment..."
               className="bg-accent/10 border-border/30 h-11"
             />
@@ -307,9 +322,9 @@ function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPrefer
               <MapPin className="w-4 h-4 text-primary" />
               Locations
             </Label>
-            <Input 
-              value={prefs.locations.join(', ')}
-              onChange={(e) => updateArrayField('locations', e.target.value)}
+            <Input
+              value={raw.locations}
+              onChange={(e) => setRaw(r => ({ ...r, locations: e.target.value }))}
               placeholder="London, remote, Germany..."
               className="bg-accent/10 border-border/30 h-11"
             />
@@ -322,11 +337,11 @@ function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPrefer
             <div className="flex items-center gap-4 pt-2">
                {['All', 'Remote Only', 'On-Site Only'].map((opt, idx) => {
                   const val = idx === 0 ? null : idx === 1 ? true : false;
-                  const active = prefs.remote === val;
+                  const active = remote === val;
                   return (
                     <button
                       key={opt}
-                      onClick={() => setPrefs(p => ({ ...p, remote: val }))}
+                      onClick={() => setRemote(val)}
                       className={cn(
                         "px-4 py-2 rounded-lg text-xs font-black transition-all border",
                         active ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-accent/20 border-border/40 hover:bg-accent/40"
@@ -352,15 +367,15 @@ function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPrefer
               </p>
             </div>
             <button
-              onClick={() => setPrefs(p => ({ ...p, strictGlobalRemote: !p.strictGlobalRemote }))}
+              onClick={() => setStrictGlobalRemote(v => !v)}
               className={cn(
                 "shrink-0 px-5 py-2 rounded-lg text-xs font-black transition-all border",
-                prefs.strictGlobalRemote
+                strictGlobalRemote
                   ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/20"
                   : "bg-accent/20 border-border/40 hover:bg-accent/40"
               )}
             >
-              {prefs.strictGlobalRemote ? "ENABLED" : "DISABLED"}
+              {strictGlobalRemote ? "ENABLED" : "DISABLED"}
             </button>
           </div>
         </div>

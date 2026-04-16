@@ -1,26 +1,51 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import striptags from 'striptags';
 import { ScoredSignal } from '../common/types';
 import { logEvent } from '../common/logger';
+import { SettingsService } from '../ai/settings.service';
 
 const MIN_INTERVAL_MS = 2000; // 2 seconds between webhook calls
 
 type DiscordAlert = { type: 'signal'; data: ScoredSignal } | { type: 'job'; data: any };
 
 @Injectable()
-export class DiscordService {
+export class DiscordService implements OnModuleInit {
   private webhookUrl: string | undefined;
   private jobsWebhookUrl: string | undefined;
   private queue: DiscordAlert[] = [];
   private processing = false;
   private filterTechOnly: boolean;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly settingsService: SettingsService,
+  ) {
     this.webhookUrl = this.configService.get<string>('DISCORD_WEBHOOK_URL');
     this.jobsWebhookUrl = this.configService.get<string>('DISCORD_JOBS_WEBHOOK_URL') || this.webhookUrl;
     this.filterTechOnly =
       this.configService.get<string>('DISCORD_FILTER_TECH') === 'true';
+  }
+
+  async onModuleInit() {
+    // Override env vars with DB-stored values if present
+    const storedMain = await this.settingsService.getSetting('discord_webhook_url');
+    const storedJobs = await this.settingsService.getSetting('discord_jobs_webhook_url');
+    if (storedMain) this.webhookUrl = storedMain;
+    if (storedJobs) this.jobsWebhookUrl = storedJobs;
+    else if (storedMain && !this.jobsWebhookUrl) this.jobsWebhookUrl = storedMain;
+  }
+
+  updateWebhookUrls(main?: string, jobs?: string) {
+    if (main !== undefined) this.webhookUrl = main || undefined;
+    if (jobs !== undefined) this.jobsWebhookUrl = jobs || this.webhookUrl;
+  }
+
+  getWebhookUrls() {
+    return {
+      webhookUrl: this.webhookUrl || '',
+      jobsWebhookUrl: this.jobsWebhookUrl || '',
+    };
   }
 
   /**

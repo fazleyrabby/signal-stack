@@ -22,6 +22,7 @@ import {
   STATIC_FREE_MODELS,
 } from '../ai/models';
 import { ConfigService } from '@nestjs/config';
+import { DiscordService } from '../alerts/discord.service';
 
 @Controller('api/admin')
 @UseGuards(AdminGuard)
@@ -35,6 +36,7 @@ export class AdminController {
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
+    private readonly discordService: DiscordService,
   ) {}
 
   // --- AI Health Check ---
@@ -248,6 +250,33 @@ export class AdminController {
   @Get('metrics')
   async getMetrics() {
     return this.metricsService.getMetrics();
+  }
+
+  // --- Discord Webhooks ---
+  @Get('webhooks')
+  async getWebhooks() {
+    const storedMain = await this.settingsService.getSetting('discord_webhook_url');
+    const storedJobs = await this.settingsService.getSetting('discord_jobs_webhook_url');
+    // Fall back to env vars for display (masked)
+    const envMain = this.configService.get<string>('DISCORD_WEBHOOK_URL') || '';
+    const envJobs = this.configService.get<string>('DISCORD_JOBS_WEBHOOK_URL') || '';
+    return {
+      webhookUrl: storedMain ?? envMain,
+      jobsWebhookUrl: storedJobs ?? envJobs,
+    };
+  }
+
+  @Put('webhooks')
+  async updateWebhooks(@Body() body: { webhookUrl?: string; jobsWebhookUrl?: string }) {
+    const { webhookUrl, jobsWebhookUrl } = body;
+    if (webhookUrl !== undefined) {
+      await this.settingsService.setSetting('discord_webhook_url', webhookUrl);
+    }
+    if (jobsWebhookUrl !== undefined) {
+      await this.settingsService.setSetting('discord_jobs_webhook_url', jobsWebhookUrl);
+    }
+    this.discordService.updateWebhookUrls(webhookUrl, jobsWebhookUrl);
+    return { success: true };
   }
 
   // --- Email Digest ---
