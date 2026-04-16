@@ -164,40 +164,24 @@ export class SignalsRepository {
     highPending: number;
     translated: number;
   }> {
-    const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const [
-      totalResult,
-      highResult,
-      mediumResult,
-      lowResult,
-      last24hResult,
-      topSourceResult,
-      geopoliticsResult,
-      technologyResult,
-      aiProcessedResult,
-      aiFailedResult,
-      highPendingResult,
-      translatedResult,
-    ] = await Promise.all([
-      this.db.select({ count: sql<number>`count(*)::int` }).from(signals),
+    const [countResult, topSourceResult] = await Promise.all([
       this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(eq(signals.severity, 'high')),
-      this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(eq(signals.severity, 'medium')),
-      this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(eq(signals.severity, 'low')),
-      this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(gte(signals.createdAt, oneDayAgo)),
+        .select({
+          total: sql<number>`count(*)::int`,
+          high: sql<number>`count(*) FILTER (WHERE severity = 'high' AND created_at >= ${oneDayAgo})::int`,
+          medium: sql<number>`count(*) FILTER (WHERE severity = 'medium')::int`,
+          low: sql<number>`count(*) FILTER (WHERE severity = 'low')::int`,
+          last24h: sql<number>`count(*) FILTER (WHERE created_at >= ${oneDayAgo})::int`,
+          geopolitics: sql<number>`count(*) FILTER (WHERE category_id = 'geopolitics')::int`,
+          technology: sql<number>`count(*) FILTER (WHERE category_id = 'technology')::int`,
+          aiProcessed: sql<number>`count(*) FILTER (WHERE ai_processed = true)::int`,
+          aiFailed: sql<number>`count(*) FILTER (WHERE ai_failed = true)::int`,
+          highPending: sql<number>`count(*) FILTER (WHERE severity = 'high' AND ai_processed = false)::int`,
+          translated: sql<number>`count(*) FILTER (WHERE translations != '{}'::jsonb)::int`,
+        })
+        .from(signals),
       this.db
         .select({
           source: signals.source,
@@ -207,47 +191,22 @@ export class SignalsRepository {
         .groupBy(signals.source)
         .orderBy(desc(sql`count(*)`))
         .limit(1),
-      this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(eq(signals.categoryId, 'geopolitics')),
-      this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(eq(signals.categoryId, 'technology')),
-      this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(eq(signals.aiProcessed, true)),
-      this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(eq(signals.aiFailed, true)),
-      this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(
-          and(eq(signals.severity, 'high'), eq(signals.aiProcessed, false)),
-        ),
-      this.db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(signals)
-        .where(sql`translations != '{}'::jsonb`),
     ]);
 
+    const row = countResult[0];
     return {
-      total: totalResult[0]?.count || 0,
-      high: highResult[0]?.count || 0,
-      medium: mediumResult[0]?.count || 0,
-      low: lowResult[0]?.count || 0,
-      last24h: last24hResult[0]?.count || 0,
-      topSource: topSourceResult[0]?.source || 'N/A',
-      geopolitics: geopoliticsResult[0]?.count || 0,
-      technology: technologyResult[0]?.count || 0,
-      aiProcessed: aiProcessedResult[0]?.count || 0,
-      aiFailed: aiFailedResult[0]?.count || 0,
-      highPending: highPendingResult[0]?.count || 0,
-      translated: translatedResult[0]?.count || 0,
+      total: row?.total ?? 0,
+      high: row?.high ?? 0,
+      medium: row?.medium ?? 0,
+      low: row?.low ?? 0,
+      last24h: row?.last24h ?? 0,
+      topSource: topSourceResult[0]?.source ?? 'N/A',
+      geopolitics: row?.geopolitics ?? 0,
+      technology: row?.technology ?? 0,
+      aiProcessed: row?.aiProcessed ?? 0,
+      aiFailed: row?.aiFailed ?? 0,
+      highPending: row?.highPending ?? 0,
+      translated: row?.translated ?? 0,
     };
   }
 

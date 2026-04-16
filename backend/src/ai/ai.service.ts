@@ -9,6 +9,7 @@ import type { DrizzleDB } from '../database/database.module';
 import { signals } from '../database/schema';
 import { eq } from 'drizzle-orm';
 import { logEvent } from '../common/logger';
+import { SettingsService } from './settings.service';
 
 @Injectable()
 export class AIService {
@@ -22,6 +23,7 @@ export class AIService {
     private readonly redisService: RedisService,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
     private readonly configService: ConfigService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async translate(title: string, summary: string, targetLang: string): Promise<{ title: string; aiSummary: string } | null> {
@@ -29,22 +31,22 @@ export class AIService {
     const systemPrompt = "You are a professional translator. Output only valid JSON.";
 
     let response: string | null = null;
-    const useExternal = this.configService.get<string>('NODE_ENV') === 'production';
 
     try {
-      if (useExternal) {
-        // 1. Try Groq (Fast & Cheap)
-        if (!this.isCooldown('groq')) {
-          const res = await this.groq.complete(prompt, systemPrompt);
-          if (res) response = res;
-        }
-        
-        // 2. Fallback to OpenRouter (Reliable)
-        if (!response && !this.isCooldown('openrouter')) {
-          const res = await this.openRouter.complete(prompt, systemPrompt);
-          if (res) response = res;
-        }
-      } else if (this.configService.get<string>('LOCAL_AI_ENABLED') === 'true') {
+      // 1. Try Groq (fast & cheap)
+      if (!this.isCooldown('groq')) {
+        const res = await this.groq.complete(prompt, systemPrompt);
+        if (res) response = res;
+      }
+
+      // 2. Fallback to OpenRouter
+      if (!response && !this.isCooldown('openrouter')) {
+        const res = await this.openRouter.complete(prompt, systemPrompt);
+        if (res) response = res;
+      }
+
+      // 3. Last resort — Local AI
+      if (!response && await this.local.isEnabled() && !this.isCooldown('local')) {
         response = await this.local.summarize('Translation Request', prompt);
       }
 
@@ -116,30 +118,37 @@ export class AIService {
     let fallbackUsed = false;
     let provider = 'none';
 
-    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
-    const localAiEnabled =
-      this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
-    const externalEnabled =
-      this.configService.get<string>('AI_EXTERNAL_ENABLED') !== 'false';
+    const localAiEnabled = await this.local.isEnabled();
 
-    const useExternal = nodeEnv === 'production' && externalEnabled;
-    const localOnly = !useExternal;
-
-    if (localOnly) {
-      logEvent('info', 'ai_local_only_mode', {
-        signalId: id,
-        nodeEnv,
-        externalEnabled,
-      });
+    // Step 1: Try Groq (fast & cheap)
+    if (!this.isCooldown('groq')) {
+      summary = await this.groq.summarize(title, trimmedContent);
+      if (summary) {
+        provider = 'groq';
+        fallbackUsed = false;
+      } else if (this.groq.lastError === 429) {
+        this.setCooldown('groq', 60000);
+      }
     }
 
-    // Step 1: Try local first (always in dev, or in production with local enabled)
-    const useLocalFirst = localAiEnabled && !this.isCooldown('local');
-    let localRetries = 0;
-    const maxLocalRetries = 2;
+    // Step 2: Fallback to OpenRouter
+    if (!summary && !this.isCooldown('openrouter')) {
+      logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'openrouter' });
+      fallbackUsed = true;
+      summary = await this.openRouter.summarize(title, trimmedContent);
+      if (summary) {
+        provider = 'openrouter';
+      } else if (this.openRouter.lastError === 429) {
+        this.setCooldown('openrouter', 60000);
+      }
+    }
 
-    if (useLocalFirst) {
-      while (!summary && localRetries < maxLocalRetries) {
+    // Step 3: Last resort — Local AI (only if enabled and not on cooldown)
+    if (!summary && localAiEnabled && !this.isCooldown('local')) {
+      logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'local' });
+      fallbackUsed = true;
+      let localRetries = 0;
+      while (!summary && localRetries < 2) {
         try {
           summary = await this.local.summarize(title, trimmedContent);
         } catch {
@@ -147,77 +156,11 @@ export class AIService {
         }
         localRetries++;
       }
-
-      if (summary) {
-        provider = 'local';
-        logEvent('info', 'ai_provider_used', {
-          signalId: id,
-          provider,
-          mode: localOnly ? 'local_only' : 'production',
-        });
-      } else if (localOnly) {
-        // Local only mode: if local fails after retries, mark as failed
-        await this.db
-          .update(signals)
-          .set({
-            aiProvider: 'failed',
-            aiProcessed: false,
-            aiFailed: true,
-          })
-          .where(eq(signals.id, id));
-
-        logEvent('error', 'ai_processing_failed', {
-          signalId: id,
-          reason: 'local_failed_local_only_mode',
-          retries: localRetries,
-        });
-        throw new Error('Local AI failed in local-only mode');
-      }
-    }
-
-    // Step 2: Production mode with external providers enabled - fallback chain
-    if (!summary && useExternal) {
-      // Fallback to Groq
-      if (!this.isCooldown('groq')) {
-        if (useLocalFirst && !summary) {
-          logEvent('info', 'ai_pipeline_fallback', {
-            signalId: id,
-            from: provider,
-            to: 'groq',
-          });
-        }
-        fallbackUsed = true;
-        summary = await this.groq.summarize(title, trimmedContent);
-        if (summary) {
-          provider = 'groq';
-        } else if (this.groq.lastError === 429) {
-          this.setCooldown('groq', 60000);
-        }
-      }
-
-      // Final fallback to OpenRouter
-      if (!summary && !this.isCooldown('openrouter')) {
-        logEvent('info', 'ai_pipeline_fallback', {
-          signalId: id,
-          from: provider,
-          to: 'openrouter',
-        });
-        fallbackUsed = true;
-        summary = await this.openRouter.summarize(title, trimmedContent);
-        if (summary) {
-          provider = 'openrouter';
-        } else if (this.openRouter.lastError === 429) {
-          this.setCooldown('openrouter', 60000);
-        }
-      }
+      if (summary) provider = 'local';
     }
 
     if (summary && provider !== 'none') {
-      logEvent('info', 'ai_provider_used', {
-        signalId: id,
-        provider,
-        mode: localOnly ? 'local_only' : 'production',
-      });
+      logEvent('info', 'ai_provider_used', { signalId: id, provider });
     }
 
     if (summary) {
@@ -275,8 +218,7 @@ export class AIService {
   }
 
   async getHealth() {
-    const localEnabled =
-      this.configService.get<string>('LOCAL_AI_ENABLED') === 'true';
+    const localEnabled = await this.local.isEnabled();
 
     const [
       local,
@@ -304,7 +246,7 @@ export class AIService {
       openrouter: { ...openrouter, model: this.openRouter.modelName },
       localEnabled,
       pipeline: localEnabled
-        ? 'local → groq → openrouter'
+        ? 'groq → openrouter → local'
         : 'groq → openrouter',
       tokenUsage: {
         groq: { today: groqToday, allTime: groqAllTime },
