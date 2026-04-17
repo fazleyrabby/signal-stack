@@ -252,17 +252,29 @@ out body;
       }
       reader.cancel();
 
-      // Extract <a href="..."> links whose text or href matches career keywords
-      const linkPattern = /<a\s[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gis;
-      let match: RegExpExecArray | null;
-      while ((match = linkPattern.exec(html)) !== null) {
-        const href = match[1];
-        const text = match[2].replace(/<[^>]+>/g, '').trim();
-        if (CAREER_LINK_PATTERN.test(href) || CAREER_LINK_PATTERN.test(text)) {
-          // Resolve relative URLs
-          if (href.startsWith('http')) return href;
-          if (href.startsWith('/')) return `${base}${href}`;
+      // Safe linear scan — no backtracking regex on untrusted HTML
+      let pos = 0;
+      while (pos < html.length) {
+        const aStart = html.indexOf('<a ', pos);
+        if (aStart === -1) break;
+        const tagEnd = html.indexOf('>', aStart);
+        if (tagEnd === -1) break;
+        const tag = html.slice(aStart, tagEnd + 1);
+
+        const hrefMatch = /href=["']([^"']+)["']/i.exec(tag);
+        if (hrefMatch) {
+          const href = hrefMatch[1];
+          const closeA = html.indexOf('</a>', tagEnd);
+          const innerText = closeA !== -1
+            ? html.slice(tagEnd + 1, closeA).replace(/<[^>]+>/g, '').trim()
+            : '';
+
+          if (CAREER_LINK_PATTERN.test(href) || CAREER_LINK_PATTERN.test(innerText)) {
+            if (href.startsWith('http')) return href;
+            if (href.startsWith('/')) return `${base}${href}`;
+          }
         }
+        pos = tagEnd + 1;
       }
       return null;
     } catch {

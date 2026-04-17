@@ -46,6 +46,11 @@ services:
       context: ./backend
     container_name: signalstack-app
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     ports:
       - "3000:3000"
     environment:
@@ -91,6 +96,11 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.fazleyrabbi.xyz}
     container_name: signalstack-frontend
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     ports:
       - "3001:3001"
     environment:
