@@ -58,7 +58,7 @@ export class CompaniesService {
   constructor(private readonly redis: RedisService) {}
 
   async findNearby(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
-    const cacheKey = `companies:nearby:v5:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cacheKey = `companies:nearby:v6:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -67,6 +67,8 @@ export class CompaniesService {
     }
 
     const raw = await this.queryOverpass(lat, lng, radius);
+    this.logger.log(`Overpass found ${raw.length} raw companies at ${lat},${lng} (radius ${radius}m)`);
+    
     const enriched = await this.enrichWithCareerPages(raw);
     const results = enriched.slice(0, 25);
 
@@ -76,41 +78,51 @@ export class CompaniesService {
 
   private async queryOverpass(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
     const query = `
-[out:json][timeout:25];
+[out:json][timeout:30];
 (
   node["office"~"company|tech|it|software|coworking|startup",i](around:${radius},${lat},${lng});
   way["office"~"company|tech|it|software|coworking|startup",i](around:${radius},${lat},${lng});
-  node["name"]["website"]["office"](around:${radius},${lat},${lng});
-  way["name"]["website"]["office"](around:${radius},${lat},${lng});
-  node["amenity"="company"](around:${radius},${lat},${lng});
-  node["building"="office"]["name"](around:${radius},${lat},${lng});
-  way["building"="office"]["name"](around:${radius},${lat},${lng});
+  node["office"="it"](around:${radius},${lat},${lng});
+  way["office"="it"](around:${radius},${lat},${lng});
   node["craft"="software"](around:${radius},${lat},${lng});
   way["craft"="software"](around:${radius},${lat},${lng});
+  node["amenity"="company"]["name"](around:${radius},${lat},${lng});
   node["name"~"software|technologies|tech|systems|solutions|digital",i](around:${radius},${lat},${lng});
-  way["name"~"software|technologies|tech|systems|solutions|digital",i](around:${radius},${lat},${lng});
 );
 out center;
     `.trim();
 
+    this.logger.log(`Querying Overpass: around ${radius}m of ${lat},${lng}`);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 28000);
+    const timeoutId = setTimeout(() => controller.abort(), 29000);
 
     try {
       const res = await fetch(OVERPASS_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'SignalStack/1.0 (Contact: admin@signalstack.local)'
+        },
         body: `data=${encodeURIComponent(query)}`,
         signal: controller.signal,
       });
 
-      if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
+      if (!res.ok) {
+        const errText = await res.text().catch(() => 'no body');
+        this.logger.error(`Overpass HTTP ${res.status}: ${errText}`);
+        throw new Error(`Overpass HTTP ${res.status}`);
+      }
+      
       const data = await res.json();
+      if (!data.elements) {
+        this.logger.warn(`Overpass returned no elements array for ${lat},${lng}`);
+        return [];
+      }
 
       const seen = new Set<string>();
       const companies: NearbyCompany[] = [];
 
-      for (const el of data.elements || []) {
+      for (const el of data.elements) {
         const name = el.tags?.name;
         if (!name) continue;
 

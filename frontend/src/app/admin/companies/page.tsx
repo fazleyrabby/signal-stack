@@ -559,16 +559,16 @@ export default function CompaniesAdmin() {
                     const isSaved = crawlSavedNames.has(company.name);
                     return (
                       <TableRow key={`${company.name}-${idx}`} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                        <TableCell className="px-4 py-2">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-semibold">{company.name}</span>
+                        <TableCell className="px-4 py-2 overflow-hidden">
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-xs font-semibold truncate" title={company.name}>{company.name}</span>
                             {company.tags.length > 0 && (
-                              <span className="text-[9px] text-muted-foreground/50">{company.tags.join(", ")}</span>
+                              <span className="text-[9px] text-muted-foreground/50 truncate" title={company.tags.join(", ")}>{company.tags.join(", ")}</span>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="px-3 py-2">
-                          <span className="text-[10px] text-muted-foreground/70">
+                        <TableCell className="px-3 py-2 overflow-hidden">
+                          <span className="text-[10px] text-muted-foreground/70 truncate block" title={[company.city, company.country].filter(Boolean).join(", ")}>
                             {[company.city, company.country].filter(Boolean).join(", ") || "—"}
                           </span>
                         </TableCell>
@@ -651,19 +651,19 @@ export default function CompaniesAdmin() {
                 )}
                 {savedData?.data.map((company) => (
                   <TableRow key={company.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                    <TableCell className="px-4 py-2">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-semibold">{company.name}</span>
+                    <TableCell className="px-4 py-2 overflow-hidden">
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-xs font-semibold truncate" title={company.name}>{company.name}</span>
                         {company.tags.length > 0 && (
-                          <span className="text-[9px] text-muted-foreground/50">{company.tags.join(", ")}</span>
+                          <span className="text-[9px] text-muted-foreground/50 truncate" title={company.tags.join(", ")}>{company.tags.join(", ")}</span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="px-3 py-2">
                       <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 uppercase">{company.source || "osm"}</Badge>
                     </TableCell>
-                    <TableCell className="px-3 py-2">
-                      <span className="text-[10px] text-muted-foreground/70">
+                    <TableCell className="px-3 py-2 overflow-hidden">
+                      <span className="text-[10px] text-muted-foreground/70 truncate block" title={[company.city, company.country].filter(Boolean).join(", ")}>
                         {[company.city, company.country].filter(Boolean).join(", ") || "—"}
                       </span>
                     </TableCell>
