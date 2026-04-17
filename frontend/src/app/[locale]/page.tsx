@@ -112,13 +112,13 @@ function SignalsDashboardContent({
             <div className="flex items-center gap-4">
               <StatsBar stats={stats} />
             </div>
-            <div className="flex items-center md:gap-1 mt-2 md:mt-0">
+            <div className="flex items-center md:gap-1 mt-2 md:mt-0 overflow-x-auto no-scrollbar">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveTab(cat.id)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap",
                     activeTab === cat.id 
                       ? cat.color === 'violet' ? "bg-violet-500/20 dark:bg-violet-600/20 text-violet-700 dark:text-violet-400 border border-violet-500/30 dark:border-violet-500/20" 
                       : cat.color === 'indigo' ? "bg-indigo-500/20 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 dark:border-indigo-500/20"
