@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, MapPin, Loader2, ExternalLink, CheckCircle2, XCircle,
-  Database, Search, Navigation, Trash2, BookmarkPlus, Globe, Play
+  Database, Search, Navigation, Trash2, BookmarkPlus, Globe, Play, Filter, X
 } from "lucide-react";
 import { useResizableColumns } from "@/hooks/useResizableColumns";
 import { ResizeHandle } from "@/components/ui/resize-handle";
@@ -94,6 +94,44 @@ export default function CompaniesAdmin() {
   const [crawlResults, setCrawlResults] = useState<CrawledCompany[] | null>(null);
   const [crawlError, setCrawlError] = useState<string | null>(null);
   const [crawlSavedNames, setCrawlSavedNames] = useState<Set<string>>(new Set());
+
+  // Crawler filters (persisted in localStorage)
+  const [crawlLocationFilter, setCrawlLocationFilter] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("crawl_filter_location") ?? "";
+  });
+  const [crawlKeywordFilter, setCrawlKeywordFilter] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("crawl_filter_keywords") ?? "";
+  });
+
+  function updateLocationFilter(v: string) {
+    setCrawlLocationFilter(v);
+    localStorage.setItem("crawl_filter_location", v);
+  }
+  function updateKeywordFilter(v: string) {
+    setCrawlKeywordFilter(v);
+    localStorage.setItem("crawl_filter_keywords", v);
+  }
+
+  function applyFilters(companies: CrawledCompany[]): CrawledCompany[] {
+    let result = companies;
+    const loc = crawlLocationFilter.trim().toLowerCase();
+    if (loc) {
+      result = result.filter((c) => {
+        const haystack = [c.city, c.country, c.name].filter(Boolean).join(" ").toLowerCase();
+        return haystack.includes(loc);
+      });
+    }
+    const rawKeywords = crawlKeywordFilter.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean);
+    if (rawKeywords.length) {
+      result = result.filter((c) => {
+        const haystack = [c.name, ...c.tags].join(" ").toLowerCase();
+        return rawKeywords.some((kw) => haystack.includes(kw));
+      });
+    }
+    return result;
+  }
 
   // Saved companies
   const [savedPage, setSavedPage] = useState(1);
@@ -398,6 +436,51 @@ export default function CompaniesAdmin() {
                 ? "Fetching pages sequentially with delay — this may take 30–60s…"
                 : CRAWL_SOURCES.find(s => s.key === crawlSource)?.description}
             </p>
+            {/* Row 3: filters */}
+            <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border/20">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Filter className="w-3 h-3 text-muted-foreground/50" />
+                <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-bold">Filter</span>
+              </div>
+              <div className="relative">
+                <MapPin className="absolute left-2 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted-foreground/40" />
+                <input
+                  type="text"
+                  placeholder="Location (e.g. chittagong)"
+                  value={crawlLocationFilter}
+                  onChange={(e) => updateLocationFilter(e.target.value)}
+                  className="h-6 pl-6 pr-6 text-[10px] bg-background border border-border/40 rounded px-2 focus:outline-none focus:border-primary/50 w-44"
+                />
+                {crawlLocationFilter && (
+                  <button onClick={() => updateLocationFilter("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground">
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted-foreground/40" />
+                <input
+                  type="text"
+                  placeholder="Tech keywords (e.g. software, fintech, SaaS)"
+                  value={crawlKeywordFilter}
+                  onChange={(e) => updateKeywordFilter(e.target.value)}
+                  className="h-6 pl-6 pr-6 text-[10px] bg-background border border-border/40 rounded px-2 focus:outline-none focus:border-primary/50 w-56"
+                />
+                {crawlKeywordFilter && (
+                  <button onClick={() => updateKeywordFilter("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground">
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                )}
+              </div>
+              {(crawlLocationFilter || crawlKeywordFilter) && (
+                <button
+                  onClick={() => { updateLocationFilter(""); updateKeywordFilter(""); }}
+                  className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground underline shrink-0"
+                >
+                  clear all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Results table */}
@@ -433,14 +516,16 @@ export default function CompaniesAdmin() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {crawlResults.length === 0 && (
+                  {applyFilters(crawlResults).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-16 text-muted-foreground/30 text-xs">
-                        No companies found. The site structure may have changed.
+                        {crawlResults.length === 0
+                          ? "No companies found. The site structure may have changed."
+                          : "No companies match the current filters."}
                       </TableCell>
                     </TableRow>
                   )}
-                  {crawlResults.map((company, idx) => {
+                  {applyFilters(crawlResults).map((company, idx) => {
                     const isSaved = crawlSavedNames.has(company.name);
                     return (
                       <TableRow key={`${company.name}-${idx}`} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
@@ -490,11 +575,18 @@ export default function CompaniesAdmin() {
           </div>
 
           {/* Result count footer */}
-          {!crawling && crawlResults !== null && crawlResults.length > 0 && (
-            <div className="px-6 py-2 border-t border-border/40 shrink-0">
-              <span className="text-[10px] text-muted-foreground/60">{crawlResults.length} companies found</span>
-            </div>
-          )}
+          {!crawling && crawlResults !== null && crawlResults.length > 0 && (() => {
+            const filtered = applyFilters(crawlResults);
+            return (
+              <div className="px-6 py-2 border-t border-border/40 shrink-0 flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground/60">
+                  {filtered.length !== crawlResults.length
+                    ? `${filtered.length} of ${crawlResults.length} companies (filtered)`
+                    : `${crawlResults.length} companies found`}
+                </span>
+              </div>
+            );
+          })()}
         </TabsContent>
 
         {/* ── Saved Tab ─────────────────────────────────────────────────────── */}
