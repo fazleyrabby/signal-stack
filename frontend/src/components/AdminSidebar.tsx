@@ -18,7 +18,8 @@ import {
   Globe,
   Database,
   Briefcase,
-  Layers
+  Layers,
+  Settings
 } from "lucide-react";
 import { logoutAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ const navItems = [
   { name: 'Sources', href: '/admin/sources', icon: Rss },
   { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
   { name: 'Logs', href: '/admin/logs', icon: Database },
+  { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
 export function AdminSidebar() {

@@ -5,12 +5,11 @@ import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Rss, Layers, ShieldCheck, LogOut, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, ChevronRight, Check, Users, Languages, Loader2, Clock, Sun, Moon } from "lucide-react";
+import { Rss, Layers, ShieldCheck, Brain, RefreshCw, BarChart3, Globe, Cpu, AlertTriangle, TrendingUp, Bot, XCircle, Zap, Server, Activity, Lightbulb, Search, ChevronDown, ChevronRight, Check, Users, Languages, Loader2, Clock, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { logoutAdmin } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
@@ -232,18 +231,6 @@ type MetricsResponse = {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [isDark, setIsDark] = useState(true);
-  useEffect(() => {
-    const saved = localStorage.getItem("signalstack_theme");
-    setIsDark(saved !== "light");
-  }, []);
-  const toggleTheme = () => {
-    const next = isDark ? "light" : "dark";
-    setIsDark(!isDark);
-    localStorage.setItem("signalstack_theme", next);
-    document.documentElement.setAttribute("data-theme", next === "light" ? "light" : "");
-  };
-
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
@@ -278,83 +265,6 @@ export default function AdminDashboard() {
     fetcher,
     { refreshInterval: 30000 }
   );
-  const { data: webhookData, mutate: refreshWebhooks } = useSWR<{ webhookUrl: string; jobsWebhookUrl: string }>(
-    `${API_BASE}/api/admin/webhooks`,
-    fetcher
-  );
-  const [webhookUrl, setWebhookUrl] = useState('');
-  const [jobsWebhookUrl, setJobsWebhookUrl] = useState('');
-  const [isSavingWebhooks, setIsSavingWebhooks] = useState(false);
-  const [testingWebhook, setTestingWebhook] = useState<'signals' | 'jobs' | null>(null);
-  const [webhookTestResult, setWebhookTestResult] = useState<{ type: string; ok: boolean; error?: string } | null>(null);
-  const handleTestWebhook = async (type: 'signals' | 'jobs') => {
-    setTestingWebhook(type);
-    setWebhookTestResult(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/webhooks/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ type }),
-      });
-      const data = await res.json();
-      setWebhookTestResult({ type, ok: data.success, error: data.error });
-    } catch (e) {
-      setWebhookTestResult({ type, ok: false, error: 'Request failed' });
-    } finally {
-      setTestingWebhook(null);
-      setTimeout(() => setWebhookTestResult(null), 5000);
-    }
-  };
-  useEffect(() => {
-    if (webhookData) {
-      setWebhookUrl(webhookData.webhookUrl || '');
-      setJobsWebhookUrl(webhookData.jobsWebhookUrl || '');
-    }
-  }, [webhookData]);
-  const { data: apiKeysData, mutate: refreshApiKeys } = useSWR<{
-    groq: { masked: string; source: string };
-    openrouter: { masked: string; source: string };
-  }>(`${API_BASE}/api/admin/keys`, fetcher);
-  const [groqKeyInput, setGroqKeyInput] = useState('');
-  const [openrouterKeyInput, setOpenrouterKeyInput] = useState('');
-  const [savingKey, setSavingKey] = useState<'groq' | 'openrouter' | null>(null);
-  const handleSaveApiKey = async (provider: 'groq' | 'openrouter') => {
-    const key = provider === 'groq' ? groqKeyInput : openrouterKeyInput;
-    if (!key.trim()) return;
-    setSavingKey(provider);
-    try {
-      await fetch(`${API_BASE}/api/admin/keys`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ provider, key: key.trim() }),
-      });
-      if (provider === 'groq') setGroqKeyInput('');
-      else setOpenrouterKeyInput('');
-      // Bust models cache so list re-fetches with new key
-      await fetch(`${API_BASE}/api/admin/ai/models/refresh`, { method: 'POST', credentials: 'include' });
-      await Promise.all([refreshApiKeys(), refreshAI(), refreshModels()]);
-    } finally {
-      setSavingKey(null);
-    }
-  };
-
-  const handleSaveWebhooks = async () => {
-    setIsSavingWebhooks(true);
-    try {
-      await fetch(`${API_BASE}/api/admin/webhooks`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ webhookUrl, jobsWebhookUrl }),
-      });
-      await refreshWebhooks();
-    } finally {
-      setIsSavingWebhooks(false);
-    }
-  };
-
   const handleModelChange = async (provider: 'groq' | 'openrouter', modelId: string | null) => {
     if (!modelId) return;
     setIsUpdatingModel(true);
@@ -475,12 +385,6 @@ export default function AdminDashboard() {
      }
    };
 
-   const handleLogout = async () => {
-    await logoutAdmin();
-    router.push("/admin-login");
-    router.refresh();
-  };
-
   const modules: Array<{ title: string; description: string; icon: React.ElementType; color: string; href?: string; onClick?: () => void; loading?: boolean }> = [
     { title: "Manage Signals",    description: "Review and translate intelligence signals.", icon: Activity,    href: "/admin/signals",    color: "bg-blue-500/10" },
     { title: "News Sources",      description: "Manage intelligence telemetry feeds.",       icon: Rss,         href: "/admin/sources",    color: "bg-emerald-500/10" },
@@ -525,15 +429,11 @@ export default function AdminDashboard() {
               Strategic Operational Overview
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-8 w-8 rounded-lg border border-border/50 hover:border-border shrink-0"
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-          </Button>
+          <Link href="/admin/settings">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg border border-border/50 hover:border-border shrink-0" title="Settings">
+              <Settings className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
         </div>
 
         <div className="space-y-8">
@@ -631,100 +531,6 @@ export default function AdminDashboard() {
                 <span className="text-blue-400">Groq (llama-3.1-8b-instant)</span>
                 {" · "}
                 <span className="text-blue-400">OpenRouter (gemma-4-26b-a4b-it:free)</span>
-              </p>
-            </div>
-          </section>
-
-          {/* ── API Keys ─────────────────────────────────── */}
-          <section className="space-y-3">
-            <SectionHeader
-              icon={ShieldCheck}
-              title="AI API Keys"
-              subtitle="Override .env keys — stored encrypted in database, applied immediately"
-            />
-            <div className="p-5 rounded-xl bg-card border border-border/50 space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Groq */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <StatusDot status={aiHealth?.groq?.status || 'no_api_key'} />
-                      Groq API Key
-                    </label>
-                    {apiKeysData?.groq?.source && (
-                      <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded border",
-                        apiKeysData.groq.source === 'db' ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                        apiKeysData.groq.source === 'env' ? "text-blue-600 dark:text-blue-400 border-blue-500/30 bg-blue-500/10" :
-                        "text-muted-foreground border-border/30"
-                      )}>
-                        {apiKeysData.groq.source}
-                      </span>
-                    )}
-                  </div>
-                  {apiKeysData?.groq?.masked && (
-                    <p className="text-[10px] font-mono text-muted-foreground bg-muted/40 px-2 py-1 rounded">{apiKeysData.groq.masked}</p>
-                  )}
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={groqKeyInput}
-                      onChange={(e) => setGroqKeyInput(e.target.value)}
-                      placeholder="gsk_••••••••••••••••••••••••"
-                      className="flex-1 h-9 px-3 rounded-lg bg-accent/10 border border-border/30 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                    <button
-                      onClick={() => handleSaveApiKey('groq')}
-                      disabled={!groqKeyInput.trim() || savingKey === 'groq'}
-                      className="h-9 px-4 rounded-lg bg-primary text-white text-[10px] font-black disabled:opacity-40 hover:opacity-90 transition-all flex items-center gap-1.5"
-                    >
-                      {savingKey === 'groq' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                      SAVE
-                    </button>
-                  </div>
-                </div>
-
-                {/* OpenRouter */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <StatusDot status={aiHealth?.openrouter?.status || 'no_api_key'} />
-                      OpenRouter API Key
-                    </label>
-                    {apiKeysData?.openrouter?.source && (
-                      <span className={cn("text-[9px] font-black uppercase px-1.5 py-0.5 rounded border",
-                        apiKeysData.openrouter.source === 'db' ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10" :
-                        apiKeysData.openrouter.source === 'env' ? "text-blue-600 dark:text-blue-400 border-blue-500/30 bg-blue-500/10" :
-                        "text-muted-foreground border-border/30"
-                      )}>
-                        {apiKeysData.openrouter.source}
-                      </span>
-                    )}
-                  </div>
-                  {apiKeysData?.openrouter?.masked && (
-                    <p className="text-[10px] font-mono text-muted-foreground bg-muted/40 px-2 py-1 rounded">{apiKeysData.openrouter.masked}</p>
-                  )}
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={openrouterKeyInput}
-                      onChange={(e) => setOpenrouterKeyInput(e.target.value)}
-                      placeholder="sk-or-••••••••••••••••••••••••"
-                      className="flex-1 h-9 px-3 rounded-lg bg-accent/10 border border-border/30 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                    <button
-                      onClick={() => handleSaveApiKey('openrouter')}
-                      disabled={!openrouterKeyInput.trim() || savingKey === 'openrouter'}
-                      className="h-9 px-4 rounded-lg bg-primary text-white text-[10px] font-black disabled:opacity-40 hover:opacity-90 transition-all flex items-center gap-1.5"
-                    >
-                      {savingKey === 'openrouter' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                      SAVE
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <p className="text-[10px] text-muted-foreground italic flex items-center gap-1.5">
-                <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
-                DB keys take priority over .env. After saving, AI health status above refreshes automatically.
               </p>
             </div>
           </section>
@@ -885,81 +691,6 @@ export default function AdminDashboard() {
               </div>
             </section>
           )}
-
-          {/* ── Quick Actions ──────────────────────────────── */}
-          <section className="space-y-3">
-            <SectionHeader
-              icon={Rss}
-              title="Discord Webhooks"
-              subtitle="Override .env webhook URLs — stored in database, applied immediately"
-            />
-            <div className="p-5 rounded-xl bg-card border border-border/50 space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Signals Webhook URL</label>
-                  <input
-                    type="url"
-                    value={webhookUrl}
-                    onChange={(e) => setWebhookUrl(e.target.value)}
-                    placeholder="https://discord.com/api/webhooks/..."
-                    className="w-full h-10 px-3 rounded-lg bg-accent/10 border border-border/30 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-muted-foreground italic">Receives new signal alerts matching Discord filters.</p>
-                    <button
-                      onClick={() => handleTestWebhook('signals')}
-                      disabled={!webhookUrl || testingWebhook === 'signals'}
-                      className="text-[10px] font-black px-3 py-1 rounded border border-border/40 bg-accent/20 hover:bg-accent/40 disabled:opacity-40 transition-all flex items-center gap-1"
-                    >
-                      {testingWebhook === 'signals' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-                      TEST
-                    </button>
-                  </div>
-                  {webhookTestResult?.type === 'signals' && (
-                    <p className={cn("text-[10px] font-bold", webhookTestResult.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-                      {webhookTestResult.ok ? '✓ Message sent to Discord' : `✗ ${webhookTestResult.error}`}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Jobs Webhook URL</label>
-                  <input
-                    type="url"
-                    value={jobsWebhookUrl}
-                    onChange={(e) => setJobsWebhookUrl(e.target.value)}
-                    placeholder="https://discord.com/api/webhooks/... (or leave blank to use signals webhook)"
-                    className="w-full h-10 px-3 rounded-lg bg-accent/10 border border-border/30 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-muted-foreground italic">Falls back to signals webhook if empty.</p>
-                    <button
-                      onClick={() => handleTestWebhook('jobs')}
-                      disabled={(!jobsWebhookUrl && !webhookUrl) || testingWebhook === 'jobs'}
-                      className="text-[10px] font-black px-3 py-1 rounded border border-border/40 bg-accent/20 hover:bg-accent/40 disabled:opacity-40 transition-all flex items-center gap-1"
-                    >
-                      {testingWebhook === 'jobs' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-                      TEST
-                    </button>
-                  </div>
-                  {webhookTestResult?.type === 'jobs' && (
-                    <p className={cn("text-[10px] font-bold", webhookTestResult.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-                      {webhookTestResult.ok ? '✓ Message sent to Discord' : `✗ ${webhookTestResult.error}`}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSaveWebhooks}
-                  disabled={isSavingWebhooks}
-                  className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-white text-xs font-black transition-all hover:opacity-90 disabled:opacity-50"
-                >
-                  {isSavingWebhooks ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                  SAVE WEBHOOKS
-                </button>
-              </div>
-            </div>
-          </section>
 
           <section className="space-y-3">
             <SectionHeader

@@ -99,7 +99,7 @@ export default function JobsAdmin() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-                  <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Job Title</TableHead>
+                  <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[220px] max-w-[220px]">Job Title</TableHead>
                   <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[140px]">Company</TableHead>
                   <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[130px]">Location</TableHead>
                   <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Source</TableHead>
@@ -118,7 +118,7 @@ export default function JobsAdmin() {
                     <TableRow key={job.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
                       <TableCell className="px-4 py-2">
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-xs font-semibold leading-tight line-clamp-1 group-hover:text-primary transition-colors">{job.title}</span>
+                          <span className="text-xs font-semibold leading-tight truncate max-w-[190px] block group-hover:text-primary transition-colors" title={job.title}>{job.title}</span>
                           {job.tags?.length > 0 && (
                             <div className="flex gap-1 flex-wrap">
                               {job.tags.slice(0, 4).map(tag => (

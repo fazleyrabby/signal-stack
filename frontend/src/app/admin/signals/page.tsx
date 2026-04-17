@@ -199,7 +199,7 @@ export default function SignalsAdmin() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[380px]">Signal</TableHead>
+              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[260px] max-w-[260px]">Signal</TableHead>
               <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Score</TableHead>
               <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Category</TableHead>
               <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">AI Status</TableHead>
@@ -224,7 +224,7 @@ export default function SignalsAdmin() {
                 <TableRow key={signal.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
                   <TableCell className="px-4 py-2">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-xs font-semibold leading-tight line-clamp-1 group-hover:text-primary transition-colors">
+                      <span className="text-xs font-semibold leading-tight line-clamp-1 group-hover:text-primary transition-colors max-w-[220px] block truncate" title={signal.title}>
                         {signal.title}
                       </span>
                       <div className="flex items-center gap-1.5">

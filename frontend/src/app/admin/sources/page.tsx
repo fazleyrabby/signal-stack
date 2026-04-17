@@ -129,7 +129,7 @@ export default function SourcesAdmin() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Source</TableHead>
+              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[280px] max-w-[280px]">Source</TableHead>
               <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[110px]">Category</TableHead>
               <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Trust</TableHead>
               <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[120px]">Status</TableHead>
@@ -144,8 +144,8 @@ export default function SourcesAdmin() {
               <TableRow key={source.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
                 <TableCell className="px-4 py-2">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-semibold">{source.name}</span>
-                    <span className="text-[10px] text-muted-foreground/60 font-mono truncate max-w-[300px]">{source.url}</span>
+                    <span className="text-xs font-semibold truncate max-w-[160px] block" title={source.name}>{source.name}</span>
+                    <span className="text-[10px] text-muted-foreground/60 font-mono truncate max-w-[220px] block">{source.url}</span>
                   </div>
                 </TableCell>
                 <TableCell className="px-3 py-2">
