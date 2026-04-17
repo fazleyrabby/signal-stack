@@ -112,17 +112,30 @@ export default function CompaniesAdmin() {
     setGeoError(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setSelectedLoc({
+        const loc = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           label: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`,
-        });
+        };
+        setSelectedLoc(loc);
         setGeocoding(false);
+        // auto-search after location acquired
+        setSearching(true);
+        setResults(null);
+        fetch(
+          `${API_BASE}/api/admin/companies/nearby?lat=${loc.lat}&lng=${loc.lng}&radius=${radius}`,
+          { credentials: "include" }
+        )
+          .then((r) => r.json())
+          .then((data) => setResults(data.data || []))
+          .catch(() => setResults([]))
+          .finally(() => setSearching(false));
       },
       () => {
-        setGeoError("Location access denied.");
+        setGeoError("Location access denied or timed out.");
         setGeocoding(false);
-      }
+      },
+      { timeout: 10000, enableHighAccuracy: false }
     );
   }
 
