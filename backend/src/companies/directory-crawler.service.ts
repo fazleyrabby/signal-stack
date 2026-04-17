@@ -367,35 +367,35 @@ export class DirectoryCrawlerService {
 
   // ─── e-CAB ────────────────────────────────────────────────────────────────
   // Server-rendered: GET https://e-cab.net/member-list?page=N
-  // Structure: <h5><a href="...">COMPANY NAME</a></h5>
+  // Structure: <h5><a href="...">COMPANY NAME</a></h5> or similar heading
   private async crawlEcab(): Promise<CrawledCompany[]> {
     const results: CrawledCompany[] = [];
     const seen = new Set<string>();
 
-    for (let page = 1; page <= 8; page++) { // e-CAB has fewer pages
+    for (let page = 1; page <= 10; page++) {
       const url = `https://e-cab.net/member-list?page=${page}`;
       const html = await this.fetchPage(url);
       if (!html) break;
 
-      const BLOCK_MARKER = '<h5>';
       let pos = 0;
       let count = 0;
       while (true) {
-        const h5Start = html.indexOf(BLOCK_MARKER, pos);
-        if (h5Start === -1) break;
-        const h5End = html.indexOf('</h5>', h5Start);
-        if (h5End === -1) break;
-        const block = html.slice(h5Start, h5End);
-        pos = h5End;
+        // Look for any link that might be a member name
+        const aStart = html.indexOf('<a ', pos);
+        if (aStart === -1) break;
+        const aClose = html.indexOf('>', aStart);
+        if (aClose === -1) { pos = aStart + 3; continue; }
+        
+        const aEnd = html.indexOf('</a>', aClose);
+        if (aEnd === -1) { pos = aClose + 1; continue; }
 
-        const aStart = block.indexOf('<a ');
-        if (aStart === -1) continue;
-        const aClose = block.indexOf('>', aStart);
-        const aEnd = block.indexOf('</a>', aClose);
-        if (aClose === -1 || aEnd === -1) continue;
+        const name = html.slice(aClose + 1, aEnd).replace(/<[^>]+>/g, '').trim();
+        pos = aEnd + 4;
 
-        const name = block.slice(aClose + 1, aEnd).trim();
-        if (!name || name.length < 2) continue;
+        // e-CAB specific: members are usually inside headings or have specific classes
+        // but we can filter by length and common words
+        if (name.length < 3 || name.length > 100) continue;
+        if (/^(home|about|contact|login|register|member|policy|terms|join|apply)/i.test(name)) continue;
 
         const key = name.toLowerCase();
         if (seen.has(key)) continue;
@@ -411,7 +411,7 @@ export class DirectoryCrawlerService {
         });
         count++;
       }
-      this.logger.log(`e-CAB page ${page}: found ${count} companies`);
+      this.logger.log(`e-CAB page ${page}: found ${count} candidates`);
       if (count === 0) break;
       await this.randomDelay();
     }
@@ -422,8 +422,15 @@ export class DirectoryCrawlerService {
   // Markdown: [Company Name](http://website.com) - Location
   private async crawlGithubBd(): Promise<CrawledCompany[]> {
     const results: CrawledCompany[] = [];
-    const url = 'https://raw.githubusercontent.com/MBSTUPC/tech-companies-in-bangladesh/master/README.md';
-    const md = await this.fetchPage(url);
+    // Try main branch first
+    let url = 'https://raw.githubusercontent.com/MBSTUPC/tech-companies-in-bangladesh/main/README.md';
+    let md = await this.fetchPage(url);
+    
+    if (!md) {
+      this.logger.log('GitHub main branch 404, trying master...');
+      url = 'https://raw.githubusercontent.com/MBSTUPC/tech-companies-in-bangladesh/master/README.md';
+      md = await this.fetchPage(url);
+    }
     if (!md) return results;
 
     const lines = md.split('\n');
