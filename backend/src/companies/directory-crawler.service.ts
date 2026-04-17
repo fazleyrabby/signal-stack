@@ -5,6 +5,20 @@ const MIN_DELAY_MS = 1500;
 const MAX_DELAY_MS = 3000;
 const MAX_PAGES = 15;
 
+const LOCATION_KEYWORDS = {
+  Chittagong: /\b(chittagong|ctg|chatogram|pahartali|halishahar|panchlaish|double mooring|patenga|agrabad|nasirabad|khulshi)\b/i,
+  Sylhet: /\b(sylhet)\b/i,
+  Rajshahi: /\b(rajshahi)\b/i,
+  Khulna: /\b(khulna)\b/i,
+};
+
+function detectCity(name: string, defaultCity: string | null = 'Dhaka'): string | null {
+  for (const [city, regex] of Object.entries(LOCATION_KEYWORDS)) {
+    if (regex.test(name)) return city;
+  }
+  return defaultCity;
+}
+
 // Rotate UA to reduce fingerprinting
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -40,6 +54,18 @@ export const CRAWLER_SOURCES = {
     country: 'Bangladesh',
     tags: [],
   },
+  ecab: {
+    label: 'e-CAB',
+    description: 'e-Commerce Association of Bangladesh',
+    country: 'Bangladesh',
+    tags: ['ecommerce', 'fintech', 'logistics'],
+  },
+  github_bd: {
+    label: 'GitHub Tech List',
+    description: 'Community-curated list of BD tech companies',
+    country: 'Bangladesh',
+    tags: ['startup', 'software', 'tech'],
+  },
 } as const;
 
 export type CrawlerSourceKey = keyof typeof CRAWLER_SOURCES;
@@ -51,9 +77,11 @@ export class DirectoryCrawlerService {
   async crawl(source: CrawlerSourceKey): Promise<CrawledCompany[]> {
     this.logger.log(`Starting crawl: ${source}`);
     switch (source) {
-      case 'basis':  return this.crawlBasis();
-      case 'bacco':  return this.crawlBacco();
-      case 'bdjobs': return this.crawlBdjobs();
+      case 'basis':     return this.crawlBasis();
+      case 'bacco':     return this.crawlBacco();
+      case 'bdjobs':    return this.crawlBdjobs();
+      case 'ecab':      return this.crawlEcab();
+      case 'github_bd': return this.crawlGithubBd();
     }
   }
 
@@ -85,7 +113,7 @@ export class DirectoryCrawlerService {
         results.push({
           name,
           website: null, // profile fetch is 2806 requests — skip to stay safe
-          city: 'Dhaka',
+          city: detectCity(name, 'Dhaka'),
           country: 'Bangladesh',
           source: 'basis',
           tags: ['software', 'IT'],
@@ -186,7 +214,7 @@ export class DirectoryCrawlerService {
       companies.push({
         name,
         website,
-        city: null,
+        city: detectCity(name, null),
         country: 'Bangladesh',
         source: 'bacco',
         tags: ['BPO', 'outsourcing'],
@@ -256,7 +284,7 @@ export class DirectoryCrawlerService {
       companies.push({
         name,
         website: null,
-        city: null,
+        city: detectCity(name, null),
         country: 'Bangladesh',
         source: 'bdjobs',
         tags: [],
@@ -335,6 +363,92 @@ export class DirectoryCrawlerService {
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  // ─── e-CAB ────────────────────────────────────────────────────────────────
+  // Server-rendered: GET https://e-cab.net/member-list?page=N
+  // Structure: <h5><a href="...">COMPANY NAME</a></h5>
+  private async crawlEcab(): Promise<CrawledCompany[]> {
+    const results: CrawledCompany[] = [];
+    const seen = new Set<string>();
+
+    for (let page = 1; page <= 8; page++) { // e-CAB has fewer pages
+      const url = `https://e-cab.net/member-list?page=${page}`;
+      const html = await this.fetchPage(url);
+      if (!html) break;
+
+      const BLOCK_MARKER = '<h5>';
+      let pos = 0;
+      let count = 0;
+      while (true) {
+        const h5Start = html.indexOf(BLOCK_MARKER, pos);
+        if (h5Start === -1) break;
+        const h5End = html.indexOf('</h5>', h5Start);
+        if (h5End === -1) break;
+        const block = html.slice(h5Start, h5End);
+        pos = h5End;
+
+        const aStart = block.indexOf('<a ');
+        if (aStart === -1) continue;
+        const aClose = block.indexOf('>', aStart);
+        const aEnd = block.indexOf('</a>', aClose);
+        if (aClose === -1 || aEnd === -1) continue;
+
+        const name = block.slice(aClose + 1, aEnd).trim();
+        if (!name || name.length < 2) continue;
+
+        const key = name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        results.push({
+          name,
+          website: null,
+          city: detectCity(name, null),
+          country: 'Bangladesh',
+          source: 'ecab',
+          tags: ['ecommerce', 'fintech'],
+        });
+        count++;
+      }
+      this.logger.log(`e-CAB page ${page}: found ${count} companies`);
+      if (count === 0) break;
+      await this.randomDelay();
+    }
+    return results;
+  }
+
+  // ─── GitHub BD Tech List ──────────────────────────────────────────────────
+  // Markdown: [Company Name](http://website.com) - Location
+  private async crawlGithubBd(): Promise<CrawledCompany[]> {
+    const results: CrawledCompany[] = [];
+    const url = 'https://raw.githubusercontent.com/MBSTUPC/tech-companies-in-bangladesh/master/README.md';
+    const md = await this.fetchPage(url);
+    if (!md) return results;
+
+    const lines = md.split('\n');
+    for (const line of lines) {
+      // Pattern: [Name](URL) - Description/Location
+      const match = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)(.*)/.exec(line);
+      if (match) {
+        const name = match[1].trim();
+        const website = match[2].trim();
+        const desc = match[3].trim();
+
+        if (name.toLowerCase().includes('company name')) continue;
+
+        results.push({
+          name,
+          website,
+          city: detectCity(name + ' ' + desc, null),
+          country: 'Bangladesh',
+          source: 'github_bd',
+          tags: ['tech', 'software'],
+        });
+      }
+    }
+    this.logger.log(`GitHub Tech List: found ${results.length} companies`);
+    return results;
   }
 
   private randomDelay(): Promise<void> {

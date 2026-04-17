@@ -65,9 +65,11 @@ const RADIUS_OPTIONS = [
 ];
 
 const CRAWL_SOURCES = [
-  { key: "basis",  label: "BASIS",   description: "Bangladesh Assoc. of Software & IT Services" },
-  { key: "bacco",  label: "BACCO",   description: "Bangladesh Assoc. of Call Center & Outsourcing" },
-  { key: "bdjobs", label: "bdjobs",  description: "Bangladesh job board — unique hiring companies" },
+  { key: "basis",     label: "BASIS",      description: "Bangladesh Assoc. of Software & IT Services" },
+  { key: "bacco",     label: "BACCO",      description: "Bangladesh Assoc. of Call Center & Outsourcing" },
+  { key: "bdjobs",    label: "bdjobs",     description: "Bangladesh job board — unique hiring companies" },
+  { key: "ecab",      label: "e-CAB",      description: "e-Commerce Association of Bangladesh (official)" },
+  { key: "github_bd", label: "GitHub Tech", description: "Community-curated tech & startup list (high quality)" },
 ] as const;
 
 type CrawlSourceKey = typeof CRAWL_SOURCES[number]["key"];
@@ -373,10 +375,13 @@ export default function CompaniesAdmin() {
               </div>
             )}
             {!searching && results !== null && results.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground/40">
+              <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground/40 text-center px-6">
                 <XCircle className="w-6 h-6" />
                 <p className="text-xs">No IT/tech companies found in this area via OpenStreetMap.</p>
-                <p className="text-[10px]">Try a larger radius or a different city.</p>
+                <div className="space-y-1">
+                  <p className="text-[10px]">Try a larger radius or a different city.</p>
+                  <p className="text-[10px] text-primary/60">If you are in Bangladesh, try the <strong>Directory Crawler</strong> tab instead.</p>
+                </div>
               </div>
             )}
             {!searching && results && results.length > 0 && (

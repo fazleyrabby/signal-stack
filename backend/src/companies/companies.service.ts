@@ -58,7 +58,7 @@ export class CompaniesService {
   constructor(private readonly redis: RedisService) {}
 
   async findNearby(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
-    const cacheKey = `companies:nearby:v4:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cacheKey = `companies:nearby:v5:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -85,7 +85,10 @@ export class CompaniesService {
   node["amenity"="company"](around:${radius},${lat},${lng});
   node["building"="office"]["name"](around:${radius},${lat},${lng});
   way["building"="office"]["name"](around:${radius},${lat},${lng});
-  node["name"~"software|technologies|tech|systems|solutions|digital",i]["office"](around:${radius},${lat},${lng});
+  node["craft"="software"](around:${radius},${lat},${lng});
+  way["craft"="software"](around:${radius},${lat},${lng});
+  node["name"~"software|technologies|tech|systems|solutions|digital",i](around:${radius},${lat},${lng});
+  way["name"~"software|technologies|tech|systems|solutions|digital",i](around:${radius},${lat},${lng});
 );
 out center;
     `.trim();
@@ -118,6 +121,7 @@ out center;
         const website = this.normalizeWebsite(el.tags?.website || el.tags?.url);
         const tags: string[] = [];
         if (el.tags?.office) tags.push(el.tags.office);
+        if (el.tags?.craft) tags.push(el.tags.craft);
         if (el.tags?.['company:type']) tags.push(el.tags['company:type']);
         if (el.tags?.sector) tags.push(el.tags.sector);
 
