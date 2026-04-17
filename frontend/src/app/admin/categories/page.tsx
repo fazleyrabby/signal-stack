@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Edit2, Loader2, Layers } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useResizableColumns } from "@/hooks/useResizableColumns";
+import { ResizeHandle } from "@/components/ui/resize-handle";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
@@ -25,6 +27,7 @@ export default function CategoriesAdmin() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const { widths: colWidths, startResize } = useResizableColumns([160, 200, 320, 80]);
 
   useEffect(() => { if (error) router.replace("/admin-login"); }, [error, router]);
 
@@ -95,13 +98,15 @@ export default function CategoriesAdmin() {
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        <Table className="min-w-max">
+        <Table className="min-w-max table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[160px]">Slug</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[200px]">Name</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right w-[80px]">Actions</TableHead>
+              {(["Slug","Name","Description","Actions"] as const).map((label, i) => (
+                <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
+                  <span className={i === 3 ? "flex justify-end" : ""}>{label}</span>
+                  {i < 3 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>

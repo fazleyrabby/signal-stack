@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Edit2, Plus, Rss, Loader2, Activity, CheckCircle2, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useResizableColumns } from "@/hooks/useResizableColumns";
+import { ResizeHandle } from "@/components/ui/resize-handle";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
@@ -34,6 +36,7 @@ export default function SourcesAdmin() {
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [checkingHealth, setCheckingHealth] = useState<string | null>(null);
   const [healthResults, setHealthResults] = useState<Record<string, any>>({});
+  const { widths: colWidths, startResize } = useResizableColumns([280, 110, 90, 120, 100]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -126,14 +129,15 @@ export default function SourcesAdmin() {
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        <Table className="min-w-max">
+        <Table className="min-w-max table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[280px] max-w-[280px]">Source</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[110px]">Category</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Trust</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[120px]">Status</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right w-[100px]">Actions</TableHead>
+              {(["Source","Category","Trust","Status","Actions"] as const).map((label, i) => (
+                <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
+                  <span className={i === 4 ? "flex justify-end" : ""}>{label}</span>
+                  {i < 4 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>

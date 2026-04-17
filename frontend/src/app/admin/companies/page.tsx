@@ -11,6 +11,8 @@ import {
   Building2, MapPin, Loader2, ExternalLink, CheckCircle2, XCircle,
   Database, Search, Navigation, Trash2, BookmarkPlus
 } from "lucide-react";
+import { useResizableColumns } from "@/hooks/useResizableColumns";
+import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -159,6 +161,7 @@ export default function CompaniesAdmin() {
     mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
   }
 
+  const { widths: colWidths, startResize } = useResizableColumns([200, 120, 100, 140, 60]);
   const savedTotal = savedData?.total ?? 0;
   const savedPages = Math.ceil(savedTotal / 20);
 
@@ -342,14 +345,15 @@ export default function CompaniesAdmin() {
         {/* Saved Tab */}
         <TabsContent value="saved" className="flex-1 flex flex-col overflow-hidden mt-0">
           <div className="flex-1 overflow-auto">
-            <Table className="min-w-max">
+            <Table className="min-w-max table-fixed">
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-                  <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Company</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[120px]">Location</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[100px]">Careers</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[140px]">Website</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right w-[60px]">Del</TableHead>
+                  {(["Company","Location","Careers","Website","Del"] as const).map((label, i) => (
+                    <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
+                      <span className={i === 4 ? "flex justify-end" : ""}>{label}</span>
+                      {i < 4 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>

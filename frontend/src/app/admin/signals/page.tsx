@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity, ChevronDown } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useResizableColumns } from "@/hooks/useResizableColumns";
+import { ResizeHandle } from "@/components/ui/resize-handle";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
@@ -67,6 +69,7 @@ export default function SignalsAdmin() {
   const [isBulkTranslating, setIsBulkTranslating] = useState(false);
   const [bulkLang, setBulkLang] = useState("bn");
   const [translatingId, setTranslatingId] = useState<string | null>(null);
+  const { widths: colWidths, startResize } = useResizableColumns([260, 90, 90, 90, 70, 110, 90]);
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this signal?")) return;
@@ -202,16 +205,15 @@ export default function SignalsAdmin() {
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        <Table className="min-w-max">
+        <Table className="min-w-max table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[260px] max-w-[260px]">Signal</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Score</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Category</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">AI Status</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[70px]">Langs</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[110px]">Timestamp</TableHead>
-              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right w-[90px]">Actions</TableHead>
+              {(["Signal","Score","Category","AI Status","Langs","Timestamp","Actions"] as const).map((label, i) => (
+                <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
+                  <span className={i === 6 ? "flex justify-end" : ""}>{label}</span>
+                  {i < 6 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -10,6 +10,8 @@ import {
   Settings2, CheckCircle2, XCircle, Clock, Loader2, Check, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useResizableColumns } from "@/hooks/useResizableColumns";
+import { ResizeHandle } from "@/components/ui/resize-handle";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -35,6 +37,7 @@ export default function JobsAdmin() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { widths: colWidths, startResize } = useResizableColumns([220, 140, 130, 90, 80, 90, 40]);
 
   const { data: jobsData, isLoading: jobsLoading } = useSWR(
     `${API_BASE}/api/admin/jobs?page=${page}&limit=30&search=${search}`, fetcher
@@ -96,16 +99,15 @@ export default function JobsAdmin() {
 
           {/* Table */}
           <div className="flex-1 overflow-auto">
-            <Table className="min-w-max">
+            <Table className="min-w-max table-fixed">
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-                  <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[220px] max-w-[220px]">Job Title</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[140px]">Company</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[130px]">Location</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Source</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[80px]">Type</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Date</TableHead>
-                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[40px]"></TableHead>
+                  {(["Job Title","Company","Location","Source","Type","Date",""] as const).map((label, i) => (
+                    <TableHead key={i} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
+                      {label}
+                      {i < 6 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
