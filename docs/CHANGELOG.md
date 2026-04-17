@@ -4,6 +4,20 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-17] — Auth Fix, AI Limit & OSM Query
+
+### Fixed
+- **Admin session logout**: JWT access token expiry `'15m'` → `'7d'`; cookie `maxAge` updated to match. Admins now stay logged in for 7 days.
+- **AI signal backlog**: `ai_daily_limit_reached` was firing at limit=150. Redis counter was at 1759. Raised `AI_DAILY_LIMIT` default to 500 in `docker-compose.prod.yml`. Manually deleted Redis key to immediately unblock queue.
+- **OSM nearby query**: added `way` type support + `out center`, required `["office"]` tag on all clauses — eliminates banks/hospitals/mills from results. Cache key bumped v3→v4.
+
+### Study Guide
+- Section 26: Admin Auth Session & Token Expiry
+- Section 27: AI Daily Limit & Signal Backlog
+- Section 28: OSM Nearby Query Improvements
+
+---
+
 ## [2026-04-17] — Unit Tests, DB Fixes & Load Testing
 
 ### Added

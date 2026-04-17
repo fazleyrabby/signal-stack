@@ -27,6 +27,9 @@
 18. [Common Commands Reference](#18-common-commands-reference)
 19. [Performance & Scaling](#19-performance-scaling)
 20. [Troubleshooting Guide](#20-troubleshooting-guide)
+21. [Section 26: Admin Auth Session & Token Expiry](#section-26--admin-auth-session--token-expiry)
+22. [Section 27: AI Daily Limit & Signal Backlog](#section-27--ai-daily-limit--signal-backlog)
+23. [Section 28: OSM Nearby Query Improvements](#section-28--osm-nearby-query-improvements)
 
 ---
 
@@ -2953,3 +2956,150 @@ The manual Save gate is the strongest protection — nothing enters the DB witho
 ### 25.3 Pre-existing Test Failures
 
 8 test suites fail on `main` unrelated to the crawler work (`admin.service.spec.ts`, `ai.service.spec.ts`, `signals.service.spec.ts`, etc.) — root cause is `SyntaxError: Cannot use import statement outside a module` in ESM dependencies. These are pre-existing and not introduced by this session.
+
+---
+
+## Section 26 — Admin Auth Session & Token Expiry
+
+### 26.1 The Problem
+
+Admin users were being logged out every ~15 minutes. The JWT access token was set to `'15m'` expiry in `auth.service.ts`, and the frontend has no automatic token-refresh logic (no periodic `/auth/refresh` call in the background). Once the access token expired, every authenticated request returned 401 and the admin was redirected to login.
+
+### 26.2 The Fix
+
+Both the JWT expiry and the cookie `maxAge` were bumped to 7 days:
+
+**`backend/src/admin/auth.service.ts`:**
+```typescript
+private readonly accessTokenExpiry = '7d';   // was '15m'
+private readonly refreshTokenExpiry = '7d';
+```
+
+**`backend/src/admin/auth.controller.ts`** (login + refresh endpoints):
+```typescript
+maxAge: 7 * 24 * 60 * 60 * 1000,  // was 15 * 60 * 1000
+```
+
+### 26.3 Token Architecture
+
+| Token | Stored in | Path | Expiry |
+|---|---|---|---|
+| `signalstack_access_token` | httpOnly cookie | `/` | 7 days |
+| `signalstack_refresh_token` | httpOnly cookie | `/api/admin/auth/refresh` | 7 days |
+
+Both tokens are signed with `HS256` using `JWT_SECRET` env var. The refresh token path restriction (`/api/admin/auth/refresh`) means the browser only sends it on refresh requests — it cannot be accidentally sent to other endpoints.
+
+### 26.4 Cookie Security Settings
+
+```typescript
+{
+  httpOnly: true,                                    // JS cannot read it
+  secure: process.env.NODE_ENV === 'production',    // HTTPS only in prod
+  sameSite: 'lax',                                  // CSRF protection
+  domain: process.env.NODE_ENV === 'production'
+    ? '.fazleyrabbi.xyz' : undefined,               // shared across subdomains in prod
+}
+```
+
+`sameSite: 'lax'` allows the cookie on cross-site navigations (clicking a link) but blocks on cross-site POST requests, providing CSRF protection without breaking the admin login flow.
+
+---
+
+## Section 27 — AI Daily Limit & Signal Backlog
+
+### 27.1 Symptom
+
+Signals stuck in `pending` state, `ai_daily_limit_reached` events appearing in logs every cycle. The signals queue was stalled because the daily counter had hit its limit.
+
+### 27.2 How the Daily Limit Works
+
+The AI queue (`ai.queue.ts`) uses a Redis key `ai:daily_count:YYYY-MM-DD` to track usage:
+
+```
+Key:  ai:daily_count:2026-04-17
+TTL:  set to expire at UTC midnight of that day
+Value: incremented atomically per AI call
+```
+
+Before processing any signal, the queue checks:
+```typescript
+const count = await redis.get(`ai:daily_count:${today}`);
+if (Number(count) >= AI_DAILY_LIMIT) {
+  emit('ai_daily_limit_reached');
+  return;
+}
+```
+
+### 27.3 Root Cause
+
+Default `AI_DAILY_LIMIT` was 150. The Redis counter showed **1759** requests on a single day — 10x the limit. Every feed cycle was hitting the limit immediately and stalling all pending signals.
+
+### 27.4 Fix
+
+Raised the default limit to 500 in `docker-compose.prod.yml`:
+```yaml
+AI_DAILY_LIMIT: ${AI_DAILY_LIMIT:-500}
+```
+
+Manually deleted the Redis counter to immediately unblock the queue (no restart needed):
+```bash
+docker exec signalstack-redis redis-cli DEL ai:daily_count:2026-04-17
+```
+
+After deletion, `ai_processing_success` events resumed immediately with Groq as the provider.
+
+### 27.5 Tuning the Limit
+
+`AI_DAILY_LIMIT` can be set per-deployment in `.env`. For a personal instance:
+- 500/day with Groq free tier is safe (Groq allows ~14,400 req/day on free tier)
+- If you add many high-frequency RSS sources, increase to 1000+
+- The Redis key resets automatically at UTC midnight — no cron needed
+
+---
+
+## Section 28 — OSM Nearby Query Improvements
+
+### 28.1 Original Problem
+
+The `/companies/nearby` endpoint was returning irrelevant results: banks, hospitals, mills, and other non-tech entities. The original query used a broad name filter (`ltd|limited`) which matched nearly any registered company.
+
+### 28.2 Query Strategy
+
+The fixed query requires the `["office"]` tag, which OSM contributors add specifically to business offices. This filters out most shops, hospitals, and utilities. The query also covers `way` type elements (buildings mapped as polygons, not just nodes):
+
+```
+node["office"~"company|tech|it|software|coworking|startup",i]
+way["office"~"company|tech|it|software|coworking|startup",i]
+node["name"]["website"]["office"]          ← has website + office tag
+way["name"]["website"]["office"]
+node["amenity"="company"]
+node["building"="office"]["name"]          ← office buildings
+way["building"="office"]["name"]
+node["name"~"software|technologies|tech|systems|solutions|digital",i]["office"]
+```
+
+`out center` is required (instead of `out body`) so that `way` elements include `center.lat`/`center.lon` for their geographic centroid.
+
+### 28.3 Way vs Node Handling
+
+```typescript
+const elLat = el.lat ?? el.center?.lat;
+const elLng = el.lon ?? el.center?.lon;
+if (!elLat || !elLng) continue;  // skip if no coords
+```
+
+Nodes have `el.lat`/`el.lon` directly. Ways have `el.center.lat`/`el.center.lon` (requires `out center` in query).
+
+### 28.4 Cache Key
+
+Bumped from `v3` → `v4` after the query change so old (irrelevant) cached results are not served:
+```typescript
+const cacheKey = `companies:nearby:v4:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+```
+
+### 28.5 OSM Data Limitations in Bangladesh
+
+OSM coverage varies by country. Bangladesh has fewer office-tagged entries than Western Europe or North America. If results are sparse:
+- Increase search radius (default 5km)
+- Results improve as local OSM contributors add data
+- For denser results, consider supplementing with Google Places API (has free quota) or Foursquare Places API
