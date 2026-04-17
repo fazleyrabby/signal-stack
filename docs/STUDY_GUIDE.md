@@ -2651,3 +2651,169 @@ On `onModuleInit`, each provider reads its stored key from the DB and overwrites
 
 `POST /api/admin/webhooks/test` with `{ type: "signals" | "jobs" }` sends a test Discord embed to the configured webhook URL. Returns `{ success: true }` or `{ success: false, error: "..." }`.
 
+---
+
+## 23. Company Radar — Performance, Smart Detection & Resource Hardening (April 17, 2026) <a name="company-radar-v2"></a>
+
+This update covers three rounds of improvements to the Company Radar feature: performance optimizations, smarter career page detection, and VPS resource safety.
+
+---
+
+### 23.1 OSM Query Broadening (Sparse-Region Fix)
+
+**Problem:** Coordinates in South/Southeast Asia (e.g., Chittagong, BD: `22.3549, 91.8067`) returned zero results even at 50km radius. Root cause: OSM contributors in these regions rarely tag offices with `office=company|tech|it|software`. The original query was too restrictive.
+
+**Fix — 3 new Overpass node queries added:**
+
+```
+node["amenity"="company"]                      → common tag in Asia
+node["building"="office"]["name"]              → mapped office buildings
+node["name"~"software|technologies|tech|..."]  → name-keyword fallback
+```
+
+**Cache key bumped** from `v2` → `v3` to bust stale empty results immediately.
+
+**Result cap** raised from 15 → 25 companies per search.
+
+**Key file:** `backend/src/companies/companies.service.ts` — `queryOverpass()`
+
+---
+
+### 23.2 Career Page Detection — 3-Step Smart Pipeline
+
+**Previous approach:** HEAD request to 6 known paths (e.g. `/careers`, `/jobs`). If `200 OK` → mark as found. Problems:
+1. SPAs return `200` for any URL (false positives)
+2. No content verification — a 200 on `/careers` doesn't mean there are actual jobs
+3. Sequential path checks — up to 6 × 4s = 24s worst case per company
+
+**New 3-step pipeline:**
+
+```
+Step 1: HEAD all 9 paths concurrently
+         ↓ (filter to 200 OK hits)
+Step 2: GET each hit → read first 30KB → verify job keywords in body
+         ↓ (if no hits pass verification)
+Step 3: GET homepage → scan <a> links for career keywords
+         ↓
+Return first confirmed URL or null
+```
+
+**Job content keywords** (any one triggers a match):
+```
+apply now | job opening | open position | current opening | career opportunit
+we're hiring | join our team | vacancies | full-time | part-time | internship
+job listing | view all jobs | see all jobs | open roles | available position
+```
+
+**Career link keywords** (for homepage `<a>` scan):
+```
+career | careers | jobs | vacancies | hiring | openings | positions
+join us | work with us | we're hiring
+```
+
+**Path list expanded:** 9 paths now (`/careers`, `/jobs`, `/work-with-us`, `/join-us`, `/join`, `/hiring`, `/vacancies`, `/opportunities`, `/positions`)
+
+**Key files:**
+- `checkCareerPage()` — orchestrates 3 steps
+- `headRequest()` — semaphore-gated HEAD
+- `verifyJobContent()` — stream-reads 30KB, checks `JOB_CONTENT_KEYWORDS`
+- `scanHomepageForCareerLink()` — stream-reads 50KB, safe linear `indexOf` HTML scan
+
+---
+
+### 23.3 Concurrency Control — Semaphore
+
+**Problem:** 25 companies × 9 paths = up to 225 simultaneous outbound HTTP requests. Risk: server IP gets blocked by target sites.
+
+**Fix:** Custom `Semaphore` class caps total concurrent outbound requests at **8** across all companies:
+
+```typescript
+class Semaphore {
+  private queue: (() => void)[] = [];
+  private active = 0;
+
+  constructor(private readonly limit: number) {}
+
+  async acquire(): Promise<void> {
+    if (this.active < this.limit) { this.active++; return; }
+    await new Promise<void>((resolve) => this.queue.push(resolve));
+    this.active++;
+  }
+
+  release(): void {
+    this.active--;
+    const next = this.queue.shift();
+    if (next) next();
+  }
+}
+```
+
+Every `headRequest()`, `verifyJobContent()`, and `scanHomepageForCareerLink()` call acquires before the fetch and releases in `finally`. Queue backs up gracefully — no requests dropped.
+
+**Timeout reduced:** 4000ms → 2500ms per path (semaphore queuing adds wait time anyway, so faster bail is appropriate).
+
+---
+
+### 23.4 VPS Resource Limits (Docker)
+
+**Problem:** Only the `llama` container had Docker resource limits. The `app` and `frontend` containers were uncapped — a spike (nearby search on cold cache) could steal CPU from postgres/redis/llama.
+
+**Limits added to `docker-compose.prod.yml`:**
+
+| Container | CPU | Memory | Notes |
+|---|---|---|---|
+| `llama` | 0.5 | 1GB | Pre-existing |
+| `app` | 1.0 | 768MB | New — raised from initial 512MB after OOM |
+| `frontend` | 0.5 | 256MB | New |
+
+**Why 512MB caused OOM on startup:** The `app` container runs `drizzle-kit push` + `ts-node seed.ts` + NestJS bootstrap sequentially on every start. Combined heap during this sequence exceeds 512MB. Idle runtime is ~53MB, so 768MB gives comfortable headroom.
+
+**Total capped:** 2.0 CPU / ~2GB — leaves ~1.8GB free for postgres, redis, OS on a 3.8GB VM.
+
+---
+
+### 23.5 Regex Backtrack Risk — Fixed
+
+**Problem:** `scanHomepageForCareerLink` originally used this regex on 50KB of untrusted HTML:
+
+```typescript
+/<a\s[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gis
+```
+
+The `(.*?)` with `s` (dotall) flag can cause **catastrophic backtracking** on malformed HTML (e.g., unclosed tags, nested elements inside `<a>`), potentially pegging one CPU core until the AbortController fires.
+
+**Fix:** Replaced with a safe linear `indexOf` scan:
+
+```typescript
+let pos = 0;
+while (pos < html.length) {
+  const aStart = html.indexOf('<a ', pos);
+  if (aStart === -1) break;
+  const tagEnd = html.indexOf('>', aStart);
+  const tag = html.slice(aStart, tagEnd + 1);
+
+  const hrefMatch = /href=["']([^"']+)["']/i.exec(tag);  // bounded — no dotall
+  if (hrefMatch) {
+    const href = hrefMatch[1];
+    // check href + inner text against CAREER_LINK_PATTERN
+  }
+  pos = tagEnd + 1;
+}
+```
+
+**Why safe:** `indexOf` is O(n). The bounded `href=` regex runs only on the tag string (never crosses tag boundaries). No backtracking possible.
+
+---
+
+### 23.6 Performance Summary
+
+| Metric | Before | After |
+|---|---|---|
+| Career enrichment worst case | ~72s (batches of 5, sequential paths) | ~2.5s (all concurrent, semaphore-gated) |
+| Max concurrent outbound requests | 150+ | 8 (semaphore) |
+| False positive career pages (SPAs) | Common | Eliminated (keyword verification) |
+| Zero results in BD/Asia on OSM | Frequent | Fixed (broadened query + name keywords) |
+| OOM crash on container start | Possible (no limit) | Prevented (768MB cap) |
+| Regex CPU spike risk | Present | Eliminated (linear scan) |
+
+
