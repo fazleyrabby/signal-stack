@@ -22,10 +22,239 @@
 13. [Deployment & Ops Scripts](#13-deployment--ops-scripts)
 14. [2026 AI Intelligence Update: Phase 6](#14-2026-ai-intelligence-update-phase-6)
 15. [2026 Stability Update: Frontend & Dependencies](#frontend-stability-2026)
-16. [Key Concepts to Learn](#16-key-concepts-to-learn)
-17. [Common Commands Reference](#17-common-commands-reference)
-18. [Performance & Scaling](#18-performance-scaling)
-19. [Troubleshooting Guide](#19-troubleshooting-guide)
+16. [2026 Admin UX & Company Radar Update](#admin-ux-2026)
+17. [Key Concepts to Learn](#17-key-concepts-to-learn)
+18. [Common Commands Reference](#18-common-commands-reference)
+19. [Performance & Scaling](#19-performance-scaling)
+20. [Troubleshooting Guide](#20-troubleshooting-guide)
+
+---
+
+## 2026 Admin UX & Company Radar Update (April 17, 2026) <a name="admin-ux-2026"></a>
+
+This update covers four major additions: admin UI polish, the Job Signal Extension, a new Company Radar tool, and table UX improvements.
+
+### 1. Job Signal Extension (Full)
+
+The jobs system fetches remote/tech job listings from free RSS feeds and surfaces them in a dedicated admin table.
+
+**Architecture:**
+- `backend/src/jobs/` — `JobsModule`, `JobsService`, `JobsFeedService`, `JobsRepository`, `JobsScheduler`
+- `jobs` table: `id, sourceId, source, title, company, location, remote, jobType, salaryRange, experienceLevel, description, url, hash, tags, publishedAt, createdAt`
+- Sources stored in the shared `sources` table with `type = 'job'` (vs `'signal'` for news)
+- `JobsRepository.getActiveSources()` filters `WHERE type = 'job' AND isActive = true`
+- Scheduler: fetch every 30 min, cleanup daily at 2 AM (14-day retention)
+- Deduplication: SHA-256 hash of `title + url`
+
+**Free RSS Job Sources (seeded):**
+| Source | URL |
+|--------|-----|
+| We Work Remotely | `https://weworkremotely.com/remote-jobs.rss` |
+| Remotive | `https://remotive.com/remote-jobs/feed` |
+| Arbeitnow | `https://www.arbeitnow.com/feed` |
+| Jobicy | `https://jobicy.com/?feed=job_feed` |
+
+**Discord matching filters** (stored in `settings` table as JSON):
+- `keywords` — ANY match triggers alert
+- `excludeKeywords` — ANY match discards
+- `locations` — location filter
+- `remote` — null/true/false preference
+- `strictGlobalRemote` — discard country-locked "remote" jobs (US Only, EST required, etc.)
+
+**Admin endpoint:** `GET /api/admin/jobs` — paginated, searchable, admin-only (no public endpoint).
+
+**Key file:** `backend/src/jobs/jobs-feed.service.ts` — RSS parsing with `rss-parser`, HTML stripping, 10s timeout per source, p-limit 5 concurrency.
+
+---
+
+### 2. Admin UI: Drizzle Studio Style Overhaul
+
+All admin pages were redesigned to match Drizzle Studio's compact analytical layout.
+
+**Design Patterns:**
+- **Top bar**: `h-8` sticky bar with icon + title + row count badge (`font-mono border px-1.5 py-0.5 rounded`) + action buttons
+- **Filter toolbar**: inline `h-7` selects, no card wrapper, `bg-muted/10` background
+- **Table rows**: `py-2` cell padding, `border-border/30` row dividers, `hover:bg-muted/20` hover
+- **Text hierarchy**: `text-xs` content → `text-[10px]` meta → `text-[9px]` badges
+- **Full-height layout**: `flex flex-col h-full overflow-hidden` on page + `flex-1 overflow-auto` on table wrapper = viewport-filling scrollable table
+
+**Layout fix in `admin/layout.tsx`:**
+```tsx
+// Before: overflow-y-auto (broke full-height tables)
+// After:
+<main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+  {children}
+</main>
+```
+
+**Pages updated:**
+- `frontend/src/app/admin/signals/page.tsx` — signals table + per-row translate button + bulk translate
+- `frontend/src/app/admin/sources/page.tsx` — sources with health check, active toggle
+- `frontend/src/app/admin/categories/page.tsx`
+- `frontend/src/app/admin/jobs/page.tsx` — tabbed: Live Feed + Discord Filters
+- `frontend/src/app/admin/page.tsx` — dashboard cleanup, moved config to Settings
+
+---
+
+### 3. Settings Page
+
+Separated config from the dashboard into `/admin/settings`.
+
+**Sections:**
+1. **Appearance** — dark/light `Switch` toggle
+2. **AI API Keys** — Groq + OpenRouter: masked display, source badge (`db`/`env`/`none`), status dot, password input + Save with spinner, "✓ Saved" feedback
+3. **Discord Webhooks** — signals + jobs URL inputs, Test button per field (Zap icon), inline success/error feedback, Save button
+
+**Key file:** `frontend/src/app/admin/settings/page.tsx`
+
+---
+
+### 4. Per-Row Translation Button
+
+The signals table translate action was broken (SelectTrigger showed double chevron, no loading state).
+
+**Fix — custom `TranslateButton` component** (`frontend/src/app/admin/signals/page.tsx`):
+```tsx
+function TranslateButton({ signalId, isTranslating, onTranslate }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  // mousedown outside-click closes dropdown
+  // shows Loader2 spinner when isTranslating
+  // custom dropdown: Bengali / Spanish / English
+}
+```
+
+`translatingId` state tracks which row is currently being processed — only that row shows the spinner.
+
+**Why SelectTrigger was broken:** shadcn `SelectTrigger` always injects a `ChevronDown` SVG as last child. The fix `[&>svg:last-child]:hidden` was a workaround; the final solution replaces Select entirely with a custom component.
+
+---
+
+### 5. Company Radar Feature
+
+A new admin tool to discover IT/tech companies near any location and auto-detect career pages.
+
+**How it works:**
+1. User types a city name → geocoded via **Nominatim** (free OpenStreetMap API, no key needed)
+2. Or clicks "My Location" → `navigator.geolocation.getCurrentPosition()`
+3. Selects radius: 5 / 10 / 20 / 50 km
+4. Backend queries **Overpass API** (OpenStreetMap) for `office=company|tech|it|software` nodes near those coordinates
+5. For each company with a website, sends HEAD requests to `/careers`, `/jobs`, `/work-with-us`, `/join-us` (4s timeout, p-limit 5)
+6. Results cached in Redis: key `companies:nearby:{lat}:{lng}:{radius}`, TTL 1 hour
+7. User clicks **Save** to persist a specific company to the `companies` DB table
+
+**New DB table:**
+```ts
+companies: {
+  id, name, website, careerUrl, careerPageFound,
+  city, country, lat, lng, osmId, tags, savedAt, createdAt
+}
+```
+
+**Backend module:** `backend/src/companies/` — controller, service, repository, module
+- `GET /api/admin/companies/nearby?lat=X&lng=Y&radius=10000`
+- `POST /api/admin/companies/save`
+- `GET /api/admin/companies/saved`
+- `DELETE /api/admin/companies/:id`
+
+**Frontend:** `frontend/src/app/admin/companies/page.tsx`
+- Two tabs: "Nearby Search" (card grid) + "Saved" (table)
+- Cards show: name, city, tags badge, website link, career page status (✓/✗), Save button
+- Error handling: only redirects to login on HTTP 401 (not 500s from missing table, etc.)
+
+**Key constraint:** OSM company data quality varies by city — major tech hubs (Berlin, London, SF) have better coverage than smaller cities.
+
+---
+
+### 6. Resizable Table Columns
+
+All 5 admin data tables now support drag-to-resize columns.
+
+**Implementation (no external library):**
+
+```ts
+// frontend/src/hooks/useResizableColumns.ts
+function useResizableColumns(initialWidths: number[]) {
+  const [widths, setWidths] = useState(initialWidths);
+
+  const startResize = (colIndex, e) => {
+    const startX = e.clientX;
+    const startWidth = widths[colIndex];
+    // attach mousemove + mouseup to document
+    // delta = e.clientX - startX → update widths[colIndex]
+    // minimum width: 40px
+    // set cursor: col-resize + userSelect: none during drag
+    // cleanup on mouseup
+  };
+
+  return { widths, startResize };
+}
+```
+
+```tsx
+// frontend/src/components/ui/resize-handle.tsx
+// Thin div on right edge of each <th>
+// cursor: col-resize on hover, highlights with primary color
+<div onMouseDown={onMouseDown} className="absolute right-0 top-0 h-full w-2 cursor-col-resize ...">
+  <div className="w-px h-4 bg-border/50 group-hover/handle:bg-primary/60" />
+</div>
+```
+
+**Tables use `table-fixed` layout** — widths are strictly respected, not suggested.
+
+**Applied to:** Signals, Jobs, Sources, Categories, Companies (saved tab)
+
+---
+
+### 7. Deploy Script
+
+`deploy.sh` added at project root:
+```bash
+#!/bin/bash
+set -e
+git pull origin main
+docker system prune -f   # ← prevents VPS disk filling up
+docker compose -f docker-compose.prod.yml up -d --build
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
+
+**Why `docker system prune -f`:** VPS disk hit 100% from accumulated build cache layers. This frees dangling images, stopped containers, and unused networks before every deploy (~22GB freed in first run).
+
+---
+
+### 8. Admin Sidebar Navigation
+
+`frontend/src/components/AdminSidebar.tsx` nav items:
+```ts
+const navItems = [
+  { name: 'Dashboard',  href: '/admin',           icon: LayoutDashboard },
+  { name: 'Signals',    href: '/admin/signals',   icon: Activity },
+  { name: 'Categories', href: '/admin/categories',icon: Layers },
+  { name: 'Sources',    href: '/admin/sources',   icon: Rss },
+  { name: 'Jobs',       href: '/admin/jobs',      icon: Briefcase },
+  { name: 'Companies',  href: '/admin/companies', icon: Building2 },
+  { name: 'Logs',       href: '/admin/logs',      icon: Database },
+  { name: 'Settings',   href: '/admin/settings',  icon: Settings },
+];
+```
+
+---
+
+### 9. NestJS DI Fix: Missing Exports in AIModule
+
+**Symptom:** Backend crashed on startup — `GroqProvider`/`OpenRouterProvider` injected in `AdminController` but not exported from `AIModule`.
+
+**Fix in `backend/src/ai/ai.module.ts`:**
+```ts
+exports: [
+  AIQueue, AIService, SettingsService, TranslationQueue,
+  MetricsService, RedisService,
+  GroqProvider,       // ← was missing
+  OpenRouterProvider, // ← was missing
+],
+```
+
+**Why this matters:** In NestJS, a provider must be in the `exports[]` array of its module to be injectable in any other module. Being in `providers[]` only makes it available _within_ that module.
 
 ---
 
