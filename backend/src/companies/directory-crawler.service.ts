@@ -225,6 +225,8 @@ export class DirectoryCrawlerService {
     return results;
   }
 
+  private static readonly BDJOBS_EXCLUDE = /\b(bank|banks|banking|finance|financial|insurance|leasing|brac bank|dutch.bangla|islami bank|trust bank|city bank|mutual trust)\b/i;
+
   private extractBdjobsCompanies(html: string): CrawledCompany[] {
     const companies: CrawledCompany[] = [];
     const BLOCK_MARKER = 'class="Org-name"';
@@ -249,6 +251,7 @@ export class DirectoryCrawlerService {
 
       const name = block.slice(aClose + 1, aEnd).replace(/&amp;/g, '&').trim();
       if (!name || name.length < 2) continue;
+      if (DirectoryCrawlerService.BDJOBS_EXCLUDE.test(name)) continue;
 
       companies.push({
         name,
