@@ -270,26 +270,28 @@ export default function CompaniesAdmin() {
             {geoError && <p className="text-[10px] text-red-400">{geoError}</p>}
 
             {selectedLoc && (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400">
-                  <MapPin className="w-3 h-3" />
-                  <span className="truncate max-w-[300px]" title={selectedLoc.label}>{selectedLoc.label}</span>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 min-w-0">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="truncate" title={selectedLoc.label}>{selectedLoc.label}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  {RADIUS_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setRadius(opt.value)}
-                      className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${radius === opt.value ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {RADIUS_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setRadius(opt.value)}
+                        className={`text-[10px] px-2 py-0.5 rounded border transition-colors shrink-0 ${radius === opt.value ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <Button size="sm" className="h-7 px-3 text-xs gap-1.5 ml-auto shrink-0" onClick={searchCompanies} disabled={searching}>
+                    {searching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Building2 className="w-3 h-3" />}
+                    Search Companies
+                  </Button>
                 </div>
-                <Button size="sm" className="h-7 px-3 text-xs gap-1.5 ml-auto" onClick={searchCompanies} disabled={searching}>
-                  {searching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Building2 className="w-3 h-3" />}
-                  Search Companies
-                </Button>
               </div>
             )}
           </div>
