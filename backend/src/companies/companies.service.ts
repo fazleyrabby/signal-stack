@@ -26,7 +26,7 @@ export class CompaniesService {
   constructor(private readonly redis: RedisService) {}
 
   async findNearby(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
-    const cacheKey = `companies:nearby:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cacheKey = `companies:nearby:v2:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     // Cache hit
     const cached = await this.redis.get(cacheKey);
@@ -38,7 +38,7 @@ export class CompaniesService {
     // Fetch from Overpass
     const raw = await this.queryOverpass(lat, lng, radius);
     const enriched = await this.enrichWithCareerPages(raw);
-    const results = enriched.slice(0, 15);
+    const results = enriched.slice(0, 25);
 
     await this.redis.set(cacheKey, JSON.stringify(results), 'EX', CACHE_TTL);
     return results;
@@ -51,6 +51,9 @@ export class CompaniesService {
   node["office"~"company|tech|it|software|coworking|startup",i](around:${radius},${lat},${lng});
   node["name"]["website"]["office"](around:${radius},${lat},${lng});
   node["name"]["website"]["company"](around:${radius},${lat},${lng});
+  node["amenity"="company"](around:${radius},${lat},${lng});
+  node["building"="office"]["name"](around:${radius},${lat},${lng});
+  node["name"~"software|technologies|tech|systems|solutions|it |digital|limited|ltd",i]["name"](around:${radius},${lat},${lng});
 );
 out body;
     `.trim();
