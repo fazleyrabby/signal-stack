@@ -4,6 +4,24 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-17] — Directory Crawler, Bank Filter & Endpoint Audit
+
+### Added
+- **Directory Crawler** (`DirectoryCrawlerService`): manually-triggered admin feature to scrape company directories from BASIS, BACCO, and bdjobs. Accessible via 3rd tab on `/admin/companies`.
+  - BASIS: uses JSON API (`/get-member-list?page=N`) — SPA HTML is useless, API discovered via JS bundle analysis
+  - BACCO: fixed URL to `/member-list`, linear indexOf extractor, fixes double-slash href bug (`https:////` → `https://`)
+  - bdjobs: fixed URL to `Company_list.asp`, extracts company names from `Org-name` divs
+  - All extractors regex-free (no backtrack risk), sequential requests, 1.5–3s random delay, bail on 429/503
+- **Bank filter for bdjobs**: name-based exclude regex drops banks, financial institutions, and insurance companies before they reach admin UI
+
+### Changed
+- `docker compose` v2 now used for deployments on VPS (old `docker-compose` v1 fails with `KeyError: ContainerConfig` on newer Docker versions)
+
+### Audited
+- All 11 controllers reviewed — no invalid or orphaned endpoints found
+
+---
+
 ## [2026-04-17] — AI Pipeline Reorder, Mobile UX & Dev Tooling
 
 ### Changed

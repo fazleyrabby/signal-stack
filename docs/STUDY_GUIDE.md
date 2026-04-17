@@ -2817,3 +2817,110 @@ while (pos < html.length) {
 | Regex CPU spike risk | Present | Eliminated (linear scan) |
 
 
+
+
+---
+
+## Section 24 — Directory Crawler: Architecture, Safety & Site-Specific Extractors
+
+### 24.1 Overview
+
+The Directory Crawler is a manually-triggered admin feature that scrapes company directories from three Bangladeshi industry sources and presents results for selective saving to the database. It is **not automated** — runs only when an admin clicks "Run Crawl" in the `/admin/companies` → "Directory Crawler" tab.
+
+Sources:
+| Key | Label | Type | Est. Companies |
+|---|---|---|---|
+| `basis` | BASIS | JSON API (Vue SPA) | 2,806 |
+| `bacco` | BACCO | Server-rendered HTML | ~500 |
+| `bdjobs` | bdjobs | Server-rendered HTML | varies |
+
+### 24.2 API Endpoints
+
+```
+GET  /api/admin/companies/crawl/sources  → returns CRAWLER_SOURCES metadata
+POST /api/admin/companies/crawl          → body: { source: 'basis'|'bacco'|'bdjobs' }
+POST /api/admin/companies/save           → body: { name, website, city, country, source, tags, ... }
+```
+
+All endpoints guarded by `AdminGuard` + `SkipThrottle`. Crawl is synchronous — frontend waits for full response.
+
+### 24.3 Site-Specific Extractors
+
+**BASIS** — Vue SPA, HTML fetch returns empty `<div id="app">`. Solution: JSON API discovered via JS bundle analysis.
+
+```
+GET https://basis.org.bd/get-member-list?page=N
+Headers: Accept: application/json, Referer: https://basis.org.bd/member-list
+
+Response:
+{
+  "data": [{ "company_name": "...", "membership_no": "03-09-017", ... }],
+  "meta": { "last_page": 188, "total": 2806, "per_page": 15 }
+}
+```
+
+Pagination: reads `meta.last_page` dynamically, stops at that page or MAX_PAGES (15), whichever is first. Website field intentionally skipped — fetching `/get-company-profile/{membership_no}` per company would be 2,806 extra requests.
+
+---
+
+**BACCO** — server-rendered, 20 companies/page, ~25 pages. URL: `https://bacco.org.bd/member-list?page=N`
+
+HTML structure per member:
+```html
+<div class="media mt-5 member-list-img">
+  <h5 class="mt-0">COMPANY NAME</h5>
+  <a href="https:////www.site.com">www.site.com</a>
+</div>
+```
+
+Extractor uses linear `indexOf` scan — find `media mt-5 member-list-img`, walk to `<h5>` for name, walk to `<a href=` for website. Fixes BACCO's double-slash href bug: `https:////www.` → `https://www.` via `replace(/^(https?:)\/\/+/, '$1//')`.
+
+---
+
+**bdjobs** — `https://jobs.bdjobs.com/Company_list.asp` — single page, no pagination.
+
+HTML structure:
+```html
+<div class="Org-name">
+  <a class="sub_window_new_update" data-path='companyofferedjobs.asp?id=24362&...' href="javascript:void(0);">
+    Company Name
+  </a>
+</div>
+```
+
+Extractor: find `class="Org-name"`, walk to `<a>`, extract inner text. Decodes `&amp;` → `&`. Applies exclude filter (see 24.5).
+
+### 24.4 Anti-Blocking Measures
+
+| Measure | Value |
+|---|---|
+| Request pattern | Sequential only, never parallel |
+| Delay between pages | 1,500–3,000ms random |
+| Per-request timeout | 8,000ms (AbortController) |
+| Rate-limit response | Stops crawl immediately on 429 or 503 |
+| Max pages per run | 15 (hard cap) |
+| User-Agent | Rotates across 3 Chrome UAs (Win/Mac/Linux) |
+| Accept headers | Mimics real browser requests |
+
+Worst-case crawl duration: `15 pages × 8s timeout = 120s`. In practice ~30–45s for BASIS (API is fast), ~45s for BACCO.
+
+### 24.5 Content Filtering (bdjobs)
+
+bdjobs is a general job board — includes banks, NGOs, clinics, etc. A name-based exclude filter drops obviously non-tech companies before they reach the admin UI:
+
+```typescript
+private static readonly BDJOBS_EXCLUDE =
+  /\b(bank|banks|banking|finance|financial|insurance|leasing|brac bank|dutch.bangla|islami bank|trust bank|city bank|mutual trust)\b/i;
+```
+
+Applied in `extractBdjobsCompanies()` — if `BDJOBS_EXCLUDE.test(name)` is true, company is dropped. BASIS and BACCO are industry-specific associations so no filter needed there.
+
+### 24.6 Frontend Integration
+
+Added as 3rd tab ("Directory Crawler") in `/admin/companies`. Source selection uses pill buttons (BASIS / BACCO / bdjobs). Results table uses `useResizableColumns([220, 100, 120, 140, 60])` matching other admin tables. Columns: Company, Location, Source (badge), Website, Save button.
+
+`crawlSavedNames` Set tracks saved state by company name (not DB id) — Save button turns to "Saved ✓" after clicking without requiring a page reload.
+
+### 24.7 Safety Summary
+
+The manual Save gate is the strongest protection — nothing enters the DB without explicit admin action. System-level risks (CPU, memory, rate limiting) are all handled at the fetch layer and are not affected by what data gets returned.
