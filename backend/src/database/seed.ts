@@ -210,6 +210,53 @@ async function seed() {
     },
   ];
 
+  // ✅ Job Sources (type = 'job')
+  const jobSourceData = [
+    {
+      name: 'We Work Remotely',
+      url: 'https://weworkremotely.com/remote-jobs.rss',
+      categoryId: 'technology',
+      trustScore: 5,
+      type: 'job' as const,
+    },
+    {
+      name: 'Remotive',
+      url: 'https://remotive.com/remote-jobs/feed',
+      categoryId: 'technology',
+      trustScore: 5,
+      type: 'job' as const,
+    },
+    {
+      name: 'Arbeitnow',
+      url: 'https://www.arbeitnow.com/feed',
+      categoryId: 'technology',
+      trustScore: 4,
+      type: 'job' as const,
+    },
+    {
+      name: 'Jobicy',
+      url: 'https://jobicy.com/?feed=job_feed',
+      categoryId: 'technology',
+      trustScore: 4,
+      type: 'job' as const,
+    },
+  ];
+
+  for (const src of jobSourceData) {
+    const existing = await db
+      .select()
+      .from(sources)
+      .where(eq(sources.url, src.url))
+      .limit(1);
+
+    if (existing.length === 0) {
+      await db.insert(sources).values(src);
+      console.log(`✅ Inserted job source: ${src.name}`);
+    } else {
+      console.log(`⏭️ Skipped (exists): ${src.name}`);
+    }
+  }
+
   for (const src of sourceData) {
     const existing = await db
       .select()
