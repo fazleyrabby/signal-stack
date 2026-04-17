@@ -54,7 +54,7 @@ interface SavedCompany {
   country: string | null;
   source: string;
   tags: string[];
-  savedAt: string;
+  createdAt: string;
 }
 
 const RADIUS_OPTIONS = [

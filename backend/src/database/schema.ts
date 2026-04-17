@@ -197,12 +197,12 @@ export const companies = pgTable(
     osmId: varchar('osm_id', { length: 50 }),
     source: varchar('source', { length: 50 }).notNull().default('osm'),
     tags: jsonb('tags').$type<string[]>().default([]),
-    savedAt: timestamp('saved_at', { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     osmIdIdx: index('idx_companies_osm_id').on(table.osmId),
-    savedAtIdx: index('idx_companies_saved_at').on(table.savedAt),
+    createdAtIdx: index('idx_companies_created_at').on(table.createdAt),
+    nameSourceUniq: uniqueIndex('uq_companies_name_source').on(table.name, table.source),
   }),
 );
 

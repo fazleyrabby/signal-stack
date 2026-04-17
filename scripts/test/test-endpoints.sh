@@ -104,5 +104,13 @@ execute_test "GET" "/api/visitors/stats" "Audience Engagement Metrics"
 execute_test "POST" "/api/visitors" "Active Session Ingestion"
 line
 
-echo -e "\n  ${CLR_SUCCESS}${BOLD}CORE DIAGNOSTICS COMPLETE${NC}"
-echo -e "  All systems within operational parameters.\n"
+echo -e "\n  ${CLR_PRIMARY}${BOLD}A D M I N   E N D P O I N T S${NC}  ${CLR_MUTED}│${NC}  401 expected without auth — confirms guard is active\n"
+line
+execute_test "GET" "/api/admin/companies/saved?limit=1" "Company Radar — Saved Companies (auth guard)"
+execute_test "GET" "/api/admin/companies/crawl/sources" "Directory Crawler — Source Metadata (auth guard)"
+execute_test "GET" "/api/admin/signals" "Signals Admin (auth guard)"
+execute_test "GET" "/api/admin/metrics" "System Metrics (auth guard)"
+line
+
+echo -e "\n  ${CLR_SUCCESS}${BOLD}DIAGNOSTICS COMPLETE${NC}"
+echo -e "  Public endpoints: should be 2xx. Admin endpoints: 401 = guard active (correct).\n"

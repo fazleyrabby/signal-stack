@@ -8,7 +8,7 @@ import type { DrizzleDB } from '../database/database.module';
 export class CompaniesRepository {
   constructor(@Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB) {}
 
-  async save(data: Omit<NewCompany, 'id' | 'savedAt' | 'createdAt'>): Promise<Company> {
+  async save(data: Omit<NewCompany, 'id' | 'createdAt'>): Promise<Company> {
     const [inserted] = await this.db.insert(companies).values(data).returning();
     return inserted;
   }
@@ -21,7 +21,7 @@ export class CompaniesRepository {
       this.db
         .select()
         .from(companies)
-        .orderBy(desc(companies.savedAt))
+        .orderBy(desc(companies.createdAt))
         .limit(limit)
         .offset(offset),
       this.db.select({ count: sql<number>`count(*)::int` }).from(companies),

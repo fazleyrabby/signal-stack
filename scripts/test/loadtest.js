@@ -37,6 +37,14 @@ const apiCalls = new Counter('api_calls');
 
 // ─── Scenario Definitions ──────────────────────────────────
 const scenarios = {
+  // ── VPS-safe: use this when targeting your personal Proxmox VM ──
+  // 3 VUs, 60s, generous sleep. Validates correctness without hammering.
+  // Usage: k6 run -e SCENARIO=vps -e BASE_URL=http://192.168.0.110:3000 scripts/test/loadtest.js
+  vps: {
+    executor: 'constant-vus',
+    vus: 3,
+    duration: '60s',
+  },
   smoke: {
     executor: 'constant-vus',
     vus: 10,
