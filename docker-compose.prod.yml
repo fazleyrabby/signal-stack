@@ -50,7 +50,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 512M
+          memory: 768M
     ports:
       - "3000:3000"
     environment:
