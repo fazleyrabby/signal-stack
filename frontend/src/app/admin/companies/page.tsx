@@ -341,7 +341,7 @@ export default function CompaniesAdmin() {
         {/* Saved Tab */}
         <TabsContent value="saved" className="flex-1 flex flex-col overflow-hidden mt-0">
           <div className="flex-1 overflow-auto">
-            <Table>
+            <Table className="min-w-max">
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
                   <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Company</TableHead>
