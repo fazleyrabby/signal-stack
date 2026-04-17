@@ -12,6 +12,7 @@ import {
 import { AdminGuard } from '../admin/admin.guard';
 import { CompaniesService } from './companies.service';
 import { CompaniesRepository } from './companies.repository';
+import { DirectoryCrawlerService, CRAWLER_SOURCES, CrawlerSourceKey } from './directory-crawler.service';
 import { SkipThrottle } from '@nestjs/throttler';
 
 @Controller('api/admin/companies')
@@ -21,6 +22,7 @@ export class CompaniesController {
   constructor(
     private readonly companiesService: CompaniesService,
     private readonly companiesRepository: CompaniesRepository,
+    private readonly crawlerService: DirectoryCrawlerService,
   ) {}
 
   @Get('nearby')
@@ -41,6 +43,20 @@ export class CompaniesController {
     return { data: companies, total: companies.length };
   }
 
+  @Get('crawl/sources')
+  getCrawlSources() {
+    return CRAWLER_SOURCES;
+  }
+
+  @Post('crawl')
+  async runCrawl(@Body('source') source: string) {
+    if (!source || !(source in CRAWLER_SOURCES)) {
+      throw new BadRequestException(`Invalid source. Valid: ${Object.keys(CRAWLER_SOURCES).join(', ')}`);
+    }
+    const companies = await this.crawlerService.crawl(source as CrawlerSourceKey);
+    return { data: companies, total: companies.length };
+  }
+
   @Post('save')
   async saveCompany(@Body() body: any) {
     const company = await this.companiesRepository.save({
@@ -53,6 +69,7 @@ export class CompaniesController {
       lat: body.lat || null,
       lng: body.lng || null,
       osmId: body.osmId || null,
+      source: body.source || 'osm',
       tags: body.tags || [],
     });
     return company;

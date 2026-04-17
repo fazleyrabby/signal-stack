@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, MapPin, Loader2, ExternalLink, CheckCircle2, XCircle,
-  Database, Search, Navigation, Trash2, BookmarkPlus
+  Database, Search, Navigation, Trash2, BookmarkPlus, Globe, Play
 } from "lucide-react";
 import { useResizableColumns } from "@/hooks/useResizableColumns";
 import { ResizeHandle } from "@/components/ui/resize-handle";
@@ -35,6 +35,15 @@ interface NearbyCompany {
   careerUrl: string | null;
 }
 
+interface CrawledCompany {
+  name: string;
+  website: string | null;
+  city: string | null;
+  country: string;
+  source: string;
+  tags: string[];
+}
+
 interface SavedCompany {
   id: string;
   name: string;
@@ -43,6 +52,7 @@ interface SavedCompany {
   careerPageFound: boolean;
   city: string | null;
   country: string | null;
+  source: string;
   tags: string[];
   savedAt: string;
 }
@@ -53,6 +63,14 @@ const RADIUS_OPTIONS = [
   { label: "20 km", value: 20000 },
   { label: "50 km", value: 50000 },
 ];
+
+const CRAWL_SOURCES = [
+  { key: "basis",  label: "BASIS",   description: "Bangladesh Assoc. of Software & IT Services" },
+  { key: "bacco",  label: "BACCO",   description: "Bangladesh Assoc. of Call Center & Outsourcing" },
+  { key: "bdjobs", label: "bdjobs",  description: "Bangladesh job board — unique hiring companies" },
+] as const;
+
+type CrawlSourceKey = typeof CRAWL_SOURCES[number]["key"];
 
 export default function CompaniesAdmin() {
   const router = useRouter();
@@ -65,10 +83,17 @@ export default function CompaniesAdmin() {
   const [geocoding, setGeocoding] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
 
-  // Search results
+  // OSM search results
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<NearbyCompany[] | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  // Crawler state
+  const [crawlSource, setCrawlSource] = useState<CrawlSourceKey>("basis");
+  const [crawling, setCrawling] = useState(false);
+  const [crawlResults, setCrawlResults] = useState<CrawledCompany[] | null>(null);
+  const [crawlError, setCrawlError] = useState<string | null>(null);
+  const [crawlSavedNames, setCrawlSavedNames] = useState<Set<string>>(new Set());
 
   // Saved companies
   const [savedPage, setSavedPage] = useState(1);
@@ -90,15 +115,8 @@ export default function CompaniesAdmin() {
         { headers: { "Accept-Language": "en" } }
       );
       const data = await res.json();
-      if (!data.length) {
-        setGeoError("Location not found. Try a different city name.");
-        return;
-      }
-      setSelectedLoc({
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon),
-        label: data[0].display_name,
-      });
+      if (!data.length) { setGeoError("Location not found. Try a different city name."); return; }
+      setSelectedLoc({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), label: data[0].display_name });
     } catch {
       setGeoError("Geocoding failed. Check network.");
     } finally {
@@ -112,29 +130,18 @@ export default function CompaniesAdmin() {
     setGeoError(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const loc = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          label: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`,
-        };
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}` };
         setSelectedLoc(loc);
         setGeocoding(false);
-        // auto-search after location acquired
         setSearching(true);
         setResults(null);
-        fetch(
-          `${API_BASE}/api/admin/companies/nearby?lat=${loc.lat}&lng=${loc.lng}&radius=${radius}`,
-          { credentials: "include" }
-        )
+        fetch(`${API_BASE}/api/admin/companies/nearby?lat=${loc.lat}&lng=${loc.lng}&radius=${radius}`, { credentials: "include" })
           .then((r) => r.json())
           .then((data) => setResults(data.data || []))
           .catch(() => setResults([]))
           .finally(() => setSearching(false));
       },
-      () => {
-        setGeoError("Location access denied or timed out.");
-        setGeocoding(false);
-      },
+      () => { setGeoError("Location access denied or timed out."); setGeocoding(false); },
       { timeout: 10000, enableHighAccuracy: false }
     );
   }
@@ -144,10 +151,7 @@ export default function CompaniesAdmin() {
     setSearching(true);
     setResults(null);
     try {
-      const res = await fetch(
-        `${API_BASE}/api/admin/companies/nearby?lat=${selectedLoc.lat}&lng=${selectedLoc.lng}&radius=${radius}`,
-        { credentials: "include" }
-      );
+      const res = await fetch(`${API_BASE}/api/admin/companies/nearby?lat=${selectedLoc.lat}&lng=${selectedLoc.lng}&radius=${radius}`, { credentials: "include" });
       const data = await res.json();
       setResults(data.data || []);
     } catch {
@@ -162,9 +166,20 @@ export default function CompaniesAdmin() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(company),
+      body: JSON.stringify({ ...company, source: "osm" }),
     });
     setSavedIds((prev) => new Set([...prev, company.osmId]));
+    mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
+  }
+
+  async function saveCrawledCompany(company: CrawledCompany) {
+    await fetch(`${API_BASE}/api/admin/companies/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(company),
+    });
+    setCrawlSavedNames((prev) => new Set([...prev, company.name]));
     mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
   }
 
@@ -174,7 +189,31 @@ export default function CompaniesAdmin() {
     mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
   }
 
-  const { widths: colWidths, startResize } = useResizableColumns([200, 120, 100, 140, 60]);
+  async function runCrawl() {
+    setCrawling(true);
+    setCrawlResults(null);
+    setCrawlError(null);
+    setCrawlSavedNames(new Set());
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/companies/crawl`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ source: crawlSource }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setCrawlResults(data.data || []);
+    } catch (e) {
+      setCrawlError(e instanceof Error ? e.message : "Crawl failed");
+      setCrawlResults([]);
+    } finally {
+      setCrawling(false);
+    }
+  }
+
+  const { widths: savedColWidths, startResize: savedStartResize } = useResizableColumns([200, 100, 120, 100, 140, 60]);
+  const { widths: crawlColWidths, startResize: crawlStartResize } = useResizableColumns([220, 100, 120, 140, 60]);
   const savedTotal = savedData?.total ?? 0;
   const savedPages = Math.ceil(savedTotal / 20);
 
@@ -196,14 +235,16 @@ export default function CompaniesAdmin() {
           <TabsTrigger value="radar" className="h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 text-xs font-semibold">
             Nearby Search
           </TabsTrigger>
+          <TabsTrigger value="crawler" className="h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 text-xs font-semibold">
+            Directory Crawler
+          </TabsTrigger>
           <TabsTrigger value="saved" className="h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 text-xs font-semibold">
             Saved ({savedTotal})
           </TabsTrigger>
         </TabsList>
 
-        {/* Radar Tab */}
+        {/* ── Nearby Search Tab ─────────────────────────────────────────────── */}
         <TabsContent value="radar" className="flex-1 flex flex-col overflow-hidden mt-0">
-          {/* Search controls */}
           <div className="px-6 py-4 border-b border-border/40 bg-muted/10 shrink-0 space-y-3">
             <div className="flex items-center gap-2">
               <div className="flex-1 relative">
@@ -226,9 +267,7 @@ export default function CompaniesAdmin() {
               </Button>
             </div>
 
-            {geoError && (
-              <p className="text-[10px] text-red-400">{geoError}</p>
-            )}
+            {geoError && <p className="text-[10px] text-red-400">{geoError}</p>}
 
             {selectedLoc && (
               <div className="flex items-center gap-3">
@@ -255,7 +294,6 @@ export default function CompaniesAdmin() {
             )}
           </div>
 
-          {/* Results */}
           <div className="flex-1 overflow-auto p-6">
             {searching && (
               <div className="flex flex-col items-center justify-center h-40 gap-3 text-muted-foreground/50">
@@ -263,14 +301,12 @@ export default function CompaniesAdmin() {
                 <p className="text-xs">Querying OpenStreetMap + checking career pages…</p>
               </div>
             )}
-
             {!searching && results === null && (
               <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground/40">
                 <Building2 className="w-8 h-8" />
                 <p className="text-xs">Select a location and click Search Companies</p>
               </div>
             )}
-
             {!searching && results !== null && results.length === 0 && (
               <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground/40">
                 <XCircle className="w-6 h-6" />
@@ -278,7 +314,6 @@ export default function CompaniesAdmin() {
                 <p className="text-[10px]">Try a larger radius or a different city.</p>
               </div>
             )}
-
             {!searching && results && results.length > 0 && (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {results.map((company) => {
@@ -299,52 +334,26 @@ export default function CompaniesAdmin() {
                           <Badge variant="secondary" className="text-[9px] px-1.5 py-0.5 shrink-0">{company.tags[0]}</Badge>
                         )}
                       </div>
-
                       {company.website && (
-                        <a
-                          href={company.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 truncate"
-                        >
+                        <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 truncate">
                           <ExternalLink className="w-2.5 h-2.5 shrink-0" />
                           {company.website.replace(/^https?:\/\//, "")}
                         </a>
                       )}
-
                       <div className="flex items-center justify-between pt-1 border-t border-border/30">
                         <div className="flex items-center gap-1.5">
                           {company.careerPageFound ? (
-                            <a
-                              href={company.careerUrl!}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[10px] text-emerald-400 flex items-center gap-1 hover:underline"
-                            >
-                              <CheckCircle2 className="w-3 h-3" />
-                              Careers found
+                            <a href={company.careerUrl!} target="_blank" rel="noopener noreferrer" className="text-[10px] text-emerald-400 flex items-center gap-1 hover:underline">
+                              <CheckCircle2 className="w-3 h-3" />Careers found
                             </a>
                           ) : company.website ? (
-                            <span className="text-[10px] text-muted-foreground/40 flex items-center gap-1">
-                              <XCircle className="w-3 h-3" />
-                              No careers page
-                            </span>
+                            <span className="text-[10px] text-muted-foreground/40 flex items-center gap-1"><XCircle className="w-3 h-3" />No careers page</span>
                           ) : (
                             <span className="text-[10px] text-muted-foreground/30">No website</span>
                           )}
                         </div>
-                        <Button
-                          size="sm"
-                          variant={isSaved ? "secondary" : "outline"}
-                          className="h-6 px-2 text-[10px] gap-1"
-                          disabled={isSaved}
-                          onClick={() => saveCompany(company)}
-                        >
-                          {isSaved ? (
-                            <><Database className="w-2.5 h-2.5" />Saved</>
-                          ) : (
-                            <><BookmarkPlus className="w-2.5 h-2.5" />Save</>
-                          )}
+                        <Button size="sm" variant={isSaved ? "secondary" : "outline"} className="h-6 px-2 text-[10px] gap-1" disabled={isSaved} onClick={() => saveCompany(company)}>
+                          {isSaved ? <><Database className="w-2.5 h-2.5" />Saved</> : <><BookmarkPlus className="w-2.5 h-2.5" />Save</>}
                         </Button>
                       </div>
                     </div>
@@ -355,23 +364,153 @@ export default function CompaniesAdmin() {
           </div>
         </TabsContent>
 
-        {/* Saved Tab */}
+        {/* ── Directory Crawler Tab ─────────────────────────────────────────── */}
+        <TabsContent value="crawler" className="flex-1 flex flex-col overflow-hidden mt-0">
+          {/* Controls */}
+          <div className="px-6 py-3 border-b border-border/40 bg-muted/10 shrink-0">
+            <div className="flex items-center gap-3">
+              <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold shrink-0">Source</span>
+              <div className="flex items-center gap-1.5">
+                {CRAWL_SOURCES.map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => { setCrawlSource(s.key); setCrawlResults(null); setCrawlError(null); }}
+                    className={`text-[10px] px-2.5 py-1 rounded border transition-colors ${crawlSource === s.key ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground/50 flex-1">
+                {CRAWL_SOURCES.find(s => s.key === crawlSource)?.description}
+              </p>
+              <Button size="sm" className="h-7 px-3 text-xs gap-1.5 shrink-0" onClick={runCrawl} disabled={crawling}>
+                {crawling ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                {crawling ? "Crawling…" : "Run Crawl"}
+              </Button>
+            </div>
+            {crawling && (
+              <p className="text-[10px] text-muted-foreground/50 mt-2 pl-6">
+                Fetching pages sequentially with delay — this may take 30–60s…
+              </p>
+            )}
+          </div>
+
+          {/* Results table */}
+          <div className="flex-1 overflow-auto">
+            {!crawling && crawlResults === null && (
+              <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground/40">
+                <Globe className="w-8 h-8" />
+                <p className="text-xs">Select a source and click Run Crawl</p>
+              </div>
+            )}
+            {crawlError && (
+              <div className="flex flex-col items-center justify-center h-40 gap-2 text-red-400/60">
+                <XCircle className="w-6 h-6" />
+                <p className="text-xs">{crawlError}</p>
+              </div>
+            )}
+            {crawling && (
+              <div className="flex flex-col items-center justify-center h-40 gap-3 text-muted-foreground/50">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <p className="text-xs">Crawling {CRAWL_SOURCES.find(s => s.key === crawlSource)?.label}…</p>
+              </div>
+            )}
+            {!crawling && crawlResults !== null && (
+              <Table className="min-w-max table-fixed">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
+                    {(["Company", "Location", "Source", "Website", "Save"] as const).map((label, i) => (
+                      <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: crawlColWidths[i] }}>
+                        <span className={i === 4 ? "flex justify-end" : ""}>{label}</span>
+                        {i < 4 && <ResizeHandle onMouseDown={(e) => crawlStartResize(i, e)} />}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {crawlResults.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-16 text-muted-foreground/30 text-xs">
+                        No companies found. The site structure may have changed.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {crawlResults.map((company, idx) => {
+                    const isSaved = crawlSavedNames.has(company.name);
+                    return (
+                      <TableRow key={`${company.name}-${idx}`} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                        <TableCell className="px-4 py-2">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs font-semibold">{company.name}</span>
+                            {company.tags.length > 0 && (
+                              <span className="text-[9px] text-muted-foreground/50">{company.tags.join(", ")}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
+                          <span className="text-[10px] text-muted-foreground/70">
+                            {[company.city, company.country].filter(Boolean).join(", ") || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 uppercase">{company.source}</Badge>
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
+                          {company.website ? (
+                            <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 truncate max-w-[130px]">
+                              <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                              {company.website.replace(/^https?:\/\//, "")}
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/30">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-right">
+                          <Button
+                            size="sm"
+                            variant={isSaved ? "secondary" : "outline"}
+                            className="h-6 px-2 text-[10px] gap-1"
+                            disabled={isSaved}
+                            onClick={() => saveCrawledCompany(company)}
+                          >
+                            {isSaved ? <><Database className="w-2.5 h-2.5" />Saved</> : <><BookmarkPlus className="w-2.5 h-2.5" />Save</>}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          {/* Result count footer */}
+          {!crawling && crawlResults !== null && crawlResults.length > 0 && (
+            <div className="px-6 py-2 border-t border-border/40 shrink-0">
+              <span className="text-[10px] text-muted-foreground/60">{crawlResults.length} companies found</span>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── Saved Tab ─────────────────────────────────────────────────────── */}
         <TabsContent value="saved" className="flex-1 flex flex-col overflow-hidden mt-0">
           <div className="flex-1 overflow-auto">
             <Table className="min-w-max table-fixed">
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-                  {(["Company","Location","Careers","Website","Del"] as const).map((label, i) => (
-                    <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
-                      <span className={i === 4 ? "flex justify-end" : ""}>{label}</span>
-                      {i < 4 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
+                  {(["Company", "Source", "Location", "Careers", "Website", "Del"] as const).map((label, i) => (
+                    <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: savedColWidths[i] }}>
+                      <span className={i === 5 ? "flex justify-end" : ""}>{label}</span>
+                      {i < 5 && <ResizeHandle onMouseDown={(e) => savedStartResize(i, e)} />}
                     </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {!savedData && (
-                  <TableRow><TableCell colSpan={5} className="text-center py-16"><Loader2 className="w-4 h-4 animate-spin mx-auto text-muted-foreground/30" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-16"><Loader2 className="w-4 h-4 animate-spin mx-auto text-muted-foreground/30" /></TableCell></TableRow>
                 )}
                 {savedData?.data.map((company) => (
                   <TableRow key={company.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
@@ -382,6 +521,9 @@ export default function CompaniesAdmin() {
                           <span className="text-[9px] text-muted-foreground/50">{company.tags.join(", ")}</span>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-2">
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 uppercase">{company.source || "osm"}</Badge>
                     </TableCell>
                     <TableCell className="px-3 py-2">
                       <span className="text-[10px] text-muted-foreground/70">
@@ -413,13 +555,12 @@ export default function CompaniesAdmin() {
                   </TableRow>
                 ))}
                 {savedData?.data.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center py-16 text-muted-foreground/30 text-xs">No saved companies yet.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-16 text-muted-foreground/30 text-xs">No saved companies yet.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
 
-          {/* Pagination */}
           {savedPages > 1 && (
             <div className="flex items-center justify-between px-6 py-2 border-t border-border/40 shrink-0">
               <span className="text-[10px] text-muted-foreground/60">{savedTotal} companies</span>

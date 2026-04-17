@@ -195,6 +195,7 @@ export const companies = pgTable(
     lat: doublePrecision('lat'),
     lng: doublePrecision('lng'),
     osmId: varchar('osm_id', { length: 50 }),
+    source: varchar('source', { length: 50 }).notNull().default('osm'),
     tags: jsonb('tags').$type<string[]>().default([]),
     savedAt: timestamp('saved_at', { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
