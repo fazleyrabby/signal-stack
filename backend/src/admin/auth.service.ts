@@ -10,7 +10,7 @@ import { users } from '../database/schema';
 @Injectable()
 export class AuthService {
   private readonly jwtSecret: string;
-  private readonly accessTokenExpiry = '15m';
+  private readonly accessTokenExpiry = '7d';
   private readonly refreshTokenExpiry = '7d';
 
   constructor(
