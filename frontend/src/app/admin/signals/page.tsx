@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useSWR, { mutate } from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity } from "lucide-react";
+import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity, ChevronDown } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +66,7 @@ export default function SignalsAdmin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBulkTranslating, setIsBulkTranslating] = useState(false);
   const [bulkLang, setBulkLang] = useState("bn");
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this signal?")) return;
@@ -74,8 +75,13 @@ export default function SignalsAdmin() {
   }
 
   async function handleTranslate(id: string, targetLang: string) {
-    await fetch(`${API_BASE}/api/admin/signals/${id}/translate?lang=${targetLang}`, { method: "POST", credentials: "include" });
-    mutate((key) => typeof key === 'string' && key.startsWith(`${API_BASE}/api/admin/signals`));
+    setTranslatingId(id);
+    try {
+      await fetch(`${API_BASE}/api/admin/signals/${id}/translate?lang=${targetLang}`, { method: "POST", credentials: "include" });
+      mutate((key) => typeof key === 'string' && key.startsWith(`${API_BASE}/api/admin/signals`));
+    } finally {
+      setTranslatingId(null);
+    }
   }
 
   async function handleBulkTranslate(e: React.FormEvent) {
@@ -290,16 +296,11 @@ export default function SignalsAdmin() {
                   </TableCell>
                   <TableCell className="px-3 py-2 text-right">
                     <div className="flex items-center justify-end gap-0.5">
-                      <Select onValueChange={(val) => { if (typeof val === 'string') handleTranslate(signal.id, val); }}>
-                        <SelectTrigger className="h-7 w-7 p-0 bg-transparent border-none shadow-none hover:bg-muted focus:ring-0 [&>svg:last-child]:hidden">
-                          <Languages className="w-3 h-3" />
-                        </SelectTrigger>
-                        <SelectContent align="end">
-                          <SelectItem value="bn">→ Bengali</SelectItem>
-                          <SelectItem value="es">→ Spanish</SelectItem>
-                          <SelectItem value="en">→ English</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <TranslateButton
+                        signalId={signal.id}
+                        isTranslating={translatingId === signal.id}
+                        onTranslate={handleTranslate}
+                      />
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingSignal(signal); setIsEditDialogOpen(true); }}>
                         <Edit2 className="w-3 h-3" />
                       </Button>
@@ -390,6 +391,59 @@ export default function SignalsAdmin() {
           </form>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function TranslateButton({ signalId, isTranslating, onTranslate }: {
+  signalId: string;
+  isTranslating: boolean;
+  onTranslate: (id: string, lang: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const langs = [
+    { code: 'bn', label: 'Bengali' },
+    { code: 'es', label: 'Spanish' },
+    { code: 'en', label: 'English' },
+  ];
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => !isTranslating && setOpen(v => !v)}
+        className="flex items-center justify-center h-7 w-7 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
+        title="Translate"
+        disabled={isTranslating}
+      >
+        {isTranslating
+          ? <Loader2 className="w-3 h-3 animate-spin text-primary" />
+          : <Languages className="w-3 h-3" />
+        }
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-md shadow-lg overflow-hidden min-w-[110px]">
+          {langs.map(l => (
+            <button
+              key={l.code}
+              onClick={() => { setOpen(false); onTranslate(signalId, l.code); }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+            >
+              <span className="text-muted-foreground">→</span>
+              {l.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
