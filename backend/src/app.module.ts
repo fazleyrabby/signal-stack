@@ -13,6 +13,7 @@ import { AIModule } from './ai/ai.module';
 import { VisitorsModule } from './visitors/visitors.module';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { JobsModule } from './jobs/jobs.module';
+import { CompaniesModule } from './companies/companies.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { JobsModule } from './jobs/jobs.module';
     AIModule,
     BookmarksModule,
     JobsModule,
+    CompaniesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

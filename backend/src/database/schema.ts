@@ -182,6 +182,32 @@ export const bookmarks = pgTable(
   }),
 );
 
+export const companies = pgTable(
+  'companies',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 200 }).notNull(),
+    website: text('website'),
+    careerUrl: text('career_url'),
+    careerPageFound: boolean('career_page_found').notNull().default(false),
+    city: varchar('city', { length: 100 }),
+    country: varchar('country', { length: 100 }),
+    lat: doublePrecision('lat'),
+    lng: doublePrecision('lng'),
+    osmId: varchar('osm_id', { length: 50 }),
+    tags: jsonb('tags').$type<string[]>().default([]),
+    savedAt: timestamp('saved_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    osmIdIdx: index('idx_companies_osm_id').on(table.osmId),
+    savedAtIdx: index('idx_companies_saved_at').on(table.savedAt),
+  }),
+);
+
+export type Company = typeof companies.$inferSelect;
+export type NewCompany = typeof companies.$inferInsert;
+
 export type Visitor = typeof visitors.$inferSelect;
 export type NewVisitor = typeof visitors.$inferInsert;
 export type User = typeof users.$inferSelect;

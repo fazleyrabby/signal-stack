@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Rss, 
-  Settings, 
-  LogOut, 
-  ChevronLeft, 
+import {
+  LayoutDashboard,
+  Rss,
+  Settings,
+  LogOut,
+  ChevronLeft,
   ChevronRight,
   Shield,
   Activity,
@@ -19,7 +19,7 @@ import {
   Database,
   Briefcase,
   Layers,
-  Settings
+  Building2,
 } from "lucide-react";
 import { logoutAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ const navItems = [
   { name: 'Categories', href: '/admin/categories', icon: Layers },
   { name: 'Sources', href: '/admin/sources', icon: Rss },
   { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
+  { name: 'Companies', href: '/admin/companies', icon: Building2 },
   { name: 'Logs', href: '/admin/logs', icon: Database },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
