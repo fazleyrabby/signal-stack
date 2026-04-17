@@ -4,6 +4,25 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-17] — Unit Tests, DB Fixes & Load Testing
+
+### Added
+- **DirectoryCrawlerService unit tests**: 35 tests covering BACCO extractor, bdjobs extractor, bank filter, BASIS JSON parsing, CRAWLER_SOURCES metadata
+- **Visitors cleanup cron**: daily at 3 AM, 90-day retention (`VISITOR_RETENTION_DAYS` env)
+- **k6 `vps` scenario**: 3 VUs, 60s, ~1 req/s — safe for Proxmox personal VM
+- **Health check admin section**: 4 admin endpoints checked, 401 = guard active (correct)
+
+### Changed
+- `companies`: dropped redundant `savedAt` column (identical to `createdAt`)
+- `companies`: added unique index on `(name, source)` — prevents duplicate crawler saves
+- `docker compose` v2 now used for all VPS deployments (v1 fails with `KeyError: ContainerConfig` on newer Docker)
+
+### Notes
+- k6 from Mac blocked by Tailscale kernel extension — run from VPS (`/tmp/k6-v0.55.0-linux-amd64/k6`) targeting `localhost:3000`
+- k6 VPS results: 100% pass, 0% errors, avg 21ms, p95 82ms
+
+---
+
 ## [2026-04-17] — Directory Crawler, Bank Filter & Endpoint Audit
 
 ### Added

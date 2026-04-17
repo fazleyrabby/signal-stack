@@ -2924,3 +2924,32 @@ Added as 3rd tab ("Directory Crawler") in `/admin/companies`. Source selection u
 ### 24.7 Safety Summary
 
 The manual Save gate is the strongest protection — nothing enters the DB without explicit admin action. System-level risks (CPU, memory, rate limiting) are all handled at the fetch layer and are not affected by what data gets returned.
+
+
+---
+
+## Section 25 — Unit Testing: DirectoryCrawlerService
+
+### 25.1 Test Coverage
+
+35 tests across 5 describe blocks. All tests are pure unit tests — no DB, no network, no mocks for the extractor methods (they are pure string-in / array-out).
+
+| Block | Tests | What it covers |
+|---|---|---|
+| BACCO extractor | 7 | Name extraction, website extraction, double-slash fix, missing website, self-link skip, multi-company, empty HTML |
+| bdjobs extractor | 5 | Name extraction, `&amp;` decode, whitespace trim, multi-company, empty HTML |
+| Bank filter | 16 | 11 excluded names (banks/insurance/finance), 5 allowed tech company names |
+| BASIS JSON parsing | 4 | Name from `company_name`, deduplication, null response stop, `last_page` pagination stop |
+| CRAWLER_SOURCES | 2 | Key names, required fields per source |
+
+### 25.2 Key Patterns
+
+**Extractor tests** call private methods directly via `(service as any).extractBaccoCompanies(html)`. This is acceptable for pure parsing logic — the method has no side effects and no dependencies.
+
+**BASIS crawl tests** mock `fetchJson` via `jest.spyOn(service as any, 'fetchJson').mockResolvedValueOnce(...)` and `randomDelay` to avoid actual delays in tests.
+
+**Bank filter uses `it.each`** — one test per company name, keeping failures readable.
+
+### 25.3 Pre-existing Test Failures
+
+8 test suites fail on `main` unrelated to the crawler work (`admin.service.spec.ts`, `ai.service.spec.ts`, `signals.service.spec.ts`, etc.) — root cause is `SyntaxError: Cannot use import statement outside a module` in ESM dependencies. These are pre-existing and not introduced by this session.
