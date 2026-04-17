@@ -221,6 +221,31 @@ export default function CompaniesAdmin() {
     mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
   }
 
+  const [savingAll, setSavingAll] = useState(false);
+
+  async function saveAllFiltered() {
+    if (!crawlResults) return;
+    const toSave = applyFilters(crawlResults).filter((c) => !crawlSavedNames.has(c.name));
+    if (!toSave.length) return;
+    setSavingAll(true);
+    try {
+      await Promise.all(
+        toSave.map((company) =>
+          fetch(`${API_BASE}/api/admin/companies/save`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(company),
+          })
+        )
+      );
+      setCrawlSavedNames((prev) => new Set([...prev, ...toSave.map((c) => c.name)]));
+      mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
+    } finally {
+      setSavingAll(false);
+    }
+  }
+
   async function deleteCompany(id: string) {
     if (!confirm("Remove this company?")) return;
     await fetch(`${API_BASE}/api/admin/companies/${id}`, { method: "DELETE", credentials: "include" });
@@ -577,13 +602,25 @@ export default function CompaniesAdmin() {
           {/* Result count footer */}
           {!crawling && crawlResults !== null && crawlResults.length > 0 && (() => {
             const filtered = applyFilters(crawlResults);
+            const unsaved = filtered.filter((c) => !crawlSavedNames.has(c.name));
             return (
-              <div className="px-6 py-2 border-t border-border/40 shrink-0 flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground/60">
+              <div className="px-6 py-2 border-t border-border/40 shrink-0 flex items-center gap-3">
+                <span className="text-[10px] text-muted-foreground/60 flex-1">
                   {filtered.length !== crawlResults.length
                     ? `${filtered.length} of ${crawlResults.length} companies (filtered)`
                     : `${crawlResults.length} companies found`}
                 </span>
+                {unsaved.length > 0 && (
+                  <Button size="sm" className="h-6 px-3 text-[10px] gap-1.5" onClick={saveAllFiltered} disabled={savingAll}>
+                    {savingAll ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Database className="w-2.5 h-2.5" />}
+                    {savingAll ? "Saving…" : `Save All (${unsaved.length})`}
+                  </Button>
+                )}
+                {unsaved.length === 0 && (
+                  <span className="text-[10px] text-emerald-400/70 flex items-center gap-1">
+                    <CheckCircle2 className="w-2.5 h-2.5" />All saved
+                  </span>
+                )}
               </div>
             );
           })()}
