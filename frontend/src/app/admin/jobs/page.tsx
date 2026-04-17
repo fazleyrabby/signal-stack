@@ -4,26 +4,14 @@ import { useState, useEffect } from "react";
 import useSWR, { mutate } from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Briefcase, 
-  Search, 
-  Filter, 
-  RefreshCw, 
-  ExternalLink, 
-  MapPin, 
-  Building2, 
-  Settings2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Loader2,
-  Check
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Briefcase, Search, RefreshCw, ExternalLink, MapPin, Building2,
+  Settings2, CheckCircle2, XCircle, Clock, Loader2, Check, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -33,26 +21,13 @@ const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r)
 });
 
 interface Job {
-  id: string;
-  title: string;
-  company: string;
-  location: string | null;
-  remote: boolean | null;
-  jobType: string | null;
-  salaryRange: string | null;
-  url: string;
-  source: string;
-  tags: string[];
-  createdAt: string;
+  id: string; title: string; company: string; location: string | null;
+  remote: boolean | null; jobType: string | null; salaryRange: string | null;
+  url: string; source: string; tags: string[]; createdAt: string;
 }
-
 interface JobPreferences {
-  keywords: string[];
-  locations: string[];
-  remote: boolean | null;
-  excludeKeywords: string[];
-  experienceLevels: string[];
-  strictGlobalRemote?: boolean;
+  keywords: string[]; locations: string[]; remote: boolean | null;
+  excludeKeywords: string[]; experienceLevels: string[]; strictGlobalRemote?: boolean;
 }
 
 export default function JobsAdmin() {
@@ -62,186 +37,176 @@ export default function JobsAdmin() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: jobsData, isLoading: jobsLoading } = useSWR(
-    `${API_BASE}/api/admin/jobs?page=${page}&search=${search}`,
-    fetcher
+    `${API_BASE}/api/admin/jobs?page=${page}&limit=30&search=${search}`, fetcher
   );
-
-  const { data: preferences, isLoading: prefsLoading, mutate: mutatePrefs } = useSWR<JobPreferences>(
-    `${API_BASE}/api/admin/jobs/preferences`,
-    fetcher
+  const { data: preferences, mutate: mutatePrefs } = useSWR<JobPreferences>(
+    `${API_BASE}/api/admin/jobs/preferences`, fetcher
   );
 
   const handleTriggerFetch = async () => {
     setIsRefreshing(true);
     try {
       await fetch(`${API_BASE}/api/admin/jobs/trigger`, { method: 'POST', credentials: "include" });
-      toast.success("Job fetch triggered in background");
-      setTimeout(() => mutate(`${API_BASE}/api/admin/jobs?page=${page}&search=${search}`), 5000);
-    } catch (e) {
-      toast.error("Failed to trigger fetch");
-    } finally {
-      setIsRefreshing(false);
-    }
+      toast.success("Job fetch triggered");
+      setTimeout(() => mutate(`${API_BASE}/api/admin/jobs?page=${page}&limit=30&search=${search}`), 5000);
+    } catch { toast.error("Failed to trigger fetch"); }
+    finally { setIsRefreshing(false); }
   };
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8 pb-20">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
-              <Briefcase className="w-8 h-8 text-primary" />
-              Job Tactical Intelligence
-            </h1>
-            <p className="text-muted-foreground text-sm font-mono uppercase tracking-widest mt-1">
-              Automated Acquisition & Filtering Node
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2 font-bold"
-              onClick={handleTriggerFetch}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Fetch Jobs
-            </Button>
-          </div>
-        </div>
+  const totalPages = jobsData?.total ? Math.ceil(jobsData.total / 30) : 1;
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-col">
-          <TabsList className="flex w-full max-w-sm bg-muted/50 p-1 h-auto">
-            <TabsTrigger value="feed" className="flex-1 font-bold data-active:bg-background data-active:text-foreground">
-              LIVE FEED
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/30 shrink-0">
+        <div className="flex items-center gap-3">
+          <Briefcase className="w-4 h-4 text-primary" />
+          <span className="font-bold text-sm">Job Intelligence</span>
+          <span className="text-xs text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">
+            {jobsData?.total ?? "…"} rows
+          </span>
+        </div>
+        <Button variant="outline" size="sm" className="h-7 gap-1.5 px-3 text-xs" onClick={handleTriggerFetch} disabled={isRefreshing}>
+          {isRefreshing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+          Fetch Jobs
+        </Button>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-6 border-b border-border/40 bg-muted/10 shrink-0">
+          <TabsList className="h-9 bg-transparent p-0 gap-0 border-0">
+            <TabsTrigger value="feed" className="h-9 px-4 text-xs font-bold rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary">
+              Live Feed
             </TabsTrigger>
-            <TabsTrigger value="preferences" className="flex-1 font-bold data-active:bg-background data-active:text-foreground">
-              DISCORD FILTERS
+            <TabsTrigger value="preferences" className="h-9 px-4 text-xs font-bold rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary">
+              Discord Filters
             </TabsTrigger>
           </TabsList>
+        </div>
 
-          <TabsContent value="feed" className="mt-6 space-y-6">
-            <div className="relative group max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
-              <Input 
-                placeholder="Search jobs in terminal..." 
-                className="pl-10 bg-card border-border/50 font-bold"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+        <TabsContent value="feed" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
+          {/* Search bar */}
+          <div className="px-6 py-2 border-b border-border/40 shrink-0">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/50" />
+              <Input placeholder="Search jobs…" className="pl-7 h-7 text-xs bg-background" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
             </div>
+          </div>
 
-            <div className="grid gap-4">
-              {jobsLoading ? (
-                <div className="py-20 text-center space-y-4">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-                  <p className="text-sm font-mono italic opacity-50">Synchronizing tactical job data...</p>
-                </div>
-              ) : jobsData?.data?.length === 0 ? (
-                <div className="py-20 text-center border-2 border-dashed border-border/50 rounded-xl">
-                  <p className="text-muted-foreground italic">No tactical data found matching current criteria.</p>
-                </div>
-              ) : (
-                jobsData?.data?.map((job: Job) => (
-                  <JobCard key={job.id} job={job} />
-                ))
-              )}
+          {/* Table */}
+          <div className="flex-1 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
+                  <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Job Title</TableHead>
+                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[140px]">Company</TableHead>
+                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[130px]">Location</TableHead>
+                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Source</TableHead>
+                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[80px]">Type</TableHead>
+                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Date</TableHead>
+                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[40px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {jobsLoading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-16 text-muted-foreground/50"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></TableCell></TableRow>
+                ) : jobsData?.data?.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-16 text-xs text-muted-foreground/50 italic">No jobs found.</TableCell></TableRow>
+                ) : (
+                  jobsData?.data?.map((job: Job) => (
+                    <TableRow key={job.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
+                      <TableCell className="px-4 py-2">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-xs font-semibold leading-tight line-clamp-1 group-hover:text-primary transition-colors">{job.title}</span>
+                          {job.tags?.length > 0 && (
+                            <div className="flex gap-1 flex-wrap">
+                              {job.tags.slice(0, 4).map(tag => (
+                                <span key={tag} className="text-[9px] text-muted-foreground/60 font-mono">#{tag}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Building2 className="w-3 h-3 shrink-0 opacity-50" />
+                          <span className="truncate max-w-[120px]">{job.company}</span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-3 h-3 shrink-0 opacity-50" />
+                          <span className="truncate max-w-[110px]">{job.location || "Remote / Global"}</span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
+                        <span className="text-[9px] font-bold uppercase tracking-wider bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground">{job.source}</span>
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
+                        <div className="flex flex-col gap-0.5">
+                          {job.remote && (
+                            <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400">Remote</span>
+                          )}
+                          {job.jobType && (
+                            <span className="text-[9px] text-muted-foreground uppercase">{job.jobType}</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
+                        <span className="text-[10px] font-mono text-muted-foreground/60">{new Date(job.createdAt).toLocaleDateString()}</span>
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
+                        <a href={job.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-7 w-7 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-2 border-t border-border/40 bg-muted/10 shrink-0">
+              <span className="text-[10px] font-mono text-muted-foreground">Page {page} / {totalPages}</span>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                  <ChevronLeft className="w-3 h-3" />Prev
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                  Next<ChevronRight className="w-3 h-3" />
+                </Button>
+              </div>
             </div>
-          </TabsContent>
+          )}
+        </TabsContent>
 
-          <TabsContent value="preferences" className="mt-6">
-            <JobPreferencesForm 
-              initialPrefs={preferences} 
-              onSave={async (newPrefs) => {
-                await fetch(`${API_BASE}/api/admin/jobs/preferences`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  credentials: "include",
-                  body: JSON.stringify(newPrefs)
-                });
-                mutatePrefs();
-                toast.success("Filters updated successfully");
-              }}
-            />
-          </TabsContent>
-        </Tabs>
-      </main>
+        <TabsContent value="preferences" className="flex-1 overflow-auto mt-0 data-[state=inactive]:hidden p-6">
+          <JobPreferencesForm
+            initialPrefs={preferences}
+            onSave={async (newPrefs) => {
+              await fetch(`${API_BASE}/api/admin/jobs/preferences`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                credentials: "include", body: JSON.stringify(newPrefs)
+              });
+              mutatePrefs();
+              toast.success("Filters saved");
+            }}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
 
-function JobCard({ job }: { job: Job }) {
-  return (
-    <Card className="bg-card/50 border-border/40 hover:border-primary/30 transition-all group overflow-hidden">
-      <CardContent className="p-5 flex items-start gap-4">
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">
-                {job.title}
-              </h3>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                  <Building2 className="w-3.5 h-3.5" />
-                  {job.company}
-                </span>
-                <span className="flex items-center gap-1.5 italic">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {job.location || "Remote / Global"}
-                </span>
-                <span className="flex items-center gap-1.5 font-mono text-[11px] opacity-60">
-                  <Clock className="w-3.5 h-3.5" />
-                  {new Date(job.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-            
-            <a 
-              href={job.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="shrink-0 p-2 rounded-lg bg-accent/30 hover:bg-primary hover:text-white transition-all"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            {job.remote && (
-              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-black tracking-tighter">
-                REMOTE
-              </Badge>
-            )}
-            {job.jobType && (
-              <Badge variant="outline" className="text-[10px] font-bold uppercase">
-                {job.jobType}
-              </Badge>
-            )}
-            {job.tags?.slice(0, 5).map(tag => (
-              <Badge key={tag} variant="secondary" className="bg-muted/50 text-[10px] font-medium lowercase">
-                #{tag}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPreferences, onSave: (p: JobPreferences) => Promise<void> }) {
+function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPreferences; onSave: (p: JobPreferences) => Promise<void>; }) {
   const [isSaving, setIsSaving] = useState(false);
   const [remote, setRemote] = useState<boolean | null>(null);
   const [strictGlobalRemote, setStrictGlobalRemote] = useState(false);
-  // Raw string state — lets user type commas and spaces freely
-  const [raw, setRaw] = useState({
-    keywords: '',
-    locations: '',
-    excludeKeywords: '',
-    experienceLevels: '',
-  });
+  const [raw, setRaw] = useState({ keywords: '', locations: '', excludeKeywords: '', experienceLevels: '' });
 
   useEffect(() => {
     if (initialPrefs) {
@@ -256,141 +221,93 @@ function JobPreferencesForm({ initialPrefs, onSave }: { initialPrefs?: JobPrefer
     }
   }, [initialPrefs]);
 
-  const parseField = (value: string): string[] =>
-    value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  const parseField = (v: string) => v.split(',').map(s => s.trim()).filter(Boolean);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSave({
-        keywords: parseField(raw.keywords),
-        locations: parseField(raw.locations),
-        excludeKeywords: parseField(raw.excludeKeywords),
-        experienceLevels: parseField(raw.experienceLevels),
-        remote,
-        strictGlobalRemote,
-      });
-    } finally {
-      setIsSaving(false);
-    }
+      await onSave({ keywords: parseField(raw.keywords), locations: parseField(raw.locations), excludeKeywords: parseField(raw.excludeKeywords), experienceLevels: parseField(raw.experienceLevels), remote, strictGlobalRemote });
+    } finally { setIsSaving(false); }
   };
 
   return (
-    <Card className="bg-card border-border/50 shadow-xl overflow-hidden">
-      <div className="bg-primary/5 p-6 border-b border-border/10">
-        <div className="flex items-center gap-3">
-          <Settings2 className="w-6 h-6 text-primary" />
-          <div>
-            <h2 className="text-xl font-bold">Discord Alert Protocols</h2>
-            <p className="text-xs text-muted-foreground font-mono uppercase mt-0.5">Control automated webhook matching logic</p>
+    <div className="max-w-2xl space-y-6">
+      {/* Section header */}
+      <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+        <Settings2 className="w-4 h-4 text-primary" />
+        <div>
+          <p className="text-sm font-bold">Discord Alert Filters</p>
+          <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">Webhook matching logic</p>
+        </div>
+      </div>
+
+      {/* Fields */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+            <CheckCircle2 className="w-3 h-3 text-emerald-500" />Target Keywords
+          </Label>
+          <Input value={raw.keywords} onChange={(e) => setRaw(r => ({ ...r, keywords: e.target.value }))} placeholder="php, laravel, typescript…" className="h-9 text-sm" />
+          <p className="text-[10px] text-muted-foreground">ANY keyword match triggers alert.</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+            <XCircle className="w-3 h-3 text-red-500" />Exclusion Keywords
+          </Label>
+          <Input value={raw.excludeKeywords} onChange={(e) => setRaw(r => ({ ...r, excludeKeywords: e.target.value }))} placeholder="senior, lead, manager…" className="h-9 text-sm" />
+          <p className="text-[10px] text-muted-foreground">Any match = immediately discard.</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+            <MapPin className="w-3 h-3 text-primary" />Locations
+          </Label>
+          <Input value={raw.locations} onChange={(e) => setRaw(r => ({ ...r, locations: e.target.value }))} placeholder="London, remote, Germany…" className="h-9 text-sm" />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest">Remote Preference</Label>
+          <div className="flex items-center gap-2 pt-1">
+            {(['All', 'Remote Only', 'On-Site'] as const).map((opt, idx) => {
+              const val = idx === 0 ? null : idx === 1 ? true : false;
+              const active = remote === val;
+              return (
+                <button key={opt} onClick={() => setRemote(val)} className={cn(
+                  "px-3 py-1.5 rounded text-xs font-bold transition-all border",
+                  active ? "bg-primary text-white border-primary" : "bg-muted/40 border-border/40 hover:bg-muted/70"
+                )}>{opt}</button>
+              );
+            })}
           </div>
         </div>
       </div>
-      
-      <CardContent className="p-8 space-y-8">
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="space-y-3">
-            <Label className="font-black text-[12px] uppercase tracking-wider flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              Target Keywords (Comma Separated)
-            </Label>
-            <Input
-              value={raw.keywords}
-              onChange={(e) => setRaw(r => ({ ...r, keywords: e.target.value }))}
-              placeholder="php, laravel, typescript, node..."
-              className="bg-accent/10 border-border/30 h-11"
-            />
-            <p className="text-[11px] text-muted-foreground italic">Alerts sent if ANY of these keywords match Title, Tags, or Description.</p>
-          </div>
 
-          <div className="space-y-3">
-            <Label className="font-black text-[12px] uppercase tracking-wider flex items-center gap-2">
-              <XCircle className="w-4 h-4 text-red-500" />
-              Exclusion Keywords
-            </Label>
-            <Input
-              value={raw.excludeKeywords}
-              onChange={(e) => setRaw(r => ({ ...r, excludeKeywords: e.target.value }))}
-              placeholder="senior, lead, manager, recruitment..."
-              className="bg-accent/10 border-border/30 h-11"
-            />
-            <p className="text-[11px] text-muted-foreground italic">IMMEDIATELY discard matches containing any of these terms.</p>
-          </div>
-
-          <div className="space-y-3">
-            <Label className="font-black text-[12px] uppercase tracking-wider flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
-              Locations
-            </Label>
-            <Input
-              value={raw.locations}
-              onChange={(e) => setRaw(r => ({ ...r, locations: e.target.value }))}
-              placeholder="London, remote, Germany..."
-              className="bg-accent/10 border-border/30 h-11"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <Label className="font-black text-[12px] uppercase tracking-wider flex items-center gap-2">
-              Remote Preference
-            </Label>
-            <div className="flex items-center gap-4 pt-2">
-               {['All', 'Remote Only', 'On-Site Only'].map((opt, idx) => {
-                  const val = idx === 0 ? null : idx === 1 ? true : false;
-                  const active = remote === val;
-                  return (
-                    <button
-                      key={opt}
-                      onClick={() => setRemote(val)}
-                      className={cn(
-                        "px-4 py-2 rounded-lg text-xs font-black transition-all border",
-                        active ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-accent/20 border-border/40 hover:bg-accent/40"
-                      )}
-                    >
-                      {opt.toUpperCase()}
-                    </button>
-                  );
-               })}
-            </div>
-          </div>
+      {/* Strict global remote */}
+      <div className="flex items-start justify-between gap-4 pt-4 border-t border-border/40">
+        <div className="space-y-1">
+          <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+            <XCircle className="w-3 h-3 text-orange-500" />Strict Global Remote
+          </Label>
+          <p className="text-[10px] text-muted-foreground max-w-md">
+            Filter out "remote" jobs that are country-locked (US Only, UK Only, EST timezone required, etc.)
+          </p>
         </div>
+        <button onClick={() => setStrictGlobalRemote(v => !v)} className={cn(
+          "shrink-0 px-4 py-1.5 rounded text-xs font-black transition-all border",
+          strictGlobalRemote ? "bg-orange-500 text-white border-orange-500" : "bg-muted/40 border-border/40 hover:bg-muted/70"
+        )}>
+          {strictGlobalRemote ? "ENABLED" : "DISABLED"}
+        </button>
+      </div>
 
-        <div className="pt-4 border-t border-border/10">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <Label className="font-black text-[12px] uppercase tracking-wider flex items-center gap-2">
-                <XCircle className="w-4 h-4 text-orange-500" />
-                Strict Global Remote
-              </Label>
-              <p className="text-[11px] text-muted-foreground italic max-w-md">
-                Filter out "remote" jobs that are actually country-locked (e.g. US Only, UK Only, EST timezone required). Scans title, location, and description for geo-restriction patterns.
-              </p>
-            </div>
-            <button
-              onClick={() => setStrictGlobalRemote(v => !v)}
-              className={cn(
-                "shrink-0 px-5 py-2 rounded-lg text-xs font-black transition-all border",
-                strictGlobalRemote
-                  ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/20"
-                  : "bg-accent/20 border-border/40 hover:bg-accent/40"
-              )}
-            >
-              {strictGlobalRemote ? "ENABLED" : "DISABLED"}
-            </button>
-          </div>
-        </div>
-
-        <div className="pt-4 border-t border-border/10 flex justify-end">
-          <Button 
-            className="w-full md:w-auto px-12 h-12 font-black gap-2 shadow-xl shadow-primary/10"
-            disabled={isSaving}
-            onClick={handleSave}
-          >
-            {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-            COMMIT PROTOCOL UPDATES
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Save */}
+      <div className="flex justify-end pt-2">
+        <Button className="h-9 gap-2 px-6" disabled={isSaving} onClick={handleSave}>
+          {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+          Save Filters
+        </Button>
+      </div>
+    </div>
   );
 }

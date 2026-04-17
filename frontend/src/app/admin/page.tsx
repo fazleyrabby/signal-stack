@@ -513,7 +513,7 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="p-6 md:p-8 min-h-full">
+    <div className="p-6 md:p-8 overflow-y-auto flex-1">
       <div className="max-w-6xl mx-auto pb-20 md:pb-10">
 
         {/* Page header */}

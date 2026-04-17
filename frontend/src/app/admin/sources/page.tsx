@@ -10,8 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Edit2, Plus, Rss, ArrowLeft, Loader2, Activity, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-import Link from "next/link";
+import { Trash2, Edit2, Plus, Rss, Loader2, Activity, CheckCircle2, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -20,31 +19,16 @@ const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r)
   return r.json();
 });
 
-interface Source {
-  id: string;
-  name: string;
-  url: string;
-  categoryId: string;
-  trustScore: number;
-  isActive: boolean;
-}
-
-interface Category {
-  slug: string;
-  name: string;
-}
+interface Source { id: string; name: string; url: string; categoryId: string; trustScore: number; isActive: boolean; }
+interface Category { slug: string; name: string; }
 
 export default function SourcesAdmin() {
   const router = useRouter();
-  const { data: sources, isLoading: sourcesLoading, error: sourcesError } = useSWR<Source[]>(`${API_BASE}/api/admin/sources`, fetcher, { shouldRetryOnError: false });
+  const { data: sources, isLoading, error } = useSWR<Source[]>(`${API_BASE}/api/admin/sources`, fetcher, { shouldRetryOnError: false });
   const { data: categories } = useSWR<Category[]>(`${API_BASE}/api/admin/categories`, fetcher);
-  
-  useEffect(() => {
-    if (sourcesError) {
-      router.replace("/admin-login");
-    }
-  }, [sourcesError, router]);
-  
+
+  useEffect(() => { if (error) router.replace("/admin-login"); }, [error, router]);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
@@ -55,212 +39,154 @@ export default function SourcesAdmin() {
     e.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
-    const payload = {
-      name: formData.get("name"),
-      url: formData.get("url"),
-      categoryId: formData.get("categoryId"),
-      trustScore: parseInt(formData.get("trustScore") as string, 10),
-      isActive: true, // Default to true for new ones
-    };
-
+    const payload = { name: formData.get("name"), url: formData.get("url"), categoryId: formData.get("categoryId"), trustScore: parseInt(formData.get("trustScore") as string, 10), isActive: true };
     try {
       if (editingSource) {
-        await fetch(`${API_BASE}/api/admin/sources/${editingSource.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        });
+        await fetch(`${API_BASE}/api/admin/sources/${editingSource.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) });
       } else {
-        await fetch(`${API_BASE}/api/admin/sources`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        });
+        await fetch(`${API_BASE}/api/admin/sources`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) });
       }
       mutate(`${API_BASE}/api/admin/sources`);
-      setIsDialogOpen(false);
-      setEditingSource(null);
-    } finally {
-      setIsSubmitting(false);
-    }
+      setIsDialogOpen(false); setEditingSource(null);
+    } finally { setIsSubmitting(false); }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure?")) return;
-    await fetch(`${API_BASE}/api/admin/sources/${id}`, { 
-      method: "DELETE",
-      credentials: "include"
-    });
+    if (!confirm("Delete this source?")) return;
+    await fetch(`${API_BASE}/api/admin/sources/${id}`, { method: "DELETE", credentials: "include" });
     mutate(`${API_BASE}/api/admin/sources`);
   }
 
   async function handleHealthCheck(id: string) {
     setCheckingHealth(id);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/sources/${id}/health`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      const res = await fetch(`${API_BASE}/api/admin/sources/${id}/health`, { method: 'POST', credentials: 'include' });
       const result = await res.json();
       setHealthResults(prev => ({ ...prev, [id]: result }));
-    } catch (err) {
-      setHealthResults(prev => ({ ...prev, [id]: { status: 'error', message: 'Failed to check' } }));
-    } finally {
-      setCheckingHealth(null);
-    }
+    } catch { setHealthResults(prev => ({ ...prev, [id]: { status: 'error' } })); }
+    finally { setCheckingHealth(null); }
   }
 
   async function toggleActive(source: Source) {
-    await fetch(`${API_BASE}/api/admin/sources/${source.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ isActive: !source.isActive }),
-    });
+    await fetch(`${API_BASE}/api/admin/sources/${source.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ isActive: !source.isActive }) });
     mutate(`${API_BASE}/api/admin/sources`);
   }
 
   return (
-    <div className="flex-1 p-4 md:p-8 space-y-8">
-      <div className="max-w-[1200px] mx-auto space-y-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight">Intelligence Sources</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] flex items-center gap-2">
-              <Rss className="w-3.5 h-3.5 text-primary" />
-              SignalStack Ingestion Engine
-            </p>
-          </div>
-
-          <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setEditingSource(null); }}>
-            <DialogTrigger render={
-            <Button className="gap-2 rounded-lg shadow-lg shadow-primary/20 h-10 px-6">
-              <Plus className="w-4 h-4" />
-              Add Source
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/30 shrink-0">
+        <div className="flex items-center gap-3">
+          <Rss className="w-4 h-4 text-primary" />
+          <span className="font-bold text-sm">Intelligence Sources</span>
+          <span className="text-xs text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">
+            {sources?.length ?? "…"} feeds
+          </span>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setEditingSource(null); }}>
+          <DialogTrigger render={
+            <Button size="sm" className="h-7 gap-1.5 px-3 text-xs">
+              <Plus className="w-3 h-3" />Add Source
             </Button>
           } />
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>{editingSource ? "Edit Source" : "Add New Feed Source"}</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Friendly Name</Label>
-                    <Input id="name" name="name" defaultValue={editingSource?.name} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="url">RSS Feed URL</Label>
-                    <Input id="url" name="url" defaultValue={editingSource?.url} type="url" required />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="categoryId">Category</Label>
-                      <Select name="categoryId" defaultValue={editingSource?.categoryId} required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories?.map((cat) => (
-                            <SelectItem key={cat.slug} value={cat.slug}>{cat.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="trustScore">Trust Score (1-5)</Label>
-                      <Input id="trustScore" name="trustScore" type="number" min="1" max="5" defaultValue={editingSource?.trustScore ?? 3} required />
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {editingSource ? "Save Changes" : "Create Source"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden backdrop-blur-sm shadow-xl">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead className="w-[300px]">Source Details</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Trust</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sourcesLoading && (
-                  <TableRow><TableCell colSpan={5} className="text-center py-20 opacity-50 italic">Scanning database for active nodes...</TableCell></TableRow>
-                )}
-                {sources?.map((source) => (
-                  <TableRow key={source.id} className="hover:bg-muted/20 transition-colors group">
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-semibold">{source.name}</span>
-                        <span className="text-[10px] text-muted-foreground truncate max-w-[250px] font-mono break-all">{source.url}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="px-2 py-0.5 uppercase tracking-widest text-[9px]">
-                        {source.categoryId}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <div key={i} className={`h-1 w-3 rounded-full ${i <= source.trustScore ? "bg-emerald-500" : "bg-muted"}`} />
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch checked={source.isActive} onCheckedChange={() => toggleActive(source)} />
-                        <span className={`text-[10px] font-bold ${source.isActive ? "text-emerald-500" : "text-muted-foreground"}`}>
-                          {source.isActive ? "ONLINE" : "OFFLINE"}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8" 
-                          onClick={() => handleHealthCheck(source.id)}
-                          disabled={checkingHealth === source.id}
-                          title="Check feed health"
-                        >
-                          {checkingHealth === source.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : healthResults[source.id]?.status === 'healthy' ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                          ) : healthResults[source.id]?.status === 'error' ? (
-                            <XCircle className="w-3.5 h-3.5 text-red-500" />
-                          ) : (
-                            <Activity className="w-3.5 h-3.5" />
-                          )}
-                        </Button>
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingSource(source); setIsDialogOpen(true); }}>
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300" onClick={() => handleDelete(source.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+          <DialogContent className="sm:max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle>{editingSource ? "Edit Source" : "Add Feed Source"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4 py-3">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase tracking-widest">Name</Label>
+                <Input name="name" defaultValue={editingSource?.name} required className="h-9" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase tracking-widest">RSS URL</Label>
+                <Input name="url" defaultValue={editingSource?.url} type="url" required className="h-9 font-mono text-xs" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest">Category</Label>
+                  <Select name="categoryId" defaultValue={editingSource?.categoryId} required>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>{categories?.map((cat) => <SelectItem key={cat.slug} value={cat.slug}>{cat.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest">Trust (1–5)</Label>
+                  <Input name="trustScore" type="number" min="1" max="5" defaultValue={editingSource?.trustScore ?? 3} required className="h-9" />
+                </div>
+              </div>
+              <Button type="submit" className="w-full h-9" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                {editingSource ? "Save Changes" : "Create Source"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {/* Table */}
+      <div className="flex-1 overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
+              <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Source</TableHead>
+              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[110px]">Category</TableHead>
+              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[90px]">Trust</TableHead>
+              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-[120px]">Status</TableHead>
+              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <TableRow><TableCell colSpan={5} className="text-center py-16 text-muted-foreground/50"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></TableCell></TableRow>
+            )}
+            {sources?.map((source) => (
+              <TableRow key={source.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
+                <TableCell className="px-4 py-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-semibold">{source.name}</span>
+                    <span className="text-[10px] text-muted-foreground/60 font-mono truncate max-w-[300px]">{source.url}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-3 py-2">
+                  <span className="text-[9px] font-black uppercase tracking-wider bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground">{source.categoryId}</span>
+                </TableCell>
+                <TableCell className="px-3 py-2">
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className={`h-1 w-2.5 rounded-sm ${i <= source.trustScore ? "bg-emerald-500" : "bg-muted"}`} />
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell className="px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Switch checked={source.isActive} onCheckedChange={() => toggleActive(source)} className="scale-75 origin-left" />
+                    <span className={`text-[9px] font-bold uppercase ${source.isActive ? "text-emerald-500" : "text-muted-foreground/50"}`}>
+                      {source.isActive ? "Online" : "Offline"}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-3 py-2 text-right">
+                  <div className="flex items-center justify-end gap-0.5">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleHealthCheck(source.id)} disabled={checkingHealth === source.id} title="Check health">
+                      {checkingHealth === source.id ? <Loader2 className="w-3 h-3 animate-spin" /> :
+                       healthResults[source.id]?.status === 'healthy' ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> :
+                       healthResults[source.id]?.status === 'error' ? <XCircle className="w-3 h-3 text-red-500" /> :
+                       <Activity className="w-3 h-3" />}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingSource(source); setIsDialogOpen(true); }}>
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => handleDelete(source.id)}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }
