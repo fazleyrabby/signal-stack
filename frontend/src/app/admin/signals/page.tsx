@@ -291,7 +291,7 @@ export default function SignalsAdmin() {
                   <TableCell className="px-3 py-2 text-right">
                     <div className="flex items-center justify-end gap-0.5">
                       <Select onValueChange={(val) => { if (typeof val === 'string') handleTranslate(signal.id, val); }}>
-                        <SelectTrigger className="h-7 w-7 p-0 bg-transparent border-none shadow-none hover:bg-muted focus:ring-0">
+                        <SelectTrigger className="h-7 w-7 p-0 bg-transparent border-none shadow-none hover:bg-muted focus:ring-0 [&>svg:last-child]:hidden">
                           <Languages className="w-3 h-3" />
                         </SelectTrigger>
                         <SelectContent align="end">
