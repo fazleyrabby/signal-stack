@@ -367,11 +367,14 @@ export default function CompaniesAdmin() {
         {/* ── Directory Crawler Tab ─────────────────────────────────────────── */}
         <TabsContent value="crawler" className="flex-1 flex flex-col overflow-hidden mt-0">
           {/* Controls */}
-          <div className="px-6 py-3 border-b border-border/40 bg-muted/10 shrink-0">
-            <div className="flex items-center gap-3">
-              <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold shrink-0">Source</span>
-              <div className="flex items-center gap-1.5">
+          <div className="px-6 py-3 border-b border-border/40 bg-muted/10 shrink-0 flex flex-col gap-2">
+            {/* Row 1: source pills + run button */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Source</span>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {CRAWL_SOURCES.map((s) => (
                   <button
                     key={s.key}
@@ -382,19 +385,17 @@ export default function CompaniesAdmin() {
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-muted-foreground/50 flex-1">
-                {CRAWL_SOURCES.find(s => s.key === crawlSource)?.description}
-              </p>
-              <Button size="sm" className="h-7 px-3 text-xs gap-1.5 shrink-0" onClick={runCrawl} disabled={crawling}>
+              <Button size="sm" className="h-7 px-3 text-xs gap-1.5 ml-auto" onClick={runCrawl} disabled={crawling}>
                 {crawling ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                 {crawling ? "Crawling…" : "Run Crawl"}
               </Button>
             </div>
-            {crawling && (
-              <p className="text-[10px] text-muted-foreground/50 mt-2 pl-6">
-                Fetching pages sequentially with delay — this may take 30–60s…
-              </p>
-            )}
+            {/* Row 2: description / status */}
+            <p className="text-[10px] text-muted-foreground/50">
+              {crawling
+                ? "Fetching pages sequentially with delay — this may take 30–60s…"
+                : CRAWL_SOURCES.find(s => s.key === crawlSource)?.description}
+            </p>
           </div>
 
           {/* Results table */}
