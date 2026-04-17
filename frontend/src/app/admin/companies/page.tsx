@@ -15,7 +15,8 @@ import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
-  if (!r.ok) throw new Error("Unauthorized");
+  if (r.status === 401) throw new Error("Unauthorized");
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 });
 
@@ -75,7 +76,7 @@ export default function CompaniesAdmin() {
     { shouldRetryOnError: false }
   );
 
-  useEffect(() => { if (savedError) router.replace("/admin-login"); }, [savedError, router]);
+  useEffect(() => { if (savedError?.message === "Unauthorized") router.replace("/admin-login"); }, [savedError, router]);
 
   async function geocodeLocation() {
     if (!locationQuery.trim()) return;
