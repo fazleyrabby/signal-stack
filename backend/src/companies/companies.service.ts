@@ -3,7 +3,7 @@ import { RedisService } from '../ai/redis.service';
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 const CAREER_PATHS = ['/careers', '/jobs', '/work-with-us', '/join-us', '/join', '/hiring'];
-const CAREER_CHECK_TIMEOUT_MS = 4000;
+const CAREER_CHECK_TIMEOUT_MS = 2500;
 const CACHE_TTL = 3600; // 1 hour
 
 export interface NearbyCompany {
@@ -108,21 +108,16 @@ out body;
   }
 
   private async enrichWithCareerPages(companies: NearbyCompany[]): Promise<NearbyCompany[]> {
-    // Process in batches of 5 concurrently
-    const batchSize = 5;
+    // All companies concurrently — each career check is already bounded by timeout
     const results = [...companies];
-
-    for (let i = 0; i < results.length; i += batchSize) {
-      const batch = results.slice(i, i + batchSize);
-      await Promise.all(
-        batch.map(async (company) => {
-          if (!company.website) return;
-          const result = await this.checkCareerPage(company.website);
-          company.careerPageFound = result.found;
-          company.careerUrl = result.url;
-        }),
-      );
-    }
+    await Promise.all(
+      results.map(async (company) => {
+        if (!company.website) return;
+        const result = await this.checkCareerPage(company.website);
+        company.careerPageFound = result.found;
+        company.careerUrl = result.url;
+      }),
+    );
 
     return results;
   }
@@ -130,11 +125,10 @@ out body;
   private async checkCareerPage(website: string): Promise<{ found: boolean; url: string | null }> {
     const base = website.replace(/\/$/, '');
 
-    for (const path of CAREER_PATHS) {
+    const checks = CAREER_PATHS.map(async (path) => {
       const url = `${base}${path}`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), CAREER_CHECK_TIMEOUT_MS);
-
       try {
         const res = await fetch(url, {
           method: 'HEAD',
@@ -142,18 +136,17 @@ out body;
           redirect: 'follow',
           headers: { 'User-Agent': 'SignalStack/1.0' },
         });
-
-        if (res.ok) {
-          return { found: true, url };
-        }
+        if (res.ok) return url;
+        return null;
       } catch {
-        // timeout or network error — try next path
+        return null;
       } finally {
         clearTimeout(timeoutId);
       }
-    }
+    });
 
-    return { found: false, url: null };
+    const found = (await Promise.all(checks)).find((u) => u !== null) ?? null;
+    return { found: found !== null, url: found };
   }
 
   private normalizeWebsite(url: string | undefined): string | null {
