@@ -74,21 +74,21 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
         <div className="flex flex-col h-full justify-between gap-4">
           <div className="space-y-3">
             {/* Header: Source + Time + Bookmark */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 <span className={cn(
-                  "text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm",
+                  "text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm shrink-0 max-w-[130px] truncate",
                   "bg-muted/50 text-muted-foreground/80"
                 )}>
                   {signal.source}
                 </span>
-                <span className="text-[12px] text-muted-foreground/60 tabular-nums">
+                <span className="text-[12px] text-muted-foreground/60 tabular-nums shrink-0">
                   {getRelativeTime(signal.publishedAt)}
                 </span>
                 {isCompact && (
                   <>
-                    <span className="text-[12px] text-muted-foreground/40">|</span>
-                    <span className="text-[12px] text-muted-foreground/60">
+                    <span className="text-[12px] text-muted-foreground/40 shrink-0">|</span>
+                    <span className="text-[12px] text-muted-foreground/60 truncate min-w-0">
                       {signal.categoryId || signal.aiCategory}
                     </span>
                   </>
