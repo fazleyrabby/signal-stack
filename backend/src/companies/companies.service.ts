@@ -58,7 +58,7 @@ export class CompaniesService {
   constructor(private readonly redis: RedisService) {}
 
   async findNearby(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
-    const cacheKey = `companies:nearby:v3:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cacheKey = `companies:nearby:v4:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -79,13 +79,15 @@ export class CompaniesService {
 [out:json][timeout:25];
 (
   node["office"~"company|tech|it|software|coworking|startup",i](around:${radius},${lat},${lng});
+  way["office"~"company|tech|it|software|coworking|startup",i](around:${radius},${lat},${lng});
   node["name"]["website"]["office"](around:${radius},${lat},${lng});
-  node["name"]["website"]["company"](around:${radius},${lat},${lng});
+  way["name"]["website"]["office"](around:${radius},${lat},${lng});
   node["amenity"="company"](around:${radius},${lat},${lng});
   node["building"="office"]["name"](around:${radius},${lat},${lng});
-  node["name"~"software|technologies|tech|systems|solutions|it |digital|limited|ltd",i]["name"](around:${radius},${lat},${lng});
+  way["building"="office"]["name"](around:${radius},${lat},${lng});
+  node["name"~"software|technologies|tech|systems|solutions|digital",i]["office"](around:${radius},${lat},${lng});
 );
-out body;
+out center;
     `.trim();
 
     const controller = new AbortController();
@@ -119,14 +121,19 @@ out body;
         if (el.tags?.['company:type']) tags.push(el.tags['company:type']);
         if (el.tags?.sector) tags.push(el.tags.sector);
 
+        // nodes have el.lat/el.lon; ways have el.center.lat/el.center.lon
+        const elLat = el.lat ?? el.center?.lat;
+        const elLng = el.lon ?? el.center?.lon;
+        if (!elLat || !elLng) continue;
+
         companies.push({
           osmId: String(el.id),
           name,
           website,
           city: el.tags?.['addr:city'] || el.tags?.['addr:town'] || null,
           country: el.tags?.['addr:country'] || null,
-          lat: el.lat,
-          lng: el.lon,
+          lat: elLat,
+          lng: elLng,
           tags,
           careerPageFound: false,
           careerUrl: null,
