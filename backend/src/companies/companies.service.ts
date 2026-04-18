@@ -4,7 +4,7 @@ import { SettingsService } from '../ai/settings.service';
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 const GOOGLE_PLACES_URL = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
-const MAPBOX_SEARCH_URL = 'https://api.mapbox.com/search/searchbox/v6/category/software';
+const MAPBOX_SEARCH_URL = 'https://api.mapbox.com/search/searchbox/v1/category/software';
 const CACHE_TTL = 3600; // 1 hour
 
 // Non-tech names to explicitly exclude (embassies, hospitals, schools, banks, etc.)
@@ -160,8 +160,8 @@ export class CompaniesService {
     if (!apiKey) return { status: 'no_api_key' };
 
     try {
-      // Mapbox V6 requires proximity or other location context
-      const res = await fetch(`https://api.mapbox.com/search/searchbox/v6/category/software?limit=1&proximity=90.41,23.81&access_token=${apiKey}`);
+      // Mapbox V1 requires proximity or other location context
+      const res = await fetch(`https://api.mapbox.com/search/searchbox/v1/category/software?limit=1&proximity=90.41,23.81&access_token=${apiKey}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         return { status: 'error', error: data.message || `HTTP ${res.status}` };
