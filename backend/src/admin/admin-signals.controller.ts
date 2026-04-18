@@ -12,7 +12,7 @@ import {
   BadRequestException,
   Res,
 } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { AdminGuard } from './admin.guard';
 import { AdminService } from './admin.service';
