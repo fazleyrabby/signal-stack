@@ -91,6 +91,7 @@ export class CompaniesService {
       }
 
       const data = await res.json();
+      this.logger.log(`Mapbox found ${data.features?.length || 0} features for proximity ${lng},${lat}`);
       const results: NearbyCompany[] = (data.features || []).map((f: any) => ({
         placeId: f.properties.mapbox_id,
         name: f.properties.name,

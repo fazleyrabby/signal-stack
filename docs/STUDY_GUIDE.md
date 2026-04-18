@@ -3847,3 +3847,154 @@ Rationale: the active tab button already communicates the category. Title is red
 | `lg` | 1024px | Laptops |
 
 This project uses `sm` as the primary mobile/desktop breakpoint throughout the admin and feed UI.
+
+---
+
+## Section 43: Company Radar v2 — Google Places & Mapbox Integration (April 2026)
+
+### 43.1 Architecture
+
+`CompaniesService` (`backend/src/companies/companies.service.ts`) now supports three data sources via a `source` parameter:
+
+```typescript
+findNearby(lat: number, lng: number, radius: number, source: 'osm' | 'google' | 'mapbox' = 'osm')
+```
+
+Each source is gated by a settings flag loaded from DB (`osmEnabled`, `googlePlacesEnabled`, `mapboxEnabled`). If disabled, returns `[]` immediately — no external call made.
+
+Cache key pattern: `companies:nearby:v11:{source}:{lat}:{lng}:{radius}`
+
+### 43.2 Google Places (New API)
+
+The **old** Places API (`maps.googleapis.com/maps/api/place/nearbysearch`) is deprecated. The new endpoint:
+
+```
+POST https://places.googleapis.com/v1/places:searchNearby
+```
+
+Auth via headers (not query params):
+```
+X-Goog-Api-Key: <key>
+X-Goog-FieldMask: places.id,places.displayName,places.websiteUri,places.formattedAddress,places.location,places.types
+```
+
+Body:
+```json
+{
+  "locationRestriction": {
+    "circle": { "center": { "latitude": 23.8, "longitude": 90.4 }, "radius": 5000 }
+  },
+  "includedTypes": ["establishment"],
+  "maxResultCount": 20
+}
+```
+
+### 43.3 Mapbox Searchbox API
+
+Use **Searchbox v1** (not v6 — v6 returns 404):
+```
+GET https://api.mapbox.com/search/searchbox/v1/category/software?proximity={lng},{lat}&access_token={key}&limit=25
+```
+
+**Critical:** `proximity` parameter is **required**. Without it, the request returns 400.
+
+**Note on coordinates order:** Mapbox uses `lng,lat` (GeoJSON order), not `lat,lng`.
+
+### 43.4 Admin Settings Integration
+
+New settings stored in DB:
+| Setting key | Type | Default |
+|-------------|------|---------|
+| `google_places_api_key` | string | — |
+| `mapbox_api_key` | string | — |
+| `google_places_enabled` | bool | true |
+| `mapbox_enabled` | bool | true |
+| `osm_enabled` | bool | true |
+
+`SettingsService.getModelConfig()` now returns all of these alongside AI model config.
+
+### 43.5 API Key Testing
+
+`POST /api/admin/keys/test` dispatches to the correct health check method:
+- `groq` → `GroqProvider.checkHealth()`
+- `openrouter` → `OpenRouterProvider.checkHealth()`
+- `mapbox` → `CompaniesService.checkMapboxHealth()`
+- `google` → `CompaniesService.checkGoogleHealth()`
+
+Each health check method makes a minimal real API call and returns `{ status: 'healthy' }` or `{ status: 'error', error: '...' }`.
+
+---
+
+## Section 44: Dual-Tier Translation Quality System (April 2026)
+
+### 44.1 Problem
+
+All signals were getting the same translation treatment regardless of their importance. High-cost speculative translation was being wasted on low-score signals.
+
+### 44.2 Solution
+
+`TranslationQueue` checks signal score against `translationThreshold` (configurable, default 7) before calling AI:
+
+```typescript
+const config = await this.settings.getModelConfig();
+const signalScore = signal?.score || job.score || 5;
+
+if (signalScore >= config.translationThreshold) {
+  // Full quality
+  translated = priority === 'HIGH'
+    ? await this.aiService.translateSpeculative(title, summary, lang)
+    : await this.aiService.translate(title, summary, lang);
+} else {
+  // Low power / low cost
+  translated = await this.aiService.translateLowPower(title, summary, lang);
+}
+```
+
+Score is read from DB at translation time (not just from the job queue) to get the most current value.
+
+### 44.3 Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `translation_threshold` | 7 | Min score for full translation quality |
+| `force_all_translations` | false | When true, all signals use full quality regardless of score |
+
+Both configurable from Admin Settings page.
+
+---
+
+## Section 45: Scoring Engine Optimization (April 2026)
+
+### 45.1 Problem
+
+`ScorerService.score()` was:
+1. Calling `new RegExp(entity, 'i')` inside a nested loop — constructing a new regex object per signal per entity on every call.
+2. Calling `text.toLowerCase()` once but using `text` (full case) for entity regex matching inconsistently.
+
+### 45.2 Fix
+
+**Pre-compiled regexes:** `ENTITY_RULES` now includes a `regexes: RegExp[]` field populated at module load time:
+
+```typescript
+const ENTITY_RULES = [
+  {
+    points: 3,
+    entities: ['AWS', 'Google', ...],
+    regexes: [/\bAWS\b/i, /\bGoogle\b/i, ...] // pre-compiled once
+  },
+  ...
+];
+```
+
+Scoring loop now iterates `rule.regexes` instead of constructing regex from `rule.entities`.
+
+**Single lowercase pass:**
+```typescript
+const text = `${raw.title} ${raw.content || ''}`;
+const textLower = text.toLowerCase(); // computed once
+
+// keyword rules use textLower
+// entity regex rules use text (regex already has /i flag)
+```
+
+Net effect: eliminates N×M regex constructions per feed cycle where N = signals, M = entity count.

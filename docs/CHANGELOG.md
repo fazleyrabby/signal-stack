@@ -262,3 +262,38 @@ All notable changes to SignalStack will be documented in this file.
 - **Migration 0003**: `ALTER TABLE ADD COLUMN` for `content_hash` (jobs) and `is_read` (signals) — zero data loss.
 - **Mac Cleanup**: Freed ~22GB from `claudevm.bundle`, browser caches, Homebrew tarballs, JetBrains cache, logs.
 - **OrbStack / VS Code**: Stopped to reduce RAM pressure. Swap dropped from 9.2GB → 3.9GB.
+
+---
+
+## [2026-04-19] — Company Radar v2, Scoring Optimization & Translation Quality Tiers
+
+### Added
+- **Google Places API integration** (`places.googleapis.com/v1/places:searchNearby`): New Radar source using the modern Places API (New). Uses `POST` with `X-Goog-Api-Key` header + `X-Goog-FieldMask`. Returns up to 20 results per query.
+- **Mapbox Search API integration** (`/search/searchbox/v1/category/software`): New Radar source using Mapbox Searchbox v1 (not v6 — v6 is 404). Requires `proximity=lng,lat` parameter. Returns up to 25 results.
+- **Admin toggles for Radar sources**: OSM, Google Places, Mapbox can be individually enabled/disabled from Admin Settings → Radar Data Sources panel. State persisted in `settings` table.
+- **Universal API key testing tool** (`POST /api/admin/keys/test`): Test Groq, OpenRouter, Google Places, or Mapbox keys live from Admin Settings without leaving the UI. Returns `{ status: 'healthy' }` or `{ status: 'error', error: '...' }`.
+- **Google + Mapbox key management**: `/api/admin/keys` now returns masked values for `google` and `mapbox`. `/api/admin/keys` PUT accepts `provider: 'google' | 'mapbox'`.
+- **CSV Signal Export** (`GET /api/admin/signals/export/csv?days=N`): New "Export Reports" tab in Admin Signals page. Downloads signal history as CSV for offline analysis.
+- **Dual-tier translation quality**: Signals with score ≥ `translationThreshold` (default 7) get full speculative translation. Signals below threshold get `translateLowPower()` — cheaper, faster. Threshold configurable from Admin Settings.
+- **Background crawl with toast notification**: Directory crawler now runs in background via `CrawlContext`. UI shows toast on completion instead of blocking.
+
+### Fixed
+- **Mapbox API version**: was calling v6 endpoint (404). Corrected to v1 (`/search/searchbox/v1/category/`).
+- **Mapbox health check**: was missing required `proximity` parameter. Added `proximity=90.41,23.81` (Dhaka) to health check request.
+- **Google Places**: was using deprecated Places API (v1 text search). Upgraded to `places.googleapis.com/v1/places:searchNearby` with proper `X-Goog-Api-Key` header auth.
+- **`Response` type import error** in `AdminSignalsController`: resolved TypeScript build failure.
+- **TranslationQueue priority scope error**: `priority` variable was accessed outside its declared scope. Fixed by hoisting declaration.
+- **Discord news/job separation**: `jobsWebhookUrl` no longer falls back to main webhook. If `DISCORD_JOBS_WEBHOOK_URL` is not set, job alerts are silently skipped — news and job alerts are now strictly separated channels.
+- **SettingsPage syntax error**: resolved build-breaking syntax error.
+
+### Changed
+- **OSM nearby query broadened**: added `amenity=company`, `company`, and `building=commercial` tags to Overpass query. Result cap raised 100 → 200.
+- **Scoring mechanism optimized**: `ENTITY_RULES` now use pre-compiled `RegExp` arrays instead of constructing `new RegExp()` per signal per entity. `text.toLowerCase()` computed once and reused across all keyword rules.
+- **Admin dashboard labels simplified**: section titles and labels cleaned up for readability.
+- **Mobile card layout compacted**: column title bar hidden on mobile (`hidden sm:flex`). Stats bar shrunk. Filter buttons smaller (`h-6 sm:h-7`). ART tab label fixed.
+- **Radar cache key bumped**: v8 → v11 (new sources added). Cache now keyed by `source` param.
+
+### Study Guide
+- Section 43: Company Radar v2 — Google Places & Mapbox Integration
+- Section 44: Dual-Tier Translation Quality System
+- Section 45: Scoring Engine Optimization

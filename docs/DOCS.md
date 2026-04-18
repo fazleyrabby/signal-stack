@@ -870,3 +870,73 @@ New column: `jobs.content_hash varchar(64)` with `idx_jobs_content_hash` index.
 
 #### 7. Company → Jobs Link
 In saved companies tab, each company name has a search icon (🔍) that navigates to `/admin/jobs?search=<company name>` — instant job search for that company.
+
+---
+
+### Update: April 19, 2026
+**Company Radar v2, Scoring Optimization & Translation Quality Tiers**
+
+#### 1. Company Radar — Google Places & Mapbox Sources
+
+Two new external data sources added to Company Radar alongside OSM:
+
+| Source | Endpoint | Auth | Max Results |
+|--------|----------|------|-------------|
+| OSM (Overpass) | `overpass-api.de/api/interpreter` | None | 200 |
+| Google Places (New) | `places.googleapis.com/v1/places:searchNearby` | `X-Goog-Api-Key` header | 20 |
+| Mapbox Searchbox | `api.mapbox.com/search/searchbox/v1/category/software` | `access_token` query param | 25 |
+
+**Key implementation notes:**
+- Google uses the **new** Places API (`POST` with JSON body + `X-Goog-FieldMask` header). The old `maps.googleapis.com/maps/api/place/nearbysearch` is deprecated.
+- Mapbox uses **Searchbox v1** (not v6 — v6 returns 404). Requires `proximity=lng,lat` parameter.
+- Each source is independently enable/disable-able via Admin Settings → Radar Data Sources.
+- `findNearby()` now accepts a `source: 'osm' | 'google' | 'mapbox'` param. Cache key includes source name and bumped to `v11`.
+
+**New admin endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/admin/companies/radar/sources` | Get enabled/disabled state of each source |
+| `PUT` | `/api/admin/companies/radar/sources` | Toggle a source on/off |
+| `PUT` | `/api/admin/companies/radar/settings` | Update `translationThreshold`, `forceAllTranslations` |
+| `POST` | `/api/admin/keys/test` | Live-test any API key (groq/openrouter/google/mapbox) |
+
+**OSM query broadened:** added `amenity=company`, `company`, and `building=commercial` tags. Timeout bumped 25s → 30s.
+
+#### 2. Universal API Key Testing
+
+New endpoint `POST /api/admin/keys/test` with body `{ provider: 'groq' | 'openrouter' | 'google' | 'mapbox' }` runs a live health check against each provider and returns `{ status: 'healthy' }` or `{ status: 'error', error: '...' }`.
+
+Admin Settings page now shows Test button next to each API key input. Result displayed inline for 5 seconds.
+
+`GET /api/admin/keys` and `PUT /api/admin/keys` now also handle `google` and `mapbox` providers (stored in `settings` table as `google_places_api_key` and `mapbox_api_key`).
+
+#### 3. Dual-Tier Translation Quality
+
+`TranslationQueue` now checks signal score against a configurable threshold (`translation_threshold` setting, default 7) before choosing translation strategy:
+
+```
+score >= threshold → full quality (translateSpeculative for HIGH priority, translate for others)
+score < threshold  → low power  (translateLowPower — cheaper, faster)
+```
+
+`forceAllTranslations` setting bypasses the threshold check when enabled.
+
+#### 4. Scoring Engine Optimization
+
+`ScorerService` refactored for performance:
+- `ENTITY_RULES` now carry pre-compiled `RegExp[]` arrays — no more `new RegExp()` construction per signal per entity match.
+- `text.toLowerCase()` computed once into `textLower` and reused across all keyword rules (was lowercasing inside every loop iteration).
+
+#### 5. Discord Channel Separation
+
+`DISCORD_JOBS_WEBHOOK_URL` no longer falls back to the main webhook. If unset, job alerts are silently skipped. News and job alerts are now strictly separate — no cross-contamination between channels.
+
+#### 6. CSV Signal Export
+
+New "Export Reports" tab in Admin Signals page:
+- `GET /api/admin/signals/export/csv?days=N` downloads signal history as CSV.
+- Frontend opens URL in new tab — browser handles download.
+
+#### 7. Background Crawl with Toast
+
+Directory crawler now runs in background via `CrawlContext` (`frontend/src/context/CrawlContext.tsx`). UI shows a toast notification on completion instead of blocking the admin page.
