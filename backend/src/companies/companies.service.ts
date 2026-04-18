@@ -54,7 +54,7 @@ export class CompaniesService {
     if (source === 'google' && !config.googlePlacesEnabled) return [];
     if (source === 'mapbox' && !config.mapboxEnabled) return [];
 
-    const cacheKey = `companies:nearby:v11:${source}:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cacheKey = `companies:nearby:v12:${source}:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
