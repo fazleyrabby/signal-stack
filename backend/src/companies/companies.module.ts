@@ -10,5 +10,6 @@ import { AIModule } from '../ai/ai.module';
   imports: [DatabaseModule, AIModule],
   controllers: [CompaniesController],
   providers: [CompaniesService, CompaniesRepository, DirectoryCrawlerService],
+  exports: [CompaniesService],
 })
 export class CompaniesModule {}

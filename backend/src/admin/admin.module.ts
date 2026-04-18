@@ -10,9 +10,16 @@ import { AuthService } from './auth.service';
 import { LogsController } from './logs.controller';
 import { AdminSourcesController } from './sources.controller';
 import { AdminSignalsController } from './admin-signals.controller';
+import { CompaniesModule } from '../companies/companies.module';
 
 @Module({
-  imports: [DatabaseModule, AIModule, FeedModule, forwardRef(() => AlertsModule)],
+  imports: [
+    DatabaseModule,
+    AIModule,
+    FeedModule,
+    CompaniesModule,
+    forwardRef(() => AlertsModule),
+  ],
   providers: [AdminService, AuthService],
   controllers: [
     AdminController,

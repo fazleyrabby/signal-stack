@@ -25,6 +25,7 @@ import { ConfigService } from '@nestjs/config';
 import { DiscordService } from '../alerts/discord.service';
 import { GroqProvider } from '../ai/providers/groq.provider';
 import { OpenRouterProvider } from '../ai/providers/openrouter.provider';
+import { CompaniesService } from '../companies/companies.service';
 
 @Controller('api/admin')
 @UseGuards(AdminGuard)
@@ -41,6 +42,7 @@ export class AdminController {
     private readonly discordService: DiscordService,
     private readonly groqProvider: GroqProvider,
     private readonly openRouterProvider: OpenRouterProvider,
+    private readonly companiesService: CompaniesService,
   ) {}
 
   // --- AI Health Check ---
@@ -378,6 +380,26 @@ export class AdminController {
       await this.settingsService.setSetting('mapbox_api_key', key);
     }
     return { success: true };
+  }
+
+  @Post('keys/test')
+  async testApiKey(@Body() body: { provider: 'groq' | 'openrouter' | 'google' | 'mapbox' }) {
+    const { provider } = body;
+    let result: { status: string; error?: string };
+
+    if (provider === 'groq') {
+      result = await this.groqProvider.checkHealth();
+    } else if (provider === 'openrouter') {
+      result = await this.openRouterProvider.checkHealth();
+    } else if (provider === 'mapbox') {
+      result = await this.companiesService.checkMapboxHealth();
+    } else if (provider === 'google') {
+      result = await this.companiesService.checkGoogleHealth();
+    } else {
+      throw new Error('Invalid provider');
+    }
+
+    return result;
   }
 
   // --- Email Digest ---

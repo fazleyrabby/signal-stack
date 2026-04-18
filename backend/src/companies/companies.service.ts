@@ -155,6 +155,50 @@ export class CompaniesService {
     }
   }
 
+  async checkMapboxHealth(): Promise<{ status: string; error?: string }> {
+    const apiKey = await this.settings.getSetting('mapbox_api_key');
+    if (!apiKey) return { status: 'no_api_key' };
+
+    try {
+      const res = await fetch(`https://api.mapbox.com/search/searchbox/v6/category/software?limit=1&access_token=${apiKey}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { status: 'error', error: data.message || `HTTP ${res.status}` };
+      }
+      return { status: 'healthy' };
+    } catch (err: any) {
+      return { status: 'error', error: err.message };
+    }
+  }
+
+  async checkGoogleHealth(): Promise<{ status: string; error?: string }> {
+    const apiKey = await this.settings.getSetting('google_places_api_key');
+    if (!apiKey) return { status: 'no_api_key' };
+
+    try {
+      const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id',
+        },
+        body: JSON.stringify({
+          locationRestriction: { circle: { center: { latitude: 23.8, longitude: 90.4 }, radius: 100 } },
+          includedTypes: ['establishment'],
+          maxResultCount: 1,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { status: 'error', error: data.error?.message || `HTTP ${res.status}` };
+      }
+      return { status: 'healthy' };
+    } catch (err: any) {
+      return { status: 'error', error: err.message };
+    }
+  }
+
   private async queryOverpass(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
     // Simple union: any office-tagged node or way within radius.
     // Name-regex clauses were causing 504 timeouts on Overpass for large radii.

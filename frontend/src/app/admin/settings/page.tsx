@@ -73,6 +73,25 @@ export default function SettingsPage() {
   const [mapboxKeyInput, setMapboxKeyInput] = useState('');
   const [savingKey, setSavingKey] = useState<'groq' | 'openrouter' | 'google' | 'mapbox' | null>(null);
   const [keySaved, setKeySaved] = useState<'groq' | 'openrouter' | 'google' | 'mapbox' | null>(null);
+  const [testingKey, setTestingKey] = useState<'groq' | 'openrouter' | 'google' | 'mapbox' | null>(null);
+  const [keyTestResult, setKeyTestResult] = useState<{ provider: string; ok: boolean; error?: string } | null>(null);
+
+  const handleTestApiKey = async (provider: 'groq' | 'openrouter' | 'google' | 'mapbox') => {
+    setTestingKey(provider);
+    setKeyTestResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/keys/test`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ provider }),
+      });
+      const data = await res.json();
+      setKeyTestResult({ provider, ok: data.status === 'healthy', error: data.error });
+    } catch { setKeyTestResult({ provider, ok: false, error: 'Request failed' }); }
+    finally {
+      setTestingKey(null);
+      setTimeout(() => setKeyTestResult(null), 5000);
+    }
+  };
 
   const handleSaveApiKey = async (provider: 'groq' | 'openrouter' | 'google' | 'mapbox') => {
     const key = provider === 'groq' ? groqKeyInput : provider === 'openrouter' ? openrouterKeyInput : provider === 'google' ? googleKeyInput : mapboxKeyInput;
@@ -273,11 +292,20 @@ export default function SettingsPage() {
                       placeholder={apiKeysData?.mapbox?.masked || "pk.eyJ1Ijo••••••••••••••••"}
                       className="flex-1 h-8 px-3 rounded-md bg-background border border-border/40 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary/40"
                     />
+                    <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 shrink-0" onClick={() => handleTestApiKey('mapbox')} disabled={(!mapboxKeyInput && !apiKeysData?.mapbox?.masked) || testingKey === 'mapbox'}>
+                      {testingKey === 'mapbox' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                      Test
+                    </Button>
                     <Button size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => handleSaveApiKey('mapbox')} disabled={!mapboxKeyInput.trim() || savingKey === 'mapbox'}>
                       {savingKey === 'mapbox' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                       Save
                     </Button>
                   </div>
+                  {keyTestResult?.provider === 'mapbox' && (
+                    <p className={cn("text-[10px] font-bold mt-1", keyTestResult.ok ? "text-emerald-500" : "text-red-500")}>
+                      {keyTestResult.ok ? '✓ Key is valid and working' : `✗ ${keyTestResult.error || 'Connection failed'}`}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -320,11 +348,20 @@ export default function SettingsPage() {
                       placeholder={apiKeysData?.google?.masked || "AIza••••••••••••••••"}
                       className="flex-1 h-8 px-3 rounded-md bg-background border border-border/40 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary/40"
                     />
+                    <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 shrink-0" onClick={() => handleTestApiKey('google')} disabled={(!googleKeyInput && !apiKeysData?.google?.masked) || testingKey === 'google'}>
+                      {testingKey === 'google' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                      Test
+                    </Button>
                     <Button size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => handleSaveApiKey('google')} disabled={!googleKeyInput.trim() || savingKey === 'google'}>
                       {savingKey === 'google' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                       Save
                     </Button>
                   </div>
+                  {keyTestResult?.provider === 'google' && (
+                    <p className={cn("text-[10px] font-bold mt-1", keyTestResult.ok ? "text-emerald-500" : "text-red-500")}>
+                      {keyTestResult.ok ? '✓ Key is valid and working' : `✗ ${keyTestResult.error || 'Connection failed'}`}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -427,11 +464,20 @@ export default function SettingsPage() {
                   placeholder="gsk_••••••••••••••••"
                   className="flex-1 h-8 px-3 rounded-md bg-background border border-border/40 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary/40"
                 />
+                <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 shrink-0" onClick={() => handleTestApiKey('groq')} disabled={(!groqKeyInput && !apiKeysData?.groq?.masked) || testingKey === 'groq'}>
+                  {testingKey === 'groq' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                  Test
+                </Button>
                 <Button size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => handleSaveApiKey('groq')} disabled={!groqKeyInput.trim() || savingKey === 'groq'}>
                   {savingKey === 'groq' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   Save
                 </Button>
               </div>
+              {keyTestResult?.provider === 'groq' && (
+                <p className={cn("text-[10px] font-bold mt-1", keyTestResult.ok ? "text-emerald-500" : "text-red-500")}>
+                  {keyTestResult.ok ? '✓ Key is valid and working' : `✗ ${keyTestResult.error || 'Connection failed'}`}
+                </p>
+              )}
             </div>
 
             {/* OpenRouter */}
@@ -463,11 +509,20 @@ export default function SettingsPage() {
                   placeholder="sk-or-••••••••••••••••"
                   className="flex-1 h-8 px-3 rounded-md bg-background border border-border/40 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary/40"
                 />
+                <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 shrink-0" onClick={() => handleTestApiKey('openrouter')} disabled={(!openrouterKeyInput && !apiKeysData?.openrouter?.masked) || testingKey === 'openrouter'}>
+                  {testingKey === 'openrouter' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                  Test
+                </Button>
                 <Button size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => handleSaveApiKey('openrouter')} disabled={!openrouterKeyInput.trim() || savingKey === 'openrouter'}>
                   {savingKey === 'openrouter' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   Save
                 </Button>
               </div>
+              {keyTestResult?.provider === 'openrouter' && (
+                <p className={cn("text-[10px] font-bold mt-1", keyTestResult.ok ? "text-emerald-500" : "text-red-500")}>
+                  {keyTestResult.ok ? '✓ Key is valid and working' : `✗ ${keyTestResult.error || 'Connection failed'}`}
+                </p>
+              )}
             </div>
 
             <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
