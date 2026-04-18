@@ -100,16 +100,22 @@ export class FeedScheduler implements OnModuleInit {
         const category = signal.categoryId || '';
         let shouldAlert = false;
  
+        // 1. Basic score thresholds
         if (category === 'technology') {
           shouldAlert = signal.score >= 7; // Medium (7) or High (10)
         } else if (category === 'geopolitics') {
           shouldAlert = signal.score >= 10; // High (10) only
+        } else if (category === 'jobs') {
+          shouldAlert = false; // Never send jobs to the news channel
         } else {
           // For other categories, use the generic env-based toggle
           shouldAlert = signal.score >= 7 && this.alertCategories.has(category);
         }
+
+        // 2. Extra filter: Even if score is high, skip if title sounds like a job post
+        const isJobRelated = /\b(hiring|recruitment|vacancy|career|job|jobs|developer|engineer|internship|intern|opening|position)\b/i.test(signal.title);
  
-        if (shouldAlert) {
+        if (shouldAlert && !isJobRelated) {
           await this.discordService.sendAlert(signal);
           alerted++;
         }

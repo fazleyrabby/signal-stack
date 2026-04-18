@@ -22,7 +22,7 @@ export class DiscordService implements OnModuleInit {
     private readonly settingsService: SettingsService,
   ) {
     this.webhookUrl = this.configService.get<string>('DISCORD_WEBHOOK_URL');
-    this.jobsWebhookUrl = this.configService.get<string>('DISCORD_JOBS_WEBHOOK_URL') || this.webhookUrl;
+    this.jobsWebhookUrl = this.configService.get<string>('DISCORD_JOBS_WEBHOOK_URL');
     this.filterTechOnly =
       this.configService.get<string>('DISCORD_FILTER_TECH') === 'true';
   }
@@ -33,12 +33,11 @@ export class DiscordService implements OnModuleInit {
     const storedJobs = await this.settingsService.getSetting('discord_jobs_webhook_url');
     if (storedMain) this.webhookUrl = storedMain;
     if (storedJobs) this.jobsWebhookUrl = storedJobs;
-    else if (storedMain && !this.jobsWebhookUrl) this.jobsWebhookUrl = storedMain;
   }
 
   updateWebhookUrls(main?: string, jobs?: string) {
     if (main !== undefined) this.webhookUrl = main || undefined;
-    if (jobs !== undefined) this.jobsWebhookUrl = jobs || this.webhookUrl;
+    if (jobs !== undefined) this.jobsWebhookUrl = jobs || undefined;
   }
 
   getWebhookUrls() {

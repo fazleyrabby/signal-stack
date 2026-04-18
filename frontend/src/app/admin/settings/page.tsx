@@ -519,10 +519,10 @@ export default function SettingsPage() {
                     type="url"
                     value={jobsWebhookUrl}
                     onChange={(e) => setJobsWebhookUrl(e.target.value)}
-                    placeholder="Leave blank to use signals webhook"
+                    placeholder="Enter dedicated jobs channel webhook"
                     className="flex-1 h-8 px-3 rounded-md bg-background border border-border/40 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary/40"
                   />
-                  <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 shrink-0" onClick={() => handleTestWebhook('jobs')} disabled={(!jobsWebhookUrl && !webhookUrl) || testingWebhook === 'jobs'}>
+                  <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5 shrink-0" onClick={() => handleTestWebhook('jobs')} disabled={!jobsWebhookUrl || testingWebhook === 'jobs'}>
                     {testingWebhook === 'jobs' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
                     Test
                   </Button>
@@ -535,7 +535,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <p className="text-[10px] text-muted-foreground">Jobs falls back to signals webhook if empty.</p>
+                <p className="text-[10px] text-muted-foreground">Strict separation: Job alerts only send if a dedicated URL is provided.</p>
                 <Button size="sm" className="h-8 px-4 text-xs gap-1.5" onClick={handleSaveWebhooks} disabled={isSavingWebhooks}>
                   {isSavingWebhooks ? <Loader2 className="w-3 h-3 animate-spin" /> : webhooksSaved ? <Check className="w-3 h-3" /> : <Check className="w-3 h-3" />}
                   {webhooksSaved ? 'Saved!' : 'Save'}
