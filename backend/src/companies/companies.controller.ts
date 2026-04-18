@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Body,
   Query,
@@ -15,6 +16,7 @@ import { CompaniesRepository } from './companies.repository';
 import { DirectoryCrawlerService, CRAWLER_SOURCES, CrawlerSourceKey } from './directory-crawler.service';
 import { isTechCompany } from './companies.repository';
 import { SkipThrottle } from '@nestjs/throttler';
+import { SettingsService } from '../ai/settings.service';
 
 @Controller('api/admin/companies')
 @UseGuards(AdminGuard)
@@ -24,13 +26,40 @@ export class CompaniesController {
     private readonly companiesService: CompaniesService,
     private readonly companiesRepository: CompaniesRepository,
     private readonly crawlerService: DirectoryCrawlerService,
+    private readonly settingsService: SettingsService,
   ) {}
+
+  @Get('radar/sources')
+  async getRadarSources() {
+    const config = await this.settingsService.getModelConfig();
+    return {
+      osm: { enabled: config.osmEnabled },
+      google: { enabled: config.googlePlacesEnabled },
+      mapbox: { enabled: config.mapboxEnabled },
+    };
+  }
+
+  @Put('radar/sources')
+  async updateRadarSource(
+    @Body() body: { source: 'osm' | 'google' | 'mapbox'; enabled: boolean },
+  ) {
+    const { source, enabled } = body;
+    if (source === 'osm') {
+      await this.settingsService.setModelConfig({ osmEnabled: enabled });
+    } else if (source === 'google') {
+      await this.settingsService.setModelConfig({ googlePlacesEnabled: enabled });
+    } else if (source === 'mapbox') {
+      await this.settingsService.setModelConfig({ mapboxEnabled: enabled });
+    }
+    return { success: true };
+  }
 
   @Get('nearby')
   async getNearby(
     @Query('lat') lat: string,
     @Query('lng') lng: string,
     @Query('radius') radius: string = '10000',
+    @Query('source') source: 'osm' | 'google' | 'mapbox' = 'osm',
   ) {
     const latNum = parseFloat(lat);
     const lngNum = parseFloat(lng);
@@ -40,7 +69,7 @@ export class CompaniesController {
       throw new BadRequestException('lat and lng are required');
     }
 
-    const companies = await this.companiesService.findNearby(latNum, lngNum, radiusNum);
+    const companies = await this.companiesService.findNearby(latNum, lngNum, radiusNum, source);
     return { data: companies, total: companies.length };
   }
 
@@ -75,6 +104,7 @@ export class CompaniesController {
       lat: body.lat || null,
       lng: body.lng || null,
       osmId: body.osmId || null,
+      placeId: body.placeId || null,
       source,
       tags,
     });

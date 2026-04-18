@@ -11,7 +11,7 @@ const NON_TECH_EXCLUDE = /\b(bank|banks|banking|finance|financial|insurance|leas
 const TECH_CONFIRM = /\b(software|tech|technology|technologies|digital|IT|ICT|solutions|systems|apps|application|web|mobile|cloud|data|cyber|network|telecom|fintech|e-commerce|ecommerce|startup|dev|development|code|coding|programming|platform|SaaS|AI|ML|ERP|CRM|automation|robotics|semiconductor|hardware|electronics)\b/i;
 
 // Sources that are inherently tech (always keep)
-const TECH_SOURCES = new Set(['basis', 'bacco', 'github_bd', 'ecab']);
+const TECH_SOURCES = new Set(['basis', 'bacco', 'github_bd', 'ecab', 'google']);
 
 export function isTechCompany(name: string, source: string, tags: string[]): boolean {
   // Directory crawler sources are pre-filtered as tech

@@ -335,6 +335,8 @@ export class AdminController {
   async getApiKeys() {
     const groqStored = await this.settingsService.getSetting('groq_api_key');
     const openrouterStored = await this.settingsService.getSetting('openrouter_api_key');
+    const googleStored = await this.settingsService.getSetting('google_places_api_key');
+    const mapboxStored = await this.settingsService.getSetting('mapbox_api_key');
     // Return masked values — never expose full key
     const mask = (k: string | null, env: string | undefined) => {
       const val = k ?? env ?? '';
@@ -350,11 +352,19 @@ export class AdminController {
         masked: mask(openrouterStored, this.configService.get('OPENROUTER_API_KEY')),
         source: openrouterStored ? 'db' : (this.configService.get('OPENROUTER_API_KEY') ? 'env' : 'none'),
       },
+      google: {
+        masked: mask(googleStored, this.configService.get('GOOGLE_PLACES_API_KEY')),
+        source: googleStored ? 'db' : (this.configService.get('GOOGLE_PLACES_API_KEY') ? 'env' : 'none'),
+      },
+      mapbox: {
+        masked: mask(mapboxStored, this.configService.get('MAPBOX_API_KEY')),
+        source: mapboxStored ? 'db' : (this.configService.get('MAPBOX_API_KEY') ? 'env' : 'none'),
+      },
     };
   }
 
   @Put('keys')
-  async updateApiKeys(@Body() body: { provider: 'groq' | 'openrouter'; key: string }) {
+  async updateApiKeys(@Body() body: { provider: 'groq' | 'openrouter' | 'google' | 'mapbox'; key: string }) {
     const { provider, key } = body;
     if (provider === 'groq') {
       await this.settingsService.setSetting('groq_api_key', key);
@@ -362,6 +372,10 @@ export class AdminController {
     } else if (provider === 'openrouter') {
       await this.settingsService.setSetting('openrouter_api_key', key);
       this.openRouterProvider.updateApiKey(key);
+    } else if (provider === 'google') {
+      await this.settingsService.setSetting('google_places_api_key', key);
+    } else if (provider === 'mapbox') {
+      await this.settingsService.setSetting('mapbox_api_key', key);
     }
     return { success: true };
   }

@@ -25,7 +25,8 @@ const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r)
 });
 
 interface NearbyCompany {
-  osmId: string;
+  osmId?: string;
+  placeId?: string;
   name: string;
   website: string | null;
   city: string | null;
@@ -84,6 +85,7 @@ export default function CompaniesAdmin() {
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedLoc, setSelectedLoc] = useState<{ lat: number; lng: number; label: string } | null>(null);
   const [radius, setRadius] = useState(10000);
+  const [radarSource, setRadarSource] = useState<'osm' | 'google' | 'mapbox'>('osm');
   const [geocoding, setGeocoding] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
 
@@ -91,6 +93,22 @@ export default function CompaniesAdmin() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<NearbyCompany[] | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  // Radar sources status
+  const { data: radarSources } = useSWR<{
+    osm: { enabled: boolean };
+    google: { enabled: boolean };
+    mapbox: { enabled: boolean };
+  }>(`${API_BASE}/api/admin/companies/radar/sources`, fetcher);
+
+  // Set default radar source based on availability
+  useEffect(() => {
+    if (radarSources) {
+      if (radarSources.mapbox.enabled) setRadarSource('mapbox');
+      else if (radarSources.osm.enabled) setRadarSource('osm');
+      else if (radarSources.google.enabled) setRadarSource('google');
+    }
+  }, [radarSources]);
 
   // Crawler state — backed by global CrawlContext so results persist across navigation
   const [crawlSource, setCrawlSource] = useState<CrawlSourceKey>("basis");
@@ -205,7 +223,7 @@ export default function CompaniesAdmin() {
         setGeocoding(false);
         setSearching(true);
         setResults(null);
-        fetch(`${API_BASE}/api/admin/companies/nearby?lat=${loc.lat}&lng=${loc.lng}&radius=${radius}`, { credentials: "include" })
+        fetch(`${API_BASE}/api/admin/companies/nearby?lat=${loc.lat}&lng=${loc.lng}&radius=${radius}&source=${radarSource}`, { credentials: "include" })
           .then((r) => r.json())
           .then((data) => setResults(data.data || []))
           .catch(() => setResults([]))
@@ -221,7 +239,7 @@ export default function CompaniesAdmin() {
     setSearching(true);
     setResults(null);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/companies/nearby?lat=${selectedLoc.lat}&lng=${selectedLoc.lng}&radius=${radius}`, { credentials: "include" });
+      const res = await fetch(`${API_BASE}/api/admin/companies/nearby?lat=${selectedLoc.lat}&lng=${selectedLoc.lng}&radius=${radius}&source=${radarSource}`, { credentials: "include" });
       const data = await res.json();
       setResults(data.data || []);
     } catch {
@@ -232,13 +250,15 @@ export default function CompaniesAdmin() {
   }
 
   async function saveCompany(company: NearbyCompany) {
+    const source = company.placeId ? "google" : "osm";
     await fetch(`${API_BASE}/api/admin/companies/save`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ ...company, source: "osm" }),
+      body: JSON.stringify({ ...company, source }),
     });
-    setSavedIds((prev) => new Set([...prev, company.osmId]));
+    const id = company.placeId || company.osmId!;
+    setSavedIds((prev) => new Set([...prev, id]));
     mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
   }
 
@@ -366,6 +386,37 @@ export default function CompaniesAdmin() {
                       </button>
                     ))}
                   </div>
+
+                  <div className="flex items-center gap-1 ml-4 border-l border-border/40 pl-4">
+                    {radarSources?.osm?.enabled && (
+                      <button
+                        onClick={() => setRadarSource('osm')}
+                        className={`text-[10px] px-2 py-0.5 rounded border transition-colors shrink-0 ${radarSource === 'osm' ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
+                      >
+                        OSM
+                      </button>
+                    )}
+                    {radarSources?.mapbox?.enabled && (
+                      <button
+                        onClick={() => setRadarSource('mapbox')}
+                        className={`text-[10px] px-2 py-0.5 rounded border transition-colors shrink-0 ${radarSource === 'mapbox' ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
+                      >
+                        Mapbox
+                      </button>
+                    )}
+                    {radarSources?.google?.enabled && (
+                      <button
+                        onClick={() => setRadarSource('google')}
+                        className={`text-[10px] px-2 py-0.5 rounded border transition-colors shrink-0 ${radarSource === 'google' ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
+                      >
+                        Google
+                      </button>
+                    )}
+                    {!radarSources?.osm?.enabled && !radarSources?.mapbox?.enabled && !radarSources?.google?.enabled && (
+                      <span className="text-[10px] text-muted-foreground/40 italic">All sources disabled</span>
+                    )}
+                  </div>
+
                   <Button size="sm" className="h-7 px-3 text-xs gap-1.5 ml-auto shrink-0" onClick={searchCompanies} disabled={searching}>
                     {searching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Building2 className="w-3 h-3" />}
                     Search Companies
@@ -379,7 +430,7 @@ export default function CompaniesAdmin() {
             {searching && (
               <div className="flex flex-col items-center justify-center h-40 gap-3 text-muted-foreground/50">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <p className="text-xs">Querying OpenStreetMap + checking career pages…</p>
+                <p className="text-xs">Querying {radarSource === 'osm' ? 'OpenStreetMap' : 'Google Places'} + checking career pages…</p>
               </div>
             )}
             {!searching && results === null && (
@@ -401,9 +452,10 @@ export default function CompaniesAdmin() {
             {!searching && results && results.length > 0 && (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {results.map((company) => {
-                  const isSaved = savedIds.has(company.osmId);
+                  const id = company.placeId || company.osmId!;
+                  const isSaved = savedIds.has(id);
                   return (
-                    <div key={company.osmId} className="border border-border/40 rounded-lg p-4 bg-card/30 flex flex-col gap-2.5 hover:bg-muted/10 transition-colors">
+                    <div key={id} className="border border-border/40 rounded-lg p-4 bg-card/30 flex flex-col gap-2.5 hover:bg-muted/10 transition-colors">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="text-xs font-semibold leading-tight">{company.name}</p>
@@ -688,6 +740,8 @@ export default function CompaniesAdmin() {
               <option value="ecab">e-CAB</option>
               <option value="github_bd">GitHub Tech</option>
               <option value="osm">OSM Nearby</option>
+              <option value="mapbox">Mapbox Nearby</option>
+              <option value="google">Google Places</option>
             </select>
             {/* City filter */}
             <div className="relative">

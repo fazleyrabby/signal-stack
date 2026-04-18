@@ -41,19 +41,29 @@ export class SettingsService {
       });
   }
 
-  async getModelConfig(): Promise<ModelConfig & { localAiEnabled: boolean }> {
+  async getModelConfig(): Promise<ModelConfig & { localAiEnabled: boolean; googlePlacesApiKey: string | null; mapboxApiKey: string | null; googlePlacesEnabled: boolean; mapboxEnabled: boolean; osmEnabled: boolean }> {
     const groqModel = await this.getSetting('groq_model');
     const openrouterModel = await this.getSetting('openrouter_model');
     const localAiEnabled = await this.getSetting('local_ai_enabled');
+    const googlePlacesApiKey = await this.getSetting('google_places_api_key');
+    const mapboxApiKey = await this.getSetting('mapbox_api_key');
+    const googlePlacesEnabled = await this.getSetting('google_places_enabled');
+    const mapboxEnabled = await this.getSetting('mapbox_enabled');
+    const osmEnabled = await this.getSetting('osm_enabled');
 
     return {
       groqModel: groqModel || 'llama-3.3-70b-versatile',
       openrouterModel: openrouterModel || 'meta-llama/llama-3.3-70b-instruct',
-      localAiEnabled: localAiEnabled !== 'false', // Default to true if not explicitly disabled
+      localAiEnabled: localAiEnabled !== 'false',
+      googlePlacesApiKey,
+      mapboxApiKey,
+      googlePlacesEnabled: googlePlacesEnabled !== 'false', // Default to true
+      mapboxEnabled: mapboxEnabled !== 'false',       // Default to true
+      osmEnabled: osmEnabled !== 'false',             // Default to true
     };
   }
 
-  async setModelConfig(config: Partial<ModelConfig & { localAiEnabled: boolean }>): Promise<void> {
+  async setModelConfig(config: Partial<ModelConfig & { localAiEnabled: boolean; googlePlacesApiKey: string | null; mapboxApiKey: string | null; googlePlacesEnabled: boolean; mapboxEnabled: boolean; osmEnabled: boolean }>): Promise<void> {
     if (config.groqModel) {
       await this.setSetting('groq_model', config.groqModel);
     }
@@ -62,6 +72,21 @@ export class SettingsService {
     }
     if (config.localAiEnabled !== undefined) {
       await this.setSetting('local_ai_enabled', String(config.localAiEnabled));
+    }
+    if (config.googlePlacesApiKey !== undefined) {
+      await this.setSetting('google_places_api_key', config.googlePlacesApiKey || '');
+    }
+    if (config.mapboxApiKey !== undefined) {
+      await this.setSetting('mapbox_api_key', config.mapboxApiKey || '');
+    }
+    if (config.googlePlacesEnabled !== undefined) {
+      await this.setSetting('google_places_enabled', String(config.googlePlacesEnabled));
+    }
+    if (config.mapboxEnabled !== undefined) {
+      await this.setSetting('mapbox_enabled', String(config.mapboxEnabled));
+    }
+    if (config.osmEnabled !== undefined) {
+      await this.setSetting('osm_enabled', String(config.osmEnabled));
     }
   }
 

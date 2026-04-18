@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../ai/redis.service';
+import { SettingsService } from '../ai/settings.service';
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+const GOOGLE_PLACES_URL = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+const MAPBOX_SEARCH_URL = 'https://api.mapbox.com/search/searchbox/v6/category/software';
 const CACHE_TTL = 3600; // 1 hour
 
 // Non-tech names to explicitly exclude (embassies, hospitals, schools, banks, etc.)
@@ -14,7 +17,8 @@ const NON_TECH_OFFICE_TAGS = new Set(['diplomatic', 'government', 'educational_i
 const TECH_OFFICE_TAGS = new Set(['it', 'tech', 'software', 'coworking', 'startup', 'company', 'yes']);
 
 export interface NearbyCompany {
-  osmId: string;
+  osmId?: string;
+  placeId?: string;
   name: string;
   website: string | null;
   city: string | null;
@@ -30,10 +34,19 @@ export interface NearbyCompany {
 export class CompaniesService {
   private readonly logger = new Logger(CompaniesService.name);
 
-  constructor(private readonly redis: RedisService) {}
+  constructor(
+    private readonly redis: RedisService,
+    private readonly settings: SettingsService,
+  ) {}
 
-  async findNearby(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
-    const cacheKey = `companies:nearby:v9:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+  async findNearby(lat: number, lng: number, radius: number, source: 'osm' | 'google' | 'mapbox' = 'osm'): Promise<NearbyCompany[]> {
+    const config = await this.settings.getModelConfig();
+
+    if (source === 'osm' && !config.osmEnabled) return [];
+    if (source === 'google' && !config.googlePlacesEnabled) return [];
+    if (source === 'mapbox' && !config.mapboxEnabled) return [];
+
+    const cacheKey = `companies:nearby:v11:${source}:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -41,16 +54,105 @@ export class CompaniesService {
       return JSON.parse(cached);
     }
 
-    const raw = await this.queryOverpass(lat, lng, radius);
-    this.logger.log(`Overpass found ${raw.length} raw companies at ${lat},${lng} (radius ${radius}m)`);
+    let results: NearbyCompany[] = [];
 
-    // Filter out clearly non-tech (embassies, hospitals, banks) — keep everything else.
-    // OSM coverage in Bangladesh/South Asia is sparse so we keep the filter lenient.
-    const results = raw.filter((c) => isTechByOsm(c)).slice(0, 200);
-    this.logger.log(`After tech filter: ${results.length} companies`);
+    if (source === 'google') {
+      results = await this.findNearbyGoogle(lat, lng, radius);
+    } else if (source === 'mapbox') {
+      results = await this.findNearbyMapbox(lat, lng, radius);
+    } else {
+      const raw = await this.queryOverpass(lat, lng, radius);
+      this.logger.log(`Overpass found ${raw.length} raw companies at ${lat},${lng} (radius ${radius}m)`);
+      results = raw.filter((c) => isTechByOsm(c)).slice(0, 200);
+    }
+
+    this.logger.log(`After tech filter: ${results.length} companies from ${source}`);
 
     await this.redis.set(cacheKey, JSON.stringify(results), 'EX', CACHE_TTL);
     return results;
+  }
+
+  private async findNearbyMapbox(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
+    const apiKey = await this.settings.getSetting('mapbox_api_key');
+    if (!apiKey) {
+      this.logger.warn('Mapbox API key not configured');
+      return [];
+    }
+
+    // Mapbox Category Search: Category "software" or "tech"
+    // Radius is not directly supported in Category Search, we use proximity
+    const url = `${MAPBOX_SEARCH_URL}?proximity=${lng},${lat}&access_token=${apiKey}&limit=25`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        this.logger.error(`Mapbox HTTP ${res.status}`);
+        return [];
+      }
+
+      const data = await res.json();
+      const results: NearbyCompany[] = (data.features || []).map((f: any) => ({
+        placeId: f.properties.mapbox_id,
+        name: f.properties.name,
+        website: f.properties.metadata?.website || null,
+        city: f.properties.context?.place?.name || f.properties.full_address || null,
+        country: f.properties.context?.country?.name || 'Bangladesh',
+        lat: f.geometry.coordinates[1],
+        lng: f.geometry.coordinates[0],
+        tags: f.properties.categories || [],
+        careerPageFound: false,
+        careerUrl: null,
+      }));
+
+      return results.filter(c => !NON_TECH_EXCLUDE.test(c.name));
+    } catch (err) {
+      this.logger.error(`Mapbox fetch failed: ${err}`);
+      return [];
+    }
+  }
+
+  private async findNearbyGoogle(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
+    const apiKey = await this.settings.getSetting('google_places_api_key');
+    if (!apiKey) {
+      this.logger.warn('Google Places API key not configured');
+      return [];
+    }
+
+    // We search for 'establishment' or specific types. Google is already pretty good at filtering.
+    // We'll search for 'company' and 'software_company' if possible, or just use keyword.
+    const url = `${GOOGLE_PLACES_URL}?location=${lat},${lng}&radius=${radius}&type=establishment&keyword=software+tech+it+company&key=${apiKey}`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        this.logger.error(`Google Places HTTP ${res.status}`);
+        return [];
+      }
+
+      const data = await res.json();
+      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+        this.logger.error(`Google Places API error: ${data.status} - ${data.error_message || ''}`);
+        return [];
+      }
+
+      const results: NearbyCompany[] = (data.results || []).map((p: any) => ({
+        placeId: p.place_id,
+        name: p.name,
+        website: null, // Basic nearby search doesn't return website, need Place Details
+        city: null,    // Needs Place Details or reverse geocoding
+        country: 'Bangladesh', // Assuming BD for now as per user context, or could infer
+        lat: p.geometry.location.lat,
+        lng: p.geometry.location.lng,
+        tags: p.types || [],
+        careerPageFound: false,
+        careerUrl: null,
+      }));
+
+      return results.filter(c => !NON_TECH_EXCLUDE.test(c.name));
+    } catch (err) {
+      this.logger.error(`Google Places fetch failed: ${err}`);
+      return [];
+    }
   }
 
   private async queryOverpass(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
