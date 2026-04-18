@@ -324,9 +324,9 @@ export class AIService {
       macLocalEnabled,
       pipeline: pipeline.join(' → '),
       tokenUsage: {
-        groq: { today: groqToday, allTime: groqAllTime },
-        openrouter: { today: openrouterToday, allTime: openrouterAllTime },
-        macLocal: { today: macLocalToday, allTime: macLocalAllTime },
+        groq: { today: groqToday.total, allTime: groqAllTime.total },
+        openrouter: { today: openrouterToday.total, allTime: openrouterAllTime.total },
+        macLocal: { today: macLocalToday.total, allTime: macLocalAllTime.total },
       },
     };
   }
