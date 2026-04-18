@@ -26,7 +26,12 @@ export class AIService {
     private readonly settingsService: SettingsService,
   ) {}
 
-  async translate(title: string, summary: string, targetLang: string): Promise<{ title: string; aiSummary: string } | null> {
+  async translate(
+    title: string,
+    summary: string,
+    targetLang: string,
+    modelOverride?: string,
+  ): Promise<{ title: string; aiSummary: string } | null> {
     const prompt = `Translate to ${targetLang}. Return ONLY a JSON object: {"title": "localized title", "aiSummary": "localized summary"}\n\nTitle: ${title}\nSummary: ${summary}`;
     const systemPrompt = "You are a professional translator. Output only valid JSON.";
 
@@ -35,13 +40,13 @@ export class AIService {
     try {
       // 1. Try Groq (fast & cheap)
       if (!this.isCooldown('groq')) {
-        const res = await this.groq.complete(prompt, systemPrompt);
+        const res = await this.groq.complete(prompt, systemPrompt, modelOverride);
         if (res) response = res;
       }
 
       // 2. Fallback to OpenRouter
       if (!response && !this.isCooldown('openrouter')) {
-        const res = await this.openRouter.complete(prompt, systemPrompt);
+        const res = await this.openRouter.complete(prompt, systemPrompt, modelOverride);
         if (res) response = res;
       }
 
@@ -70,17 +75,28 @@ export class AIService {
     }
   }
 
+  async translateLowPower(
+    title: string,
+    summary: string,
+    targetLang: string,
+  ): Promise<{ title: string; aiSummary: string } | null> {
+    // Smaller model for low-priority signals to save tokens
+    const model = 'llama-3.1-8b-instant';
+    return this.translate(title, summary, targetLang, model);
+  }
+
   async translateSpeculative(
     title: string,
     summary: string,
     targetLang: string,
+    modelOverride?: string,
   ): Promise<{ title: string; aiSummary: string } | null> {
     const prompt = `Translate to ${targetLang}. Return ONLY a JSON object: {"title": "localized title", "aiSummary": "localized summary"}\n\nTitle: ${title}\nSummary: ${summary}`;
     const systemPrompt = 'You are a professional translator. Output only valid JSON.';
 
     const promises: Promise<string | null>[] = [];
-    if (!this.isCooldown('groq')) promises.push(this.groq.complete(prompt, systemPrompt).catch(() => null));
-    if (!this.isCooldown('openrouter')) promises.push(this.openRouter.complete(prompt, systemPrompt).catch(() => null));
+    if (!this.isCooldown('groq')) promises.push(this.groq.complete(prompt, systemPrompt, modelOverride).catch(() => null));
+    if (!this.isCooldown('openrouter')) promises.push(this.openRouter.complete(prompt, systemPrompt, modelOverride).catch(() => null));
 
     if (promises.length === 0) return null;
 
@@ -102,7 +118,7 @@ export class AIService {
       };
     } catch {
       // All failed — fall back to sequential
-      return this.translate(title, summary, targetLang);
+      return this.translate(title, summary, targetLang, modelOverride);
     }
   }
 

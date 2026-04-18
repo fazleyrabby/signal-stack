@@ -13,6 +13,7 @@ import type { DrizzleDB } from '../database/database.module';
 import { signals } from '../database/schema';
 import { eq, sql } from 'drizzle-orm';
 import { logEvent } from '../common/logger';
+import { SettingsService } from './settings.service';
 import {
   TRANSLATION_VERSION,
   TRANSLATION_LOCK_TTL,
@@ -29,6 +30,7 @@ interface TranslationJob {
   title: string;
   summary: string;
   lang: string;
+  score?: number;
   retryCount?: number;
   priority?: TranslationPriority;
   processAfter?: number; // epoch ms — for delayed retries
@@ -48,6 +50,7 @@ export class TranslationQueue implements OnModuleInit, OnModuleDestroy {
     private readonly aiService: AIService,
     private readonly redis: RedisService,
     private readonly metrics: MetricsService,
+    private readonly settings: SettingsService,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
   ) {}
 
@@ -122,7 +125,10 @@ export class TranslationQueue implements OnModuleInit, OnModuleDestroy {
     try {
       // Double-check DB before expensive AI call
       const [signal] = await this.db
-        .select({ translations: signals.translations })
+        .select({ 
+          translations: signals.translations,
+          score: signals.score
+        })
         .from(signals)
         .where(eq(signals.id, job.id))
         .limit(1);
@@ -133,12 +139,20 @@ export class TranslationQueue implements OnModuleInit, OnModuleDestroy {
       // Skip if already translated with current version
       if (existing_entry && existing_entry.v === TRANSLATION_VERSION) return;
 
-      // HIGH priority → speculative parallel execution
-      const priority = job.priority || 'MEDIUM';
-      const translated =
-        priority === 'HIGH'
+      const config = await this.settings.getModelConfig();
+      const signalScore = signal?.score || job.score || 5;
+
+      let translated;
+      if (signalScore >= config.translationThreshold) {
+        // High quality translation
+        const priority = job.priority || 'MEDIUM';
+        translated = priority === 'HIGH'
           ? await this.aiService.translateSpeculative(job.title, job.summary, job.lang)
           : await this.aiService.translate(job.title, job.summary, job.lang);
+      } else {
+        // Low power/low cost translation
+        translated = await this.aiService.translateLowPower(job.title, job.summary, job.lang);
+      }
 
       if (translated) {
         const entry: TranslationEntry = {

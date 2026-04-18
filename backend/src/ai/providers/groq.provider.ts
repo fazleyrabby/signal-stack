@@ -105,14 +105,14 @@ export class GroqProvider implements OnModuleInit {
     }
   }
 
-  async complete(prompt: string, systemPrompt?: string): Promise<string | null> {
-    const model = await this.getModel();
+  async complete(prompt: string, systemPrompt?: string, modelOverride?: string): Promise<string | null> {
+    const model = modelOverride || await this.getModel();
     try {
       const res = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model,

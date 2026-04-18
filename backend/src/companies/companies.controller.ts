@@ -36,7 +36,17 @@ export class CompaniesController {
       osm: { enabled: config.osmEnabled },
       google: { enabled: config.googlePlacesEnabled },
       mapbox: { enabled: config.mapboxEnabled },
+      translationThreshold: config.translationThreshold,
+      forceAllTranslations: config.forceAllTranslations,
     };
+  }
+
+  @Put('radar/settings')
+  async updateRadarSettings(
+    @Body() body: { translationThreshold?: number; forceAllTranslations?: boolean },
+  ) {
+    await this.settingsService.setModelConfig(body);
+    return { success: true };
   }
 
   @Put('radar/sources')

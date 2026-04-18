@@ -41,7 +41,16 @@ export class SettingsService {
       });
   }
 
-  async getModelConfig(): Promise<ModelConfig & { localAiEnabled: boolean; googlePlacesApiKey: string | null; mapboxApiKey: string | null; googlePlacesEnabled: boolean; mapboxEnabled: boolean; osmEnabled: boolean }> {
+  async getModelConfig(): Promise<ModelConfig & {
+    localAiEnabled: boolean;
+    googlePlacesApiKey: string | null;
+    mapboxApiKey: string | null;
+    googlePlacesEnabled: boolean;
+    mapboxEnabled: boolean;
+    osmEnabled: boolean;
+    translationThreshold: number;
+    forceAllTranslations: boolean;
+  }> {
     const groqModel = await this.getSetting('groq_model');
     const openrouterModel = await this.getSetting('openrouter_model');
     const localAiEnabled = await this.getSetting('local_ai_enabled');
@@ -50,6 +59,8 @@ export class SettingsService {
     const googlePlacesEnabled = await this.getSetting('google_places_enabled');
     const mapboxEnabled = await this.getSetting('mapbox_enabled');
     const osmEnabled = await this.getSetting('osm_enabled');
+    const translationThreshold = await this.getSetting('translation_threshold');
+    const forceAllTranslations = await this.getSetting('force_all_translations');
 
     return {
       groqModel: groqModel || 'llama-3.3-70b-versatile',
@@ -57,13 +68,24 @@ export class SettingsService {
       localAiEnabled: localAiEnabled !== 'false',
       googlePlacesApiKey,
       mapboxApiKey,
-      googlePlacesEnabled: googlePlacesEnabled !== 'false', // Default to true
-      mapboxEnabled: mapboxEnabled !== 'false',       // Default to true
-      osmEnabled: osmEnabled !== 'false',             // Default to true
+      googlePlacesEnabled: googlePlacesEnabled !== 'false',
+      mapboxEnabled: mapboxEnabled !== 'false',
+      osmEnabled: osmEnabled !== 'false',
+      translationThreshold: translationThreshold ? parseInt(translationThreshold, 10) : 7,
+      forceAllTranslations: forceAllTranslations === 'true',
     };
   }
 
-  async setModelConfig(config: Partial<ModelConfig & { localAiEnabled: boolean; googlePlacesApiKey: string | null; mapboxApiKey: string | null; googlePlacesEnabled: boolean; mapboxEnabled: boolean; osmEnabled: boolean }>): Promise<void> {
+  async setModelConfig(config: Partial<ModelConfig & {
+    localAiEnabled: boolean;
+    googlePlacesApiKey: string | null;
+    mapboxApiKey: string | null;
+    googlePlacesEnabled: boolean;
+    mapboxEnabled: boolean;
+    osmEnabled: boolean;
+    translationThreshold: number;
+    forceAllTranslations: boolean;
+  }>): Promise<void> {
     if (config.groqModel) {
       await this.setSetting('groq_model', config.groqModel);
     }
@@ -87,6 +109,12 @@ export class SettingsService {
     }
     if (config.osmEnabled !== undefined) {
       await this.setSetting('osm_enabled', String(config.osmEnabled));
+    }
+    if (config.translationThreshold !== undefined) {
+      await this.setSetting('translation_threshold', String(config.translationThreshold));
+    }
+    if (config.forceAllTranslations !== undefined) {
+      await this.setSetting('force_all_translations', String(config.forceAllTranslations));
     }
   }
 

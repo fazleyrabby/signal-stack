@@ -6,6 +6,7 @@ import { AIQueue } from '../ai/ai.queue';
 import { AIService } from '../ai/ai.service';
 import { TranslationQueue } from '../ai/translation.queue';
 import { MetricsService } from '../ai/metrics.service';
+import { SettingsService } from '../ai/settings.service';
 import {
   TRANSLATION_VERSION,
   SOFT_BLOCK_TIMEOUT_MS,
@@ -27,6 +28,7 @@ export class SignalsService {
     private readonly aiService: AIService,
     private readonly translationQueue: TranslationQueue,
     private readonly metrics: MetricsService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async insertSignal(signal: ScoredSignal): Promise<boolean> {
@@ -66,6 +68,24 @@ export class SignalsService {
         },
         scoreToPriority(inserted.score),
       );
+
+      // Trigger automatic translations if configured
+      const config = await this.settingsService.getModelConfig();
+      if (config.forceAllTranslations) {
+        // Enqueue common languages (bn, es) for background translation
+        for (const lang of ['bn', 'es']) {
+          await this.translationQueue.enqueue(
+            { 
+              id: inserted.id, 
+              title: inserted.title, 
+              summary: inserted.summary || inserted.title, 
+              lang,
+              score: inserted.score
+            },
+            scoreToPriority(inserted.score),
+          );
+        }
+      }
     }
 
     return !!inserted;
@@ -137,9 +157,14 @@ export class SignalsService {
 
     await this.metrics.recordCacheHit(false);
 
+    const config = await this.settingsService.getModelConfig();
+    const isHighPower = (signal.score || 5) >= config.translationThreshold;
+
     // Soft-block: try to translate within timeout
     let settled = false;
-    const translationPromise = this.aiService.translate(signal.title, signal.aiSummary, lang);
+    const translationPromise = isHighPower
+      ? this.aiService.translate(signal.title, signal.aiSummary, lang)
+      : this.aiService.translateLowPower(signal.title, signal.aiSummary, lang);
 
     const timeoutPromise = new Promise<null>((resolve) =>
       setTimeout(() => resolve(null), SOFT_BLOCK_TIMEOUT_MS),
@@ -174,7 +199,13 @@ export class SignalsService {
 
     // Timeout won — enqueue async job for next request
     await this.translationQueue.enqueue(
-      { id: signal.id, title: signal.title, summary: signal.aiSummary, lang },
+      { 
+        id: signal.id, 
+        title: signal.title, 
+        summary: signal.aiSummary, 
+        lang,
+        score: signal.score
+      },
       scoreToPriority(signal.score || 5),
     );
 

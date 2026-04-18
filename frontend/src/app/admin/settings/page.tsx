@@ -153,13 +153,33 @@ export default function SettingsPage() {
     osm: { enabled: boolean };
     google: { enabled: boolean };
     mapbox: { enabled: boolean };
+    translationThreshold: number;
+    forceAllTranslations: boolean;
   }>(`${API_BASE}/api/admin/companies/radar/sources`, fetcher);
 
-  const toggleRadarSource = async (source: 'osm' | 'google' | 'mapbox', current: boolean) => {
+  const toggleRadarSource = async (source: 'osm' | 'google' | 'mapbox' | 'force_all', current: boolean) => {
     try {
-      await fetch(`${API_BASE}/api/admin/companies/radar/sources`, {
+      const url = source === 'force_all' 
+        ? `${API_BASE}/api/admin/companies/radar/settings`
+        : `${API_BASE}/api/admin/companies/radar/sources`;
+      
+      const body = source === 'force_all'
+        ? { forceAllTranslations: !current }
+        : { source, enabled: !current };
+
+      await fetch(url, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', body: JSON.stringify({ source, enabled: !current }),
+        credentials: 'include', body: JSON.stringify(body),
+      });
+      await refreshRadarSources();
+    } catch (e) { console.error(e); }
+  };
+
+  const updateThreshold = async (val: number) => {
+    try {
+      await fetch(`${API_BASE}/api/admin/companies/radar/settings`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ translationThreshold: val }),
       });
       await refreshRadarSources();
     } catch (e) { console.error(e); }
@@ -307,6 +327,63 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+
+        <div className="border-t border-border/30" />
+
+        {/* ── Translation Logic ─────────────────────────── */}
+        <section>
+          <SectionHeader
+            icon={Zap}
+            title="Translation Logic"
+            subtitle="Control how and when signals are translated"
+          />
+          <div className="px-6 py-4 space-y-4 max-w-2xl">
+            {/* Force All */}
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/40 bg-card/30">
+              <div className="flex items-center gap-3">
+                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center bg-muted/40", radarSources?.forceAllTranslations ? "text-primary" : "text-muted-foreground")}>
+                  <Globe className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold">Force Complete Translation</p>
+                  <p className="text-[10px] text-muted-foreground">Translate every signal automatically to ensure a 100% native experience.</p>
+                </div>
+              </div>
+              <Switch checked={radarSources?.forceAllTranslations ?? false} onCheckedChange={() => toggleRadarSource('force_all', radarSources?.forceAllTranslations ?? false)} />
+            </div>
+
+            {/* Threshold */}
+            <div className="space-y-3 p-4 rounded-lg border border-border/40 bg-card/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted/40 text-primary">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold">Quality Threshold: {radarSources?.translationThreshold || 7}</p>
+                    <p className="text-[10px] text-muted-foreground">Signals above this score use high-power models; others use low-cost models.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="10"
+                  step="1"
+                  value={radarSources?.translationThreshold || 7}
+                  onChange={(e) => updateThreshold(parseInt(e.target.value, 10))}
+                  className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between mt-1 text-[9px] text-muted-foreground font-mono">
+                  <span>0 (All Low Power)</span>
+                  <span>5 (Medium)</span>
+                  <span>10 (All High Power)</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
