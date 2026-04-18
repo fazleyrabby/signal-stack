@@ -3723,3 +3723,127 @@ For true headless operation without SSH drops:
 4. System sleep must be disabled — use `caffeinate -s &` or Energy Saver settings
 
 **Note:** `sudo purge` clears speculative memory pages (safe, no data loss) but requires password — must be run in local terminal, not remotely.
+
+---
+
+## Section 41: Worker Intelligence Dashboard — What It Means (April 2026)
+
+The Admin dashboard has a **Worker Intelligence** section showing real-time metrics for the backend's async processing pipelines. This has nothing to do with job listings — it tracks internal AI workers.
+
+### 41.1 Metric Breakdown
+
+| Metric | What it means | Healthy value |
+|--------|--------------|---------------|
+| **Translation Queue** | Signals waiting to be translated (Bengali, Spanish, etc.) | 0 = idle |
+| **AI Summary Queue** | Signals waiting for Groq/OpenRouter to generate summaries | 0 = idle |
+| **Cache Hit Ratio** | % of signal requests served from Redis vs hitting DB | >70% |
+| **Avg Translate Latency** | Average ms per translation job across all language modes | <5000ms |
+| **Translation · Today** | Completed / enqueued / failed translation jobs since midnight | failed = 0 |
+| **AI Summaries · Today** | Same but for AI summary generation | failed = 0 |
+
+### 41.2 How to Read It
+
+**Healthy state:** Queues at 0, cache hit ratio >70%, latency <5s, failed = 0.
+
+**Warning signs:**
+- Translation Queue >10 and growing = workers falling behind (likely VPS RAM pressure or API rate limits)
+- Cache Hit Ratio <30% = Redis not being utilized effectively — check Redis connection
+- High failed count = API key issue or provider outage — check Groq/OpenRouter status
+- Avg latency >10s = VPS under memory pressure or local Llama loaded and slow
+
+### 41.3 Where the Data Comes From
+
+```
+Redis keys:
+  metrics:translation:completed   — incremented each time a translation finishes
+  metrics:translation:enqueued    — incremented on each queue push
+  metrics:translation:failed      — incremented on error
+  metrics:cache:hits / :misses    — incremented on each Redis get
+  metrics:queue:translationDepth  — current queue length (LLEN)
+  metrics:queue:aiSummaryDepth    — current AI queue length
+```
+
+All written by `TranslationQueue` and `AIQueue` services. Resets at midnight via a scheduled job.
+
+### 41.4 What to Do When Queues Build Up
+
+1. Check VPS RAM: `ssh fazley@192.168.0.110 "free -h"`
+2. Check if Llama is running and consuming memory: `docker stats signalstack-llama`
+3. Restart the app container to flush in-memory queue state: `docker restart signalstack-app`
+4. If Groq rate-limited: check `AI_DAILY_LIMIT` env var (default 500 requests/day)
+
+---
+
+## Section 42: Mobile Viewport Optimization (April 2026)
+
+### 42.1 Problem
+
+On mobile, the signal feed showed only 2 cards in the viewport. Too much space consumed by:
+
+| Element | Height |
+|---------|--------|
+| Header | ~48px |
+| Stats bar + tabs (stacked 2 rows) | ~80px |
+| Column title bar | ~52px |
+| Control bar (filter buttons) | ~44px |
+| **Total chrome** | **~224px** |
+
+### 42.2 Fixes Applied
+
+**1. Stats bar — hidden on mobile, replaced with compact badges:**
+```tsx
+{/* Desktop: full StatsBar component */}
+<div className="hidden sm:flex items-center gap-4">
+  <StatsBar stats={stats} />
+</div>
+{/* Mobile: two tiny dot + number badges */}
+<div className="flex sm:hidden items-center gap-2 text-[10px] font-mono">
+  <span><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{stats.last24h}</span>
+  <span><span className="w-1.5 h-1.5 rounded-full bg-red-500" />{stats.high}</span>
+</div>
+```
+
+**2. Column title bar — hidden on mobile:**
+```tsx
+// Before: always visible
+<div className="px-4 py-2.5 flex items-center gap-3 ...">
+
+// After: sm:flex = hidden on mobile
+<div className="hidden sm:flex px-4 py-2.5 items-center gap-3 ...">
+```
+Rationale: the active tab button already communicates the category. Title is redundant on small screens.
+
+**3. Category tabs — smaller on mobile:**
+```tsx
+// Icons: w-3 on mobile, w-4 on desktop
+// Text: abbreviated to 3 chars on xs screens (geo/tec/ai)
+// Padding: px-2 py-1 on mobile vs px-3 py-1.5 on desktop
+```
+
+**4. Filter buttons — tighter on mobile:**
+```tsx
+"h-6 sm:h-7 px-2 sm:px-3 text-[9px] sm:text-[10px]"
+// "medium" → "med" on mobile
+```
+
+**5. Outer padding reduced:**
+```tsx
+// Before: px-3 sm:px-6 pt-1 pb-4
+// After:  px-2 sm:px-6 pt-1 pb-2 sm:pb-4
+```
+
+### 42.3 Net Result
+
+~100px of chrome recovered on mobile → signal list goes from ~2 visible cards to ~4-5 cards before scrolling.
+
+### 42.4 Breakpoint Reference (Tailwind)
+
+| Prefix | Min-width | Typical device |
+|--------|-----------|----------------|
+| (none) | 0px | All — mobile first |
+| `xs` | 480px | Large phones |
+| `sm` | 640px | Small tablets / landscape phones |
+| `md` | 768px | Tablets |
+| `lg` | 1024px | Laptops |
+
+This project uses `sm` as the primary mobile/desktop breakpoint throughout the admin and feed UI.
