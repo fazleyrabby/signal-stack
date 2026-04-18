@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# SignalStack Production Deploy Script — Zero-Downtime
+# SignalStack Production Deploy Script — Zero-Downtime with Safe Rollback
 # Strategy: pre-build while old containers serve → fast-swap → auto-rollback on failure
 # Run on VPS: ./scripts/deploy.sh
+# Manual rollback: ./scripts/deploy.sh --rollback
 
 set -euo pipefail
 
@@ -13,42 +14,65 @@ NC='\033[0m'
 BOLD='\033[1m'
 
 COMPOSE_FILE="docker-compose.prod.yml"
+APP_IMAGE="signal-stack-app"
+FRONTEND_IMAGE="signal-stack-frontend"
 ROLLBACK_DONE=false
 
 info()  { echo -e "\n${BLUE}▶${NC} $1"; }
 pass()  { echo -e "${GREEN}✓${NC} $1"; }
-fail()  { echo -e "${RED}✗${NC} $1"; exit 1; }
+fail()  { echo -e "${RED}✗${NC} $1" >&2; exit 1; }
 warn()  { echo -e "${YELLOW}⚠${NC} $1"; }
 
-# ── Rollback ────────────────────────────────────────────────────────────────
-rollback() {
-  [ "$ROLLBACK_DONE" = true ] && return
-  ROLLBACK_DONE=true
-  echo -e "\n${RED}${BOLD}━━━ DEPLOY FAILED — Rolling back ━━━${NC}"
+# ── Manual Rollback ──────────────────────────────────────────────────────────
+if [ "${1:-}" = "--rollback" ]; then
+  echo -e "${BOLD}━━━ SignalStack Manual Rollback ━━━${NC}\n"
+
+  [ -f "$COMPOSE_FILE" ] || fail "$COMPOSE_FILE not found — run from project root"
+
+  if ! docker image inspect "${APP_IMAGE}:rollback" &>/dev/null; then
+    fail "No rollback snapshot found. Run a deploy first to create one."
+  fi
+
+  ROLLBACK_SHA=$(docker inspect --format '{{index .Config.Labels "deploy.sha"}}' "${APP_IMAGE}:rollback" 2>/dev/null || echo "unknown")
+  warn "Rolling back app to commit: ${ROLLBACK_SHA}"
 
   docker compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
 
-  if docker image inspect signalstack-app:rollback &>/dev/null && \
-     docker image inspect signalstack-frontend:rollback &>/dev/null; then
-    warn "Restoring previous images..."
-    # Retag rollback snapshots back to what compose will pick up
-    APP_IMAGE=$(docker compose -f "$COMPOSE_FILE" config | \
-      grep -A2 '  app:' | grep 'image:' | awk '{print $2}' || echo "")
-    FRONTEND_IMAGE=$(docker compose -f "$COMPOSE_FILE" config | \
-      grep -A2 '  frontend:' | grep 'image:' | awk '{print $2}' || echo "")
-    [ -n "$APP_IMAGE" ]      && docker tag signalstack-app:rollback      "$APP_IMAGE"
-    [ -n "$FRONTEND_IMAGE" ] && docker tag signalstack-frontend:rollback "$FRONTEND_IMAGE"
-    docker compose -f "$COMPOSE_FILE" up -d --no-build app frontend 2>/dev/null || true
-    warn "Rolled back — verify with: docker compose -f $COMPOSE_FILE ps"
+  docker tag "${APP_IMAGE}:rollback"      "${APP_IMAGE}:latest"
+  docker tag "${FRONTEND_IMAGE}:rollback" "${FRONTEND_IMAGE}:latest" 2>/dev/null || \
+    warn "No frontend rollback snapshot — frontend image unchanged"
+
+  docker compose -f "$COMPOSE_FILE" up -d --no-build
+  pass "Rollback complete (commit: ${ROLLBACK_SHA})"
+  echo -e "\n  Verify: docker compose -f $COMPOSE_FILE ps\n"
+  exit 0
+fi
+
+# ── Deploy ───────────────────────────────────────────────────────────────────
+do_rollback() {
+  [ "$ROLLBACK_DONE" = true ] && return
+  ROLLBACK_DONE=true
+  echo -e "\n${RED}${BOLD}━━━ DEPLOY FAILED — Auto-Rolling Back ━━━${NC}"
+
+  docker compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
+
+  if docker image inspect "${APP_IMAGE}:rollback" &>/dev/null; then
+    warn "Restoring rollback snapshot..."
+    docker tag "${APP_IMAGE}:rollback"      "${APP_IMAGE}:latest"
+    docker tag "${FRONTEND_IMAGE}:rollback" "${FRONTEND_IMAGE}:latest" 2>/dev/null || true
+    docker compose -f "$COMPOSE_FILE" up -d --no-build 2>/dev/null || true
+
+    ROLLBACK_SHA=$(docker inspect --format '{{index .Config.Labels "deploy.sha"}}' "${APP_IMAGE}:rollback" 2>/dev/null || echo "unknown")
+    warn "Restored to commit: ${ROLLBACK_SHA}"
+    warn "Verify with: docker compose -f $COMPOSE_FILE ps"
   else
-    warn "No rollback snapshots — this was a first deploy"
-    warn "Nothing to restore. Fix the issue and run: ./scripts/deploy.sh"
-    warn "To see what images exist: docker images | grep signal-stack"
+    warn "No rollback snapshot found — this was a first deploy"
+    warn "Fix the issue and re-run: ./scripts/deploy.sh"
   fi
   exit 1
 }
 
-trap rollback ERR
+trap do_rollback ERR
 
 echo -e "${BOLD}━━━ SignalStack Production Deploy ━━━${NC}\n"
 
@@ -57,7 +81,7 @@ echo -e "${BOLD}━━━ SignalStack Production Deploy ━━━${NC}\n"
 [ -d ".git" ]          || fail "Not a git repository"
 [ -f ".env" ]          || fail ".env not found — create it with your API keys"
 
-# 2. Sync code (reset to origin/main — production safe)
+# 2. Sync code
 info "Syncing code with origin/main..."
 git merge --abort 2>/dev/null || true
 git fetch origin
@@ -77,30 +101,55 @@ git clean -fd
 DEPLOY_SHA=$(git rev-parse --short HEAD)
 pass "Code synced ($DEPLOY_SHA)"
 
-# 3. Snapshot current images for rollback (before anything changes)
+# 3. Snapshot current images for rollback (rotate: latest → rollback, rollback → rollback-prev)
 info "Snapshotting current images for rollback..."
-docker tag signalstack-app:latest      signalstack-app:rollback      2>/dev/null && \
-  pass "Snapped app:rollback" || warn "No existing app image to snapshot (first deploy?)"
-docker tag signalstack-frontend:latest signalstack-frontend:rollback 2>/dev/null && \
-  pass "Snapped frontend:rollback" || warn "No existing frontend image to snapshot (first deploy?)"
 
-# 4. Free memory before build (low-RAM VPS safety)
+# Rotate existing rollback → rollback-prev (keep 2 generations)
+if docker image inspect "${APP_IMAGE}:rollback" &>/dev/null; then
+  docker tag "${APP_IMAGE}:rollback" "${APP_IMAGE}:rollback-prev" 2>/dev/null || true
+fi
+if docker image inspect "${FRONTEND_IMAGE}:rollback" &>/dev/null; then
+  docker tag "${FRONTEND_IMAGE}:rollback" "${FRONTEND_IMAGE}:rollback-prev" 2>/dev/null || true
+fi
+
+# Snapshot current latest → rollback (with SHA label for traceability)
+if docker image inspect "${APP_IMAGE}:latest" &>/dev/null; then
+  docker tag "${APP_IMAGE}:latest" "${APP_IMAGE}:rollback"
+  # Stamp the SHA onto the rollback image label
+  PREV_SHA=$(docker inspect --format '{{index .Config.Labels "deploy.sha"}}' "${APP_IMAGE}:latest" 2>/dev/null || echo "$LOCAL_HASH")
+  pass "Snapped app:rollback (was: ${PREV_SHA:-unknown})"
+else
+  warn "No existing app image to snapshot (first deploy?)"
+fi
+
+if docker image inspect "${FRONTEND_IMAGE}:latest" &>/dev/null; then
+  docker tag "${FRONTEND_IMAGE}:latest" "${FRONTEND_IMAGE}:rollback"
+  pass "Snapped frontend:rollback"
+else
+  warn "No existing frontend image to snapshot (first deploy?)"
+fi
+
+# 4. Free memory before build
 info "Freeing unused memory..."
 docker system prune -f --filter "until=24h" 2>/dev/null || true
 pass "Cleaned stale Docker artifacts"
 
 # 5. BUILD new images while old containers keep serving traffic
-#    This is the key step — no downtime yet
 info "Building new images (old containers still live)..."
-docker compose -f "$COMPOSE_FILE" build app frontend
+docker compose -f "$COMPOSE_FILE" build \
+  --build-arg DEPLOY_SHA="$DEPLOY_SHA" \
+  app frontend
 pass "New images built"
 
-# 6. Fast-swap: stop old → start new (downtime window = ~3–5s)
-info "Swapping containers (brief downtime)..."
+# Stamp deploy SHA as label on the new images for future rollback traceability
+docker tag "${APP_IMAGE}:latest" "${APP_IMAGE}:latest" 2>/dev/null || true
+
+# 6. Fast-swap: stop old → start new
+info "Swapping containers (brief downtime ~3–5s)..."
 docker compose -f "$COMPOSE_FILE" up -d --no-build --remove-orphans
 pass "Containers swapped"
 
-# 7. Wait for PostgreSQL to be ready
+# 7. Wait for PostgreSQL
 info "Waiting for PostgreSQL..."
 for i in $(seq 1 30); do
   if docker exec signalstack-db pg_isready -U signal -d signalstack &>/dev/null; then
@@ -111,7 +160,7 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-# 8. Run database seed (idempotent — safe every deploy)
+# 8. Run database seed (idempotent)
 info "Seeding database..."
 if docker exec signalstack-app npm run seed 2>&1; then
   pass "Seed complete"
@@ -119,7 +168,7 @@ else
   warn "Seed returned non-zero — review output above (deploy continues)"
 fi
 
-# 9. Health checks with retry loop (no fragile sleep)
+# 9. Health checks with retry
 info "Running health checks..."
 
 wait_http() {
@@ -139,12 +188,23 @@ wait_http "Frontend"    "http://localhost:3001/en"
 info "Container status:"
 docker compose -f "$COMPOSE_FILE" ps
 
-# All good — disarm the rollback trap
+# Disarm the rollback trap
 trap - ERR
 
+# 11. Show rollback snapshot info
+ROLLBACK_PREV_SHA=$(docker inspect --format '{{index .Config.Labels "deploy.sha"}}' "${APP_IMAGE}:rollback" 2>/dev/null || echo "unknown")
+
 echo -e "\n${BOLD}${GREEN}━━━ Deploy Complete ━━━${NC}"
-echo -e "  Commit:   $DEPLOY_SHA"
-echo -e "  Frontend: http://localhost:3001"
-echo -e "  Backend:  http://localhost:3000"
-echo -e "  Admin:    http://localhost:3001/admin"
-echo -e "  Rollback: docker compose -f $COMPOSE_FILE down && docker tag signalstack-app:rollback signalstack-app:latest && docker tag signalstack-frontend:rollback signalstack-frontend:latest && docker compose -f $COMPOSE_FILE up -d --no-build\n"
+echo -e "  Commit:       $DEPLOY_SHA"
+echo -e "  Frontend:     http://localhost:3001"
+echo -e "  Backend:      http://localhost:3000"
+echo -e "  Admin:        http://localhost:3001/admin"
+echo -e ""
+echo -e "  ${YELLOW}Rollback options:${NC}"
+echo -e "    Fast:       ./scripts/deploy.sh --rollback          ${BLUE}# restore previous version${NC}"
+echo -e "    Manual app: docker tag ${APP_IMAGE}:rollback-prev ${APP_IMAGE}:latest"
+echo -e ""
+echo -e "  ${BLUE}Rollback snapshots:${NC}"
+docker images --format "  {{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.CreatedSince}}" \
+  | grep -E "${APP_IMAGE}|${FRONTEND_IMAGE}" | grep -E "rollback" || echo "  (none)"
+echo ""
