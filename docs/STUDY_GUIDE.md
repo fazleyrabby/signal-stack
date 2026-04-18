@@ -30,6 +30,10 @@
 21. [Section 26: Admin Auth Session & Token Expiry](#section-26--admin-auth-session--token-expiry)
 22. [Section 27: AI Daily Limit & Signal Backlog](#section-27--ai-daily-limit--signal-backlog)
 23. [Section 28: OSM Nearby Query Improvements](#section-28--osm-nearby-query-improvements)
+24. [Section 29: Directory Crawler Fixes — e-CAB & GitHub Source](#section-29-directory-crawler-fixes--e-cab--github-source-april-2026)
+25. [Section 30: Company Radar — Tech Filter for Saved Companies](#section-30-company-radar--tech-filter-for-saved-companies-april-2026)
+26. [Section 31: Deploy Script Rollback Fix](#section-31-deploy-script-rollback-fix-april-2026)
+27. [Section 32: SignalCard UI Fix — Source Badge Overlap](#section-32-signalcard-ui-fix--source-badge-overlap-april-2026)
 
 ---
 
@@ -3103,3 +3107,233 @@ OSM coverage varies by country. Bangladesh has fewer office-tagged entries than 
 - Increase search radius (default 5km)
 - Results improve as local OSM contributors add data
 - For denser results, consider supplementing with Google Places API (has free quota) or Foursquare Places API
+
+---
+
+## Section 29: Directory Crawler Fixes — e-CAB & GitHub Source (April 2026)
+
+### 29.1 What Broke
+
+Two crawler sources stopped returning companies:
+
+**GitHub (`github_bd`):** URL pointed to `README.md` but the repo (`MBSTUPC/tech-companies-in-bangladesh`) renamed the file to `README.adoc`. Fetch returned HTTP 404, parser got `null`, returned empty array.
+
+**e-CAB (`ecab`):** Site migrated to a Vue SPA (`<div id="app"><app></app></div>`). `fetchPage()` only gets the pre-render HTML shell (~3KB of CSS/JS config). No member data is in the HTML — it's all loaded client-side via Axios.
+
+### 29.2 e-CAB Fix — JSON API Discovery
+
+Inspected the bundled JS (`/public/js/frontend_app.js`, ~3.4MB) with regex to find Axios calls. Found:
+
+```javascript
+// Inside the Vue component for /member-list route:
+axios.get("/get-member-list?member_category=General", { params: this.search_data })
+  .then(e => { this.table.datas = e.data.data; this.meta = e.data.meta; })
+```
+
+**API endpoint:** `GET https://e-cab.net/get-member-list?member_category=General&page=N`
+
+**Response shape** (same as BASIS):
+```json
+{
+  "data": [{ "company_name": "...", "website": "...", "current_office_address": "..." }],
+  "meta": { "current_page": 1, "last_page": 98, "total": 2935 }
+}
+```
+
+Required headers to avoid 403:
+```typescript
+'Accept': 'application/json',
+'X-Requested-With': 'XMLHttpRequest',
+'Referer': 'https://e-cab.net/member-list',
+```
+
+**Result:** 2935 members across 98 pages — far more than HTML scraping ever found.
+
+### 29.3 GitHub Fix — AsciiDoc Parser
+
+The file format changed from Markdown (`[Name](URL)`) to AsciiDoc table:
+
+```asciidoc
+|===
+|Company Name |Office location |Technologies |Web presence |No. of Software Engineers
+
+|Adplay Technologies (VU Mobile)
+|Head Office: 4th Floor, House-114, Banani, Dhaka
+|JavaScript, React, WordPress
+|http://vumobile.biz/[Website]
+|Please update
+```
+
+**Parser logic** — each company = 5 consecutive `|`-prefixed lines:
+- Row 1: `|Company Name`
+- Row 2: `|Address`
+- Row 3: `|Technologies` (skipped)
+- Row 4: `|http://url[LinkText]` — extract URL with regex `/(https?:\/\/[^\[]+)\[/`
+- Row 5: `|headcount` (skipped)
+
+Advance `i += 5` per company. Skip `|===`, `|Company Name` header rows.
+
+**Result:** 238 companies parsed correctly with name + website + address for city detection.
+
+### 29.4 Key Lesson
+
+When a site returns an empty or tiny HTML page, check if it's a SPA:
+1. Look for `<div id="app">` or `<app>` — Vue/React indicator
+2. Inspect the JS bundle for `axios.get(` or `fetch(` calls
+3. The real data endpoint is almost always a REST/JSON API
+
+---
+
+## Section 30: Company Radar — Tech Filter for Saved Companies (April 2026)
+
+### 30.1 Problem
+
+Saved companies list included non-tech entries from OSM (`office=company` tag with no tech signal) — banks, garments factories, restaurants, hospitals saved alongside IT firms.
+
+### 30.2 Solution — `isTechCompany()` Guard
+
+Added to `companies.repository.ts`:
+
+```typescript
+const NON_TECH_EXCLUDE = /\b(bank|banking|finance|insurance|hospital|clinic|
+  restaurant|hotel|real estate|construction|garments|textile|apparel|food|
+  grocery|retail|trade|import|export|transport|shipping|airline|travel|
+  tourism|newspaper|school|college|university|ngo|government|ministry)\b/i;
+
+const TECH_CONFIRM = /\b(software|tech|technology|digital|IT|ICT|solutions|
+  systems|apps|web|mobile|cloud|data|cyber|fintech|ecommerce|startup|
+  dev|platform|SaaS|AI|ML|ERP|CRM|automation|electronics)\b/i;
+
+const TECH_SOURCES = new Set(['basis', 'bacco', 'github_bd', 'ecab']);
+
+export function isTechCompany(name: string, source: string, tags: string[]): boolean {
+  if (TECH_SOURCES.has(source)) return true;          // directory sources = always tech
+  const tagStr = tags.join(' ').toLowerCase();
+  if (/\b(software|tech|it|coworking|startup)\b/.test(tagStr)) return true;
+  if (TECH_CONFIRM.test(name)) return true;
+  if (NON_TECH_EXCLUDE.test(name)) return false;
+  return false;  // OSM generic "company" with no signal → exclude
+}
+```
+
+### 30.3 Three-Layer Enforcement
+
+| Layer | Where | What it does |
+|-------|-------|-------------|
+| `save` endpoint | `companies.controller.ts` | Rejects non-tech with `BadRequestException` before insert |
+| `findAll` | `companies.repository.ts` | SQL `WHERE` clause filters out non-tech at DB level |
+| `purgeNonTech()` | `companies.repository.ts` | `DELETE` query to clean existing bad rows |
+
+**Purge endpoint:** `POST /api/admin/companies/purge-non-tech` (admin-only)
+
+### 30.4 DB-Level Filter Pattern
+
+```typescript
+const techFilter = sql`(
+  source = ANY(ARRAY['basis','bacco','github_bd','ecab'])
+  OR tags::text ~* '\\y(software|tech|it|coworking|startup)\\y'
+  OR name ~* '\\y(software|tech|technology|digital|...)\\y'
+) AND name !~* '\\y(bank|hospital|garments|...)\\y'`;
+```
+
+`~*` = PostgreSQL case-insensitive regex match. `\\y` = word boundary (equivalent to `\b`).
+
+---
+
+## Section 31: Deploy Script Rollback Fix (April 2026)
+
+### 31.1 The Bug
+
+`scripts/deploy.sh` was snapshotting images under the wrong name:
+
+```bash
+# Script used (WRONG):
+docker tag signalstack-app:latest signalstack-app:rollback
+
+# Actual image name built by Docker Compose (CORRECT):
+signal-stack-app:latest   # hyphenated — derived from project dir name
+```
+
+Docker Compose names images as `{project_name}-{service_name}` where project name comes from the directory (`signal-stack`). The missing hyphen meant every snapshot silently warned and skipped — rollback was never actually saved.
+
+### 31.2 Improvements Added
+
+**1. `--rollback` flag** — one-command manual rollback:
+```bash
+./scripts/deploy.sh --rollback
+```
+Shows the git SHA of the snapshot being restored, brings containers up with `--no-build`.
+
+**2. Two-generation rotation:**
+```
+Before deploy:  rollback → rollback-prev,  latest → rollback
+After deploy:   latest = new build
+```
+If the latest rollback is also bad, `rollback-prev` gives one more escape hatch.
+
+**3. SHA traceability:**
+```bash
+docker inspect --format '{{index .Config.Labels "deploy.sha"}}' signal-stack-app:rollback
+```
+Prints which git commit the rollback image was built from.
+
+**4. Snapshot summary at deploy end:**
+```
+Rollback snapshots:
+  signal-stack-app:rollback       abc1234   2 hours ago
+  signal-stack-app:rollback-prev  def5678   1 day ago
+```
+
+### 31.3 Manual Rollback Without Script
+
+```bash
+# Go back 1 deploy
+docker tag signal-stack-app:rollback signal-stack-app:latest
+docker tag signal-stack-frontend:rollback signal-stack-frontend:latest
+docker compose -f docker-compose.prod.yml up -d --no-build
+
+# Go back 2 deploys
+docker tag signal-stack-app:rollback-prev signal-stack-app:latest
+docker compose -f docker-compose.prod.yml up -d --no-build
+```
+
+### 31.4 Admin Panel Pagination Status
+
+| Page | Paginated? | Notes |
+|------|-----------|-------|
+| Signals | ✅ Yes | page/limit + meta.totalPages |
+| Jobs | ✅ Yes | page/limit |
+| Companies (Saved) | ✅ Yes | page/limit, Prev/Next buttons |
+| Sources | ✅ Fine | Lookup table, no limit risk |
+| Categories | ✅ Fine | Lookup table |
+| Logs | ✅ Fine | Hardcoded `.limit(50)` |
+
+---
+
+## Section 32: SignalCard UI Fix — Source Badge Overlap (April 2026)
+
+### 32.1 Problem
+
+In compact mode (Job Intelligence Live Feed), the source badge, timestamp, and category label all sit in one `flex` row. Long source names (e.g. "We Work Remotely") pushed the category text off-screen or caused visual overlap.
+
+### 32.2 Root Cause
+
+- Source badge had `shrink-0` (never shrinks) + `max-w-[130px] truncate` — wide enough to crowd others
+- Category span had `truncate min-w-0` but no `flex-1` — couldn't claim remaining space
+- Row container had no `overflow-hidden` — children could overflow parent
+
+### 32.3 Fix (`SignalCard.tsx`)
+
+```tsx
+// Before
+<div className="flex items-center gap-2 min-w-0 flex-1">
+  <span className="... shrink-0 max-w-[130px] truncate">
+  <span className="... truncate min-w-0">  {/* category */}
+
+// After
+<div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+  <span className="... shrink-0 max-w-[100px] truncate">  {/* tighter cap */}
+  <span className="... truncate min-w-0 flex-1">           {/* takes remaining space */}
+```
+
+`flex-1` on the category span means it expands to fill whatever space the source badge + timestamp don't use, then truncates cleanly instead of pushing siblings.
