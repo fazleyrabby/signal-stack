@@ -91,10 +91,16 @@ export class CompaniesController {
   async getSaved(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
+    @Query('search') search: string = '',
+    @Query('source') source: string = '',
+    @Query('city') city: string = '',
   ) {
     return this.companiesRepository.findAll({
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
+      search: search || undefined,
+      source: source || undefined,
+      city: city || undefined,
     });
   }
 

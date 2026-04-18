@@ -40,26 +40,39 @@ export class CompaniesRepository {
     return inserted;
   }
 
-  async findAll(params: { page: number; limit: number }) {
-    const { page, limit } = params;
+  async findAll(params: { page: number; limit: number; search?: string; source?: string; city?: string }) {
+    const { page, limit, search, source, city } = params;
     const offset = (page - 1) * limit;
 
-    // Filter at DB level: keep only tech sources or tech-keyword names
     const techFilter = sql`(
       source = ANY(ARRAY['basis','bacco','github_bd','ecab'])
       OR tags::text ~* '\\y(software|tech|it|coworking|startup)\\y'
       OR name ~* '\\y(software|tech|technology|technologies|digital|ICT|solutions|systems|apps|application|web|mobile|cloud|data|cyber|network|telecom|fintech|e-commerce|ecommerce|startup|dev|development|platform|SaaS|AI|ML|ERP|CRM|automation|robotics|semiconductor|hardware|electronics)\\y'
     ) AND name !~* '\\y(bank|banks|banking|finance|financial|insurance|leasing|hospital|clinic|pharmacy|pharma|restaurant|hotel|real estate|realty|property|construction|garments|textile|apparel|fashion|food|beverage|grocery|supermarket|retail|trade|import|export|transport|shipping|airline|travel|tourism|newspaper|school|college|university|ngo|foundation|charity|government|ministry|embassy|consulate)\\y'`;
 
+    const searchFilter = search
+      ? sql`AND (name ILIKE ${'%' + search + '%'} OR website ILIKE ${'%' + search + '%'})`
+      : sql``;
+
+    const sourceFilter = source
+      ? sql`AND source = ${source}`
+      : sql``;
+
+    const cityFilter = city
+      ? sql`AND (city ILIKE ${'%' + city + '%'} OR country ILIKE ${'%' + city + '%'})`
+      : sql``;
+
+    const where = sql`${techFilter} ${searchFilter} ${sourceFilter} ${cityFilter}`;
+
     const [data, countResult] = await Promise.all([
       this.db
         .select()
         .from(companies)
-        .where(techFilter)
+        .where(where)
         .orderBy(desc(companies.createdAt))
         .limit(limit)
         .offset(offset),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(companies).where(techFilter),
+      this.db.select({ count: sql<number>`count(*)::int` }).from(companies).where(where),
     ]);
 
     return {

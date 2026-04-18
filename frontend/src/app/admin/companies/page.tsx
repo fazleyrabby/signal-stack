@@ -137,8 +137,34 @@ export default function CompaniesAdmin() {
 
   // Saved companies
   const [savedPage, setSavedPage] = useState(1);
+  const [savedSearch, setSavedSearch] = useState('');
+  const [savedSource, setSavedSource] = useState('');
+  const [savedCity, setSavedCity] = useState('');
+  const [savedSearchInput, setSavedSearchInput] = useState('');
+
+  function applySearch() {
+    setSavedSearch(savedSearchInput.trim());
+    setSavedPage(1);
+  }
+
+  function clearFilters() {
+    setSavedSearchInput('');
+    setSavedSearch('');
+    setSavedSource('');
+    setSavedCity('');
+    setSavedPage(1);
+  }
+
+  const savedQuery = new URLSearchParams({
+    page: String(savedPage),
+    limit: '20',
+    ...(savedSearch && { search: savedSearch }),
+    ...(savedSource && { source: savedSource }),
+    ...(savedCity && { city: savedCity }),
+  }).toString();
+
   const { data: savedData, error: savedError } = useSWR<{ data: SavedCompany[]; total: number }>(
-    `${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`,
+    `${API_BASE}/api/admin/companies/saved?${savedQuery}`,
     fetcher,
     { shouldRetryOnError: false }
   );
@@ -209,7 +235,7 @@ export default function CompaniesAdmin() {
       body: JSON.stringify({ ...company, source: "osm" }),
     });
     setSavedIds((prev) => new Set([...prev, company.osmId]));
-    mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
+    mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
   }
 
   async function saveCrawledCompany(company: CrawledCompany) {
@@ -220,7 +246,7 @@ export default function CompaniesAdmin() {
       body: JSON.stringify(company),
     });
     setCrawlSavedNames((prev) => new Set([...prev, company.name]));
-    mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
+    mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
   }
 
   const [savingAll, setSavingAll] = useState(false);
@@ -242,7 +268,7 @@ export default function CompaniesAdmin() {
         )
       );
       setCrawlSavedNames((prev) => new Set([...prev, ...toSave.map((c) => c.name)]));
-      mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
+      mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
     } finally {
       setSavingAll(false);
     }
@@ -251,7 +277,7 @@ export default function CompaniesAdmin() {
   async function deleteCompany(id: string) {
     if (!confirm("Remove this company?")) return;
     await fetch(`${API_BASE}/api/admin/companies/${id}`, { method: "DELETE", credentials: "include" });
-    mutate(`${API_BASE}/api/admin/companies/saved?page=${savedPage}&limit=20`);
+    mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
   }
 
   async function runCrawl() {
@@ -633,6 +659,52 @@ export default function CompaniesAdmin() {
 
         {/* ── Saved Tab ─────────────────────────────────────────────────────── */}
         <TabsContent value="saved" className="flex-1 flex flex-col overflow-hidden mt-0">
+          {/* Filter bar */}
+          <div className="px-6 py-2 border-b border-border/40 bg-muted/10 shrink-0 flex items-center gap-2 flex-wrap">
+            {/* Name search */}
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/40" />
+              <input
+                type="text"
+                placeholder="Search company name…"
+                value={savedSearchInput}
+                onChange={(e) => setSavedSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && applySearch()}
+                className="h-7 pl-6 pr-2 text-[11px] bg-background border border-border/40 rounded focus:outline-none focus:border-primary/50 w-48"
+              />
+            </div>
+            {/* Source filter */}
+            <select
+              value={savedSource}
+              onChange={(e) => { setSavedSource(e.target.value); setSavedPage(1); }}
+              className="h-7 px-2 text-[11px] bg-background border border-border/40 rounded focus:outline-none focus:border-primary/50 text-muted-foreground"
+            >
+              <option value="">All sources</option>
+              <option value="basis">BASIS</option>
+              <option value="bacco">BACCO</option>
+              <option value="ecab">e-CAB</option>
+              <option value="github_bd">GitHub Tech</option>
+              <option value="osm">OSM Nearby</option>
+            </select>
+            {/* City filter */}
+            <div className="relative">
+              <MapPin className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/40" />
+              <input
+                type="text"
+                placeholder="City or country…"
+                value={savedCity}
+                onChange={(e) => { setSavedCity(e.target.value); setSavedPage(1); }}
+                className="h-7 pl-6 pr-2 text-[11px] bg-background border border-border/40 rounded focus:outline-none focus:border-primary/50 w-36"
+              />
+            </div>
+            <Button size="sm" className="h-7 px-3 text-[11px]" onClick={applySearch}>Search</Button>
+            {(savedSearch || savedSource || savedCity) && (
+              <button onClick={clearFilters} className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground underline">
+                clear
+              </button>
+            )}
+          </div>
+
           <div className="flex-1 overflow-auto">
             <Table className="min-w-max table-fixed">
               <TableHeader>
