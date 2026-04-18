@@ -809,3 +809,64 @@ The system prioritizes:
 #### 3. Drizzle Studio Access
 - `localhost:4983` returns 404 because the local server only exposes API endpoints.
 - Correct access: open `https://local.drizzle.studio` in browser — it connects back to `localhost:4983`.
+
+### Update: April 18, 2026
+**Admin Intelligence, System Hardening & Mac Optimization**
+
+#### 1. Sortable Admin Tables
+All 5 admin tables now have clickable sortable column headers.
+
+| Table | Sort Method | Columns |
+|-------|-------------|---------|
+| Signals | Server-side | Signal, Score, Category, AI Status, Timestamp |
+| Jobs | Server-side | Title, Company, Location, Source, Date |
+| Companies (saved) | Server-side | Company, Source, Location, Website |
+| Sources | Client-side | Name, Category, Trust, Status |
+| Categories | Client-side | Slug, Name, Description |
+
+Shared `SortableHead` component at `frontend/src/components/ui/sortable-head.tsx`. `toggleSort()` helper flips direction on same column, resets to asc on new column.
+
+#### 2. Signal Read/Unread Tracking
+- New `is_read` boolean column on `signals` table (default `false`)
+- Unread rows: blue dot indicator + subtle blue row tint
+- Per-row Eye/EyeOff icon toggle
+- "Mark All Read" button in signals top bar
+- API: `PATCH /api/admin/signals/:id` now accepts `isRead`
+- API: `POST /api/admin/signals/mark-all-read` bulk marks all unread
+
+#### 3. Structured Logs
+**Before:** Logs page showed nothing — NestJS only wrote to stdout, `logs/app.log` never existed.
+
+**After:** `FileLogger` in `main.ts` extends `ConsoleLogger` to simultaneously write JSON lines to `logs/app.log`:
+```json
+{"ts":"2026-04-18T07:00:00Z","level":"info","context":"FeedScheduler","message":"{\"event\":\"feed_cycle_complete\",\"stored\":12,\"duplicates\":45}"}
+```
+
+Admin logs page now shows structured table with:
+- Time, Level (color-coded info/warn/error), Context, Event, Details (key:value pairs)
+- Filter by level buttons
+- Newest-first order
+- Auto-parses JSON message fields into readable columns
+
+#### 4. Cross-Source Job Deduplication
+Same job posted on multiple boards (e.g. "Senior Developer at Acme" on both Remotive and We Work Remotely) was previously stored twice.
+
+**Fix:** `generateContentHash(title, company)` in `hash.util.ts` — SHA-256 of normalized `title|company`. Checked before insert. `crossSourceDupes` count added to `jobs_process_complete` log event.
+
+New column: `jobs.content_hash varchar(64)` with `idx_jobs_content_hash` index.
+
+#### 5. Performance Fixes
+- `saveAllFiltered()` chunked to 50 concurrent requests (was all-at-once, could be 2935 simultaneous DB INSERTs)
+- New DB indexes: `idx_companies_source`, `idx_companies_city`, `idx_jobs_source` — filter columns now hit B-tree indexes
+- Llama `restart: unless-stopped` — stays down when manually stopped via `--stop` flag
+
+#### 6. Deploy Script Flags
+```bash
+./scripts/deploy.sh          # full redeploy
+./scripts/deploy.sh --stop   # stop app + frontend + llama (db+redis stay up)
+./scripts/deploy.sh --start  # start them back (no rebuild)
+./scripts/deploy.sh --rollback  # restore previous image snapshot
+```
+
+#### 7. Company → Jobs Link
+In saved companies tab, each company name has a search icon (🔍) that navigates to `/admin/jobs?search=<company name>` — instant job search for that company.

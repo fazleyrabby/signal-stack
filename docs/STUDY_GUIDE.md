@@ -3510,3 +3510,216 @@ grep -r "ThrottlerGuard\|@Throttle\|@SkipThrottle" backend/src/
 | Medium | Add cache-clear admin endpoint | Low |
 | Low | Load test public endpoints before launch | Medium |
 | Low | Per-user rate limits on signal/job feeds | Medium |
+
+---
+
+## Section 36: Structured Logging System (April 2026)
+
+### 36.1 Problem
+
+Admin logs page was always empty. NestJS by default writes all logs to **stdout only** — the `logs/app.log` file the controller was trying to read never existed.
+
+### 36.2 Fix: FileLogger in main.ts
+
+Extended NestJS `ConsoleLogger` to write JSON lines to disk simultaneously:
+
+```typescript
+class FileLogger extends ConsoleLogger {
+  private write(level: string, message: string, context?: string) {
+    const line = JSON.stringify({
+      ts: new Date().toISOString(),
+      level,
+      context: context || this.context,
+      message,
+    });
+    logStream.write(line + '\n');
+  }
+  log(msg, ctx?)   { super.log(msg, ctx);   this.write('info',  msg, ctx); }
+  warn(msg, ctx?)  { super.warn(msg, ctx);  this.write('warn',  msg, ctx); }
+  error(msg, ctx?) { super.error(msg, ctx); this.write('error', msg, ctx); }
+}
+
+// In bootstrap():
+const app = await NestFactory.create(AppModule, { logger: new FileLogger() });
+```
+
+Every `logEvent()` call in schedulers/services now appears in `logs/app.log` as a JSON line.
+
+### 36.3 Logs Controller (Structured Response)
+
+Returns parsed JSON array instead of raw text:
+```typescript
+const parsed = lines.slice(-limit).map((line) => {
+  try { return JSON.parse(line); }
+  catch { return { ts, level: 'info', context: 'app', message: line }; }
+}).reverse(); // newest first
+```
+
+### 36.4 Logs Page UI
+
+Table columns: **Time / Level / Context / Event / Details**
+
+- Level badges: color-coded (blue=info, amber=warn, red=error)
+- Details column parses JSON message fields into `key: value` pairs
+- Filter buttons: all / info / warn / error
+- Shows count per level in filter button labels
+
+### 36.5 What Gets Logged Automatically
+
+| Event | Context | Key fields |
+|-------|---------|------------|
+| `feed_cycle_start` | FeedScheduler | — |
+| `feed_cycle_complete` | FeedScheduler | total, stored, discarded, duplicates, alerted |
+| `feed_cycle_error` | FeedScheduler | error |
+| `jobs_process_start` | JobsService | — |
+| `jobs_process_complete` | JobsService | totalFetched, newJobs, matches, crossSourceDupes |
+| `jobs_cleanup` | JobsService | deleted, retentionDays |
+| `signal_retention_cleanup_complete` | FeedScheduler | deletedSignals, deletedBookmarks |
+| `startup_feed_trigger` | FeedScheduler | — |
+
+---
+
+## Section 37: Signal Read/Unread State (April 2026)
+
+### 37.1 Schema Change
+
+```sql
+ALTER TABLE "signals" ADD COLUMN "is_read" boolean DEFAULT false NOT NULL;
+```
+
+All existing signals default to `false` (unread) — migration 0003.
+
+### 37.2 API
+
+- `PATCH /api/admin/signals/:id` — added `isRead` to allowed fields list
+- `POST /api/admin/signals/mark-all-read` — bulk UPDATE where `is_read = false`
+
+```typescript
+async markAllSignalsRead(): Promise<number> {
+  const result = await this.db
+    .update(signals)
+    .set({ isRead: true })
+    .where(eq(signals.isRead, false))
+    .returning({ id: signals.id });
+  return result.length;
+}
+```
+
+### 37.3 Frontend UI
+
+- Unread row: blue dot `●` + `bg-primary/[0.03]` row tint
+- Eye icon = mark read, EyeOff = mark unread (toggles)
+- "Mark All Read" button in signals top bar
+- Optimistic update via SWR `mutate()` — UI responds instantly
+
+---
+
+## Section 38: Cross-Source Job Deduplication (April 2026)
+
+### 38.1 Problem
+
+`hash(title+url)` deduplication only catches exact URL duplicates. Same job posted on Remotive AND We Work Remotely = two different URLs = stored twice.
+
+### 38.2 Fix: contentHash
+
+```typescript
+// hash.util.ts
+export function generateContentHash(title: string, company: string): string {
+  const normalizedTitle = title.trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalizedCompany = company.trim().toLowerCase().replace(/\s+/g, ' ');
+  return createHash('sha256')
+    .update(`${normalizedTitle}|${normalizedCompany}`)
+    .digest('hex');
+}
+```
+
+Check order in `processJobs()`:
+1. Check `hash` (title+url) — skip if exact duplicate
+2. Check `contentHash` (title+company) — skip if cross-source duplicate
+3. Insert with both hashes stored
+
+New column: `jobs.content_hash varchar(64)` — nullable (older rows have null, new rows always have it if company is present).
+
+### 38.3 Tradeoff
+
+`contentHash` can produce false positives if two genuinely different companies post identically-titled roles (e.g. "Senior Engineer" at "Acme" from two sources). Acceptable — better to miss one duplicate than store noise.
+
+---
+
+## Section 39: Database Backup Procedure (April 2026)
+
+### 39.1 Manual Backup to Mac
+
+```bash
+# From Mac (not VPS):
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+ssh fazley@192.168.0.110 \
+  "docker exec signalstack-db pg_dump -U signal -d signalstack --no-owner --no-acl -F p" \
+  > backup/signalstack_${TIMESTAMP}.sql
+```
+
+- `backup/` folder is gitignored — never committed
+- `-F p` = plain SQL format (human-readable, easy to restore)
+- `--no-owner --no-acl` = removes role-specific grants, portable across environments
+
+### 39.2 Restore
+
+```bash
+# Copy SQL to VPS first:
+scp backup/signalstack_20260418_130244.sql fazley@192.168.0.110:~/
+
+# On VPS:
+docker exec -i signalstack-db psql -U signal -d signalstack < ~/signalstack_20260418_130244.sql
+```
+
+### 39.3 Always backup before:
+- Schema migrations that ALTER or DROP columns
+- Bulk DELETE operations (purge-non-tech, cleanup scripts)
+- Any manual SQL run directly on production
+
+---
+
+## Section 40: Mac Remote Optimization (April 2026)
+
+### 40.1 Setup (working remotely via Android + Terminus + Tailscale)
+
+Since the MacBook is accessed headlessly over SSH, several resource optimizations apply:
+
+**Stop unused apps remotely:**
+```bash
+osascript -e 'quit app "Visual Studio Code"'
+osascript -e 'quit app "OrbStack"'
+```
+
+**Open apps remotely (if Mac display is active):**
+```bash
+open -a OrbStack
+```
+
+**Check system resources:**
+```bash
+mactop --headless --count 1 --pretty 2>&1 | python3 -c "
+import json,sys; d=json.load(sys.stdin)[0]; m=d['memory']
+print(f'RAM: {m[\"used\"]/1e9:.1f}GB / {m[\"total\"]/1e9:.1f}GB')
+print(f'Swap: {m[\"swap_used\"]/1e9:.1f}GB / {m[\"swap_total\"]/1e9:.1f}GB')
+print(f'CPU temp: {d[\"soc_metrics\"][\"cpu_temp\"]:.1f}C')
+print(f'Power: {d[\"soc_metrics\"][\"total_power\"]:.1f}W')
+"
+```
+
+### 40.2 Key Findings
+
+- OrbStack local Docker is NOT needed for this project — VPS runs all containers
+- `claudevm.bundle` (9.6GB) in `~/Library/Application Support/Claude/vm_bundles/` = Claude desktop app VM sandbox, safe to delete (re-downloads if needed)
+- Mac swap at 9.2GB with OrbStack + VS Code open = memory pressure. Closing both dropped swap to 3.9GB
+- M1 Pro thermals: normal range 45-55°C at idle/light load, throttles at ~95°C
+
+### 40.3 Clamshell Mode (best headless option)
+
+For true headless operation without SSH drops:
+1. Plug MacBook into power
+2. Close lid → Mac stays awake via power (clamshell mode)
+3. Set display sleep to 1 min in System Settings → saves GPU/backlight power
+4. System sleep must be disabled — use `caffeinate -s &` or Energy Saver settings
+
+**Note:** `sudo purge` clears speculative memory pages (safe, no data loss) but requires password — must be run in local terminal, not remotely.

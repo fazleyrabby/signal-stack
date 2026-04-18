@@ -230,3 +230,35 @@ All notable changes to SignalStack will be documented in this file.
 - Docker Compose multi-container setup
 - Signal scoring engine (keyword-based)
 - Discord webhook alerts for high-impact signals
+
+---
+
+## [2026-04-18] — Phase 7: Admin Intelligence & System Hardening
+
+### Added
+- **Sortable Column Headers**: All admin tables (Signals, Jobs, Sources, Categories, Companies saved) now have clickable sortable headers with asc/desc toggle and directional icons (`ChevronUp/Down/ChevronsUpDown`). Sources and Categories sort client-side; Jobs, Signals, Companies use server-side sort via API params.
+- **Signal Read/Unread State**: New `is_read` boolean on signals table. Unread signals show a blue dot indicator and subtle row tint. Per-row Eye icon toggle + "Mark All Read" button in top bar.
+- **Structured Logs Page**: Admin logs page now shows a real-time structured table (Time / Level / Context / Event / Details) with color-coded level badges and filter buttons. Previously showed nothing — NestJS only wrote to stdout. Fixed by adding `FileLogger` in `main.ts` that writes JSON lines to `logs/app.log`.
+- **Cross-Source Job Dedup**: Jobs now deduplicated by `contentHash(title+company)` in addition to `hash(title+url)`. Same posting from multiple boards (e.g. We Work Remotely + Remotive) is now caught. `crossSourceDupes` count logged each cycle.
+- **Company → Jobs Link**: Saved companies tab has a search icon next to each company name that links to Jobs page pre-filtered by that company name.
+- **Floating Save All Button**: Mobile-only (`md:hidden`) fixed button in Directory Crawler tab — no more scrolling to the bottom to save 2000+ companies.
+- **Search Filters on Saved Companies**: Name, source dropdown, and city filters added to saved companies tab with server-side filtering.
+- **Deploy `--stop` / `--start` Flags**: `./scripts/deploy.sh --stop` stops app + frontend + llama cleanly; `--start` brings them back without rebuild.
+
+### Fixed
+- **saveAllFiltered() Connection Pool Bomb**: Was firing 2935 concurrent HTTP requests for full e-CAB save. Now chunked to 50 at a time — prevents DB connection pool exhaustion.
+- **Missing DB Indexes**: Added `idx_companies_source`, `idx_companies_city`, `idx_jobs_source` — all filter/sort columns now hit indexes instead of full table scans. Added `idx_jobs_content_hash` for cross-source dedup.
+- **Llama Restart Policy**: Changed `restart: always` → `restart: unless-stopped` — llama now stays stopped when manually stopped instead of auto-restarting.
+- **SortableHead TypeScript**: Added `style?: React.CSSProperties` prop — was missing, caused build failure on VPS.
+
+### Changed
+- **Job Retention**: Default 14 days → 30 days (`JOB_RETENTION_DAYS` in compose).
+- **Signal Retention**: Dual-tier: low-score signals expire at 30 days, high-score (≥7) at 90 days.
+- **Logs Architecture**: NestJS `ConsoleLogger` extended to `FileLogger` — writes JSON structured lines simultaneously to stdout and `logs/app.log`.
+
+### Infrastructure
+- **VPS DB Backup**: Full `pg_dump` snapshot taken to `backup/signalstack_20260418_130244.sql` (5.8MB) before any schema changes. `backup/` gitignored.
+- **Migration 0002**: `IF NOT EXISTS` indexes — safe on existing VPS data.
+- **Migration 0003**: `ALTER TABLE ADD COLUMN` for `content_hash` (jobs) and `is_read` (signals) — zero data loss.
+- **Mac Cleanup**: Freed ~22GB from `claudevm.bundle`, browser caches, Homebrew tarballs, JetBrains cache, logs.
+- **OrbStack / VS Code**: Stopped to reduce RAM pressure. Swap dropped from 9.2GB → 3.9GB.
