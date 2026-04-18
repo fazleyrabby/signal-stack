@@ -113,7 +113,7 @@ export default function SettingsPage() {
       });
       await Promise.all([refreshMacLocal(), refreshAI()]);
       setMacSaved(true);
-      setTimeout(() => setMacSaved(null), 3000);
+      setTimeout(() => setMacSaved(false), 3000);
     } finally { setIsSavingMac(false); }
   };
 
