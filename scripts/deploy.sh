@@ -23,6 +23,24 @@ pass()  { echo -e "${GREEN}✓${NC} $1"; }
 fail()  { echo -e "${RED}✗${NC} $1" >&2; exit 1; }
 warn()  { echo -e "${YELLOW}⚠${NC} $1"; }
 
+# ── Stop App + Llama ─────────────────────────────────────────────────────────
+if [ "${1:-}" = "--stop" ]; then
+  echo -e "${BOLD}━━━ SignalStack Stop ━━━${NC}\n"
+  docker compose -f "$COMPOSE_FILE" stop app frontend llama
+  pass "app, frontend, llama stopped (db + redis still running)"
+  docker compose -f "$COMPOSE_FILE" ps
+  exit 0
+fi
+
+# ── Start App + Llama (no rebuild) ───────────────────────────────────────────
+if [ "${1:-}" = "--start" ]; then
+  echo -e "${BOLD}━━━ SignalStack Start ━━━${NC}\n"
+  docker compose -f "$COMPOSE_FILE" start app frontend llama
+  pass "app, frontend, llama started"
+  docker compose -f "$COMPOSE_FILE" ps
+  exit 0
+fi
+
 # ── Manual Rollback ──────────────────────────────────────────────────────────
 if [ "${1:-}" = "--rollback" ]; then
   echo -e "${BOLD}━━━ SignalStack Manual Rollback ━━━${NC}\n"
