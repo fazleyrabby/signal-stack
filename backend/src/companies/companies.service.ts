@@ -31,6 +31,9 @@ export interface NearbyCompany {
   lat: number;
   lng: number;
   tags: string[];
+  phone?: string | null;
+  facebook?: string | null;
+  email?: string | null;
   careerPageFound: boolean;
   careerUrl: string | null;
 }
@@ -125,6 +128,9 @@ export class CompaniesService {
             tags: f.properties?.categories || [],
             careerPageFound: false,
             careerUrl: null,
+            phone: f.properties?.metadata?.phone || null,
+            facebook: f.properties?.metadata?.facebook || null,
+            email: f.properties?.metadata?.email || null,
           });
         }
       } catch (err) {
@@ -148,7 +154,7 @@ export class CompaniesService {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.formattedAddress,places.location,places.types',
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.formattedAddress,places.location,places.types,places.nationalPhoneNumber,places.internationalPhoneNumber',
         },
         body: JSON.stringify({
           locationRestriction: {
@@ -179,6 +185,9 @@ export class CompaniesService {
         tags: p.types || [],
         careerPageFound: false,
         careerUrl: null,
+        phone: p.nationalPhoneNumber || p.internationalPhoneNumber || null,
+        facebook: null,
+        email: null,
       }));
 
       return results.filter(c => !NON_TECH_EXCLUDE.test(c.name));
@@ -322,6 +331,11 @@ out center;
         if (el.tags?.['company:type']) tags.push(el.tags['company:type']);
         if (el.tags?.sector) tags.push(el.tags.sector);
 
+        // Contact info from OSM tags
+        const phone = el.tags?.phone || el.tags?.['contact:phone'] || el.tags?.['contact:mobile'] || null;
+        const facebook = el.tags?.['contact:facebook'] || el.tags?.facebook || null;
+        const email = el.tags?.email || el.tags?.['contact:email'] || null;
+
         const elLat = el.lat ?? el.center?.lat;
         const elLng = el.lon ?? el.center?.lon;
         if (!elLat || !elLng) continue;
@@ -337,6 +351,9 @@ out center;
           tags,
           careerPageFound: false,
           careerUrl: null,
+          phone,
+          facebook,
+          email,
         });
       }
 

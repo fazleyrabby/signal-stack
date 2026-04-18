@@ -36,6 +36,9 @@ interface NearbyCompany {
   tags: string[];
   careerPageFound: boolean;
   careerUrl: string | null;
+  phone?: string | null;
+  facebook?: string | null;
+  email?: string | null;
 }
 
 interface CrawledCompany {
@@ -85,6 +88,7 @@ export default function CompaniesAdmin() {
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedLoc, setSelectedLoc] = useState<{ lat: number; lng: number; label: string } | null>(null);
   const [radius, setRadius] = useState(10000);
+  const [customRadius, setCustomRadius] = useState("");
   const [radarSource, setRadarSource] = useState<'osm' | 'google' | 'mapbox'>('osm');
   const [geocoding, setGeocoding] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -392,11 +396,28 @@ export default function CompaniesAdmin() {
                       <button
                         key={opt.value}
                         onClick={() => setRadius(opt.value)}
-                        className={`text-[10px] px-2 py-0.5 rounded border transition-colors shrink-0 ${radius === opt.value ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
+                        className={`text-[10px] px-2 py-0.5 rounded border transition-colors shrink-0 ${radius === opt.value && !customRadius ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
                       >
                         {opt.label}
                       </button>
                     ))}
+                    <div className="flex items-center gap-1 ml-1">
+                      <input
+                        type="number"
+                        min={500}
+                        max={100000}
+                        step={500}
+                        placeholder="km"
+                        value={customRadius}
+                        onChange={(e) => {
+                          setCustomRadius(e.target.value);
+                          const v = parseInt(e.target.value) * 1000;
+                          if (!isNaN(v) && v >= 500) setRadius(v);
+                        }}
+                        className={`w-14 h-5 px-1.5 text-[10px] rounded border bg-background focus:outline-none focus:border-primary/50 ${customRadius ? "border-primary text-primary" : "border-border/40 text-muted-foreground"}`}
+                      />
+                      <span className="text-[10px] text-muted-foreground/50">km</span>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1 ml-4 border-l border-border/40 pl-4">
@@ -523,6 +544,25 @@ export default function CompaniesAdmin() {
                           <ExternalLink className="w-2.5 h-2.5 shrink-0" />
                           {company.website.replace(/^https?:\/\//, "")}
                         </a>
+                      )}
+                      {!company.website && (company.phone || company.facebook || company.email) && (
+                        <div className="flex flex-col gap-1">
+                          {company.phone && (
+                            <a href={`tel:${company.phone}`} className="text-[10px] text-muted-foreground/70 hover:text-foreground flex items-center gap-1 truncate">
+                              <span className="text-[9px]">📞</span>{company.phone}
+                            </a>
+                          )}
+                          {company.email && (
+                            <a href={`mailto:${company.email}`} className="text-[10px] text-muted-foreground/70 hover:text-foreground flex items-center gap-1 truncate">
+                              <span className="text-[9px]">✉</span>{company.email}
+                            </a>
+                          )}
+                          {company.facebook && (
+                            <a href={company.facebook.startsWith('http') ? company.facebook : `https://facebook.com/${company.facebook}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400/80 hover:text-blue-400 flex items-center gap-1 truncate">
+                              <span className="text-[9px]">f</span>{company.facebook.replace(/^https?:\/\/(www\.)?facebook\.com\//, "")}
+                            </a>
+                          )}
+                        </div>
                       )}
                       <div className="flex items-center justify-between pt-1 border-t border-border/30">
                         <div className="flex items-center gap-1.5">
