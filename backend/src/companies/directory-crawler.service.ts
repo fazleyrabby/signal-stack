@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-const FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 20000;
 const MIN_DELAY_MS = 1500;
 const MAX_DELAY_MS = 3000;
 const MAX_PAGES = 15;
@@ -422,15 +422,8 @@ export class DirectoryCrawlerService {
   // Markdown: [Company Name](http://website.com) - Location
   private async crawlGithubBd(): Promise<CrawledCompany[]> {
     const results: CrawledCompany[] = [];
-    // Try main branch first
-    let url = 'https://raw.githubusercontent.com/MBSTUPC/tech-companies-in-bangladesh/main/README.md';
-    let md = await this.fetchPage(url);
-    
-    if (!md) {
-      this.logger.log('GitHub main branch 404, trying master...');
-      url = 'https://raw.githubusercontent.com/MBSTUPC/tech-companies-in-bangladesh/master/README.md';
-      md = await this.fetchPage(url);
-    }
+    const url = 'https://raw.githubusercontent.com/MBSTUPC/tech-companies-in-bangladesh/master/README.md';
+    const md = await this.fetchPage(url);
     if (!md) return results;
 
     const lines = md.split('\n');
