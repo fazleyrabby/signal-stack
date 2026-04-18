@@ -60,7 +60,7 @@ const KEYWORD_RULES: { points: number; keywords: string[] }[] = [
   },
 ];
 
-const ENTITY_RULES: { points: number; entities: string[] }[] = [
+const ENTITY_RULES: { points: number; entities: string[]; regexes: RegExp[] }[] = [
   {
     points: 3,
     entities: [
@@ -75,6 +75,10 @@ const ENTITY_RULES: { points: number; entities: string[] }[] = [
       'NVIDIA',
       'Anthropic',
     ],
+    regexes: [
+      /\bAWS\b/i, /\bAmazon\b/i, /\bGoogle\b/i, /\bMicrosoft\b/i, /\bCloudflare\b/i,
+      /\bOpenAI\b/i, /\bMeta\b/i, /\bApple\b/i, /\bNVIDIA\b/i, /\bAnthropic\b/i
+    ]
   },
   {
     points: 2,
@@ -92,6 +96,11 @@ const ENTITY_RULES: { points: number; entities: string[] }[] = [
       'xAI',
       'Perplexity',
     ],
+    regexes: [
+      /\bTesla\b/i, /\bSpaceX\b/i, /\bStripe\b/i, /\bPalantir\b/i, /\bCrowdStrike\b/i,
+      /\bDeepMind\b/i, /\bMistral\b/i, /\bHugging Face\b/i, /\bStability AI\b/i,
+      /\bCohere\b/i, /\bxAI\b/i, /\bPerplexity\b/i
+    ]
   },
 ];
 
@@ -109,22 +118,22 @@ export class ScorerService {
     raw: RawSignal,
     source: typeof sources.$inferSelect,
   ): Promise<ScoredSignal> {
-    const text = `${raw.title} ${raw.content || ''}`.toLowerCase();
+    const text = `${raw.title} ${raw.content || ''}`;
+    const textLower = text.toLowerCase();
 
-    // 1. Fallback: Classical Keyword Scoring
+    // 1. Classical Keyword Scoring
     let score = 0;
 
     for (const rule of KEYWORD_RULES) {
       for (const keyword of rule.keywords) {
-        if (text.includes(keyword.toLowerCase())) {
+        if (textLower.includes(keyword)) {
           score += rule.points;
         }
       }
     }
 
     for (const rule of ENTITY_RULES) {
-      for (const entity of rule.entities) {
-        const regex = new RegExp(`\\b${entity}\\b`, 'i');
+      for (const regex of rule.regexes) {
         if (regex.test(text)) {
           score += rule.points;
         }

@@ -260,4 +260,26 @@ export class AdminService {
         score: signals.score,
       });
   }
+
+  async exportSignalsCsv(since: Date): Promise<string> {
+    const data = await this.db
+      .select()
+      .from(signals)
+      .where(gte(signals.createdAt, since))
+      .orderBy(desc(signals.createdAt));
+
+    const header = ['ID', 'Date', 'Source', 'Title', 'Score', 'Severity', 'AI Summary', 'URL'];
+    const rows = data.map(s => [
+      s.id,
+      s.createdAt.toISOString(),
+      s.source,
+      `"${s.title.replace(/"/g, '""')}"`,
+      s.score,
+      s.severity,
+      `"${(s.aiSummary || '').replace(/"/g, '""')}"`,
+      s.url
+    ]);
+
+    return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
+  }
 }

@@ -10,7 +10,9 @@ import {
   UseGuards,
   NotFoundException,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { AdminGuard } from './admin.guard';
 import { AdminService } from './admin.service';
@@ -137,5 +139,20 @@ export class AdminSignalsController {
     );
 
     return { queued: results, lang: body.lang };
+  }
+
+  @Get('export/csv')
+  async exportCsv(
+    @Query('days') days = '30',
+    @Res() res: Response,
+  ) {
+    const daysNum = parseInt(days) || 30;
+    const since = new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000);
+    
+    const csvData = await this.adminService.exportSignalsCsv(since);
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=signals-export-${days}days.csv`);
+    res.send(csvData);
   }
 }

@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity, ChevronDown, Eye, EyeOff } from "lucide-react";
+import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity, ChevronDown, Eye, EyeOff, FileDown, Download, FileText } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useResizableColumns } from "@/hooks/useResizableColumns";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 
@@ -108,6 +109,10 @@ export default function SignalsAdmin() {
     } finally { setIsBulkTranslating(false); }
   }
 
+  async function handleExportCsv(days: number) {
+    window.open(`${API_BASE}/api/admin/signals/export/csv?days=${days}`, '_blank');
+  }
+
   async function handleEditSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!editingSignal) return;
@@ -123,38 +128,49 @@ export default function SignalsAdmin() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/30 shrink-0">
-        <div className="flex items-center gap-3">
-          <Activity className="w-4 h-4 text-primary" />
-          <span className="font-bold text-sm">Signals Intelligence</span>
-          <span className="text-xs text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">
-            {signalsData?.meta.total.toLocaleString() ?? "…"} rows
-          </span>
+      <Tabs defaultValue="feed" className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-6 py-1 border-b border-border/40 bg-card/30 shrink-0">
+          <TabsList className="h-9 bg-transparent border-none gap-4">
+            <TabsTrigger value="feed" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 h-9 text-xs font-bold gap-2">
+              <Activity className="w-3.5 h-3.5" /> Live Feed
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 h-9 text-xs font-bold gap-2 data-[state=active]:bg-transparent">
+              <FileText className="w-3.5 h-3.5" /> Export Reports
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">
+              {signalsData?.meta.total.toLocaleString() ?? "…"} rows
+            </span>
+            <div className="h-4 w-px bg-border/40" />
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="h-7 px-3 text-xs gap-1.5" onClick={handleMarkAllRead}>
+                <Eye className="w-3 h-3" />Mark All Read
+              </Button>
+            </div>
+            <form onSubmit={handleBulkTranslate} className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hidden sm:block">Bulk Queue</span>
+              <Select value={bulkLang} onValueChange={(val) => { if (typeof val === 'string') setBulkLang(val); }}>
+                <SelectTrigger className="w-[80px] h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bn">Bengali</SelectItem>
+                  <SelectItem value="es">Spanish</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="submit" size="sm" className="h-7 gap-1.5 px-3 text-xs" disabled={isBulkTranslating}>
+                {isBulkTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
+                Execute
+              </Button>
+            </form>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="h-7 px-3 text-xs gap-1.5" onClick={handleMarkAllRead}>
-            <Eye className="w-3 h-3" />Mark All Read
-          </Button>
-        </div>
-        <form onSubmit={handleBulkTranslate} className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hidden sm:block">Bulk Queue</span>
-          <Select value={bulkLang} onValueChange={(val) => { if (typeof val === 'string') setBulkLang(val); }}>
-            <SelectTrigger className="w-[80px] h-7 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="bn">Bengali</SelectItem>
-              <SelectItem value="es">Spanish</SelectItem>
-              <SelectItem value="en">English</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button type="submit" size="sm" className="h-7 gap-1.5 px-3 text-xs" disabled={isBulkTranslating}>
-            {isBulkTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
-            Execute
-          </Button>
-        </form>
-      </div>
+
+        <TabsContent value="feed" className="flex-1 flex flex-col overflow-hidden m-0">
 
       {/* Filter toolbar */}
       <div className="flex flex-wrap items-center gap-2 px-6 py-2 border-b border-border/40 bg-muted/10 shrink-0">
@@ -357,6 +373,49 @@ export default function SignalsAdmin() {
           </div>
         </div>
       )}
+
+        </TabsContent>
+
+        <TabsContent value="reports" className="flex-1 p-8 overflow-auto">
+          <div className="max-w-4xl space-y-8">
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-foreground">Intelligence Reports</h2>
+              <p className="text-sm text-muted-foreground">Download signal history in CSV format for offline analysis and archival.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[7, 15, 30, 60].map((days) => (
+                <div key={days} className="p-6 rounded-xl border border-border/40 bg-card/30 flex items-center justify-between hover:border-primary/30 transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <Download className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm">Last {days} Days</h3>
+                      <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">History since {new Date(Date.now() - days * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <Button onClick={() => handleExportCsv(days)} size="sm" className="gap-2 h-8 px-4 text-xs">
+                    <FileDown className="w-4 h-4" /> Export CSV
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-8 rounded-2xl border border-dashed border-border/60 bg-muted/5 flex flex-col items-center justify-center text-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-muted/40 flex items-center justify-center">
+                <FileText className="w-6 h-6 text-muted-foreground/40" />
+              </div>
+              <div className="space-y-1.5 max-w-sm">
+                <p className="text-sm font-bold text-muted-foreground/80 italic">Advanced Analytics Dashboard Coming Soon</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  We are working on automated PDF executive summaries, trend forecasting, and competitive landscape mapping.
+                </p>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => { setIsEditDialogOpen(open); if (!open) setEditingSignal(null); }}>
