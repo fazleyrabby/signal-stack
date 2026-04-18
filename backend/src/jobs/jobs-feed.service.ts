@@ -9,6 +9,12 @@ import { sources } from '../database/schema';
 const FEED_TIMEOUT = 10_000;
 const CONCURRENCY_LIMIT = 5;
 
+// Companies to exclude — banks, insurance, finance, non-tech
+const EXCLUDE_COMPANY = /\b(bank|banking|banque|credit union|mortgage|loan|insurance|insurer|assurance|brokerage|broker|hedge fund|asset management|investment fund|private equity|wealth management|financial services|finserv|lending|leasing|realty|real estate|property management|hospital|clinic|pharmacy|pharma|construction|garments|textile|apparel|airline|telecom carrier)\b/i;
+
+// Job titles to exclude — non-tech banking/finance roles
+const EXCLUDE_TITLE = /\b(loan officer|loan originator|mortgage advisor|teller|branch manager|financial advisor|wealth advisor|investment advisor|insurance agent|insurance broker|underwriter|actuary|compliance officer|risk officer|credit analyst|portfolio manager|relationship manager|forex trader|equity trader|claims adjuster|bank teller|financial planner)\b/i;
+
 function decodeEntities(text: string): string {
   return text
     .replace(/&#(\d+);/g, (_, num) => String.fromCodePoint(Number(num)))
@@ -100,6 +106,11 @@ export class JobsFeedService {
     const url = item.link?.trim();
 
     if (!title || !url) return null;
+
+    // Exclude non-tech companies and banking/finance job titles
+    const company = (item as any).company || (item as any).author || source.name;
+    if (EXCLUDE_COMPANY.test(company)) return null;
+    if (EXCLUDE_TITLE.test(title)) return null;
 
     const description = item.content || item.contentSnippet || (item as any).summary || null;
     const cleanDescription = description ? stripHtml(description) : null;
