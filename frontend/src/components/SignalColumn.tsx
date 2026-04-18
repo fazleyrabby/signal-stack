@@ -82,19 +82,20 @@ function SignalColumnControlBar({
     <div className="relative z-10">
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
         {/* Severity filters */}
-        <div className="flex items-center gap-1 bg-background/40 p-0.5 rounded-lg border border-border/5 shadow-inner shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-background/40 p-0.5 rounded-lg border border-border/5 shadow-inner shrink-0">
           {['all', 'high', 'medium', 'low'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={cn(
-                "h-7 px-3 text-[10px] font-black uppercase tracking-wider rounded-md transition-all shrink-0",
+                "h-6 sm:h-7 px-2 sm:px-3 text-[9px] sm:text-[10px] font-black uppercase tracking-wider rounded-md transition-all shrink-0",
                 filter === f
                   ? "bg-primary text-primary-foreground shadow-lg"
                   : "text-muted-foreground/60 hover:text-foreground hover:bg-accent/40"
               )}
             >
-              {t(f)}
+              {f === 'medium' ? <span className="sm:hidden">med</span> : null}
+              <span className={f === 'medium' ? "hidden sm:inline" : ""}>{t(f)}</span>
             </button>
           ))}
         </div>
@@ -437,7 +438,7 @@ export function SignalColumn({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className={cn(
-        "px-4 py-2.5 flex items-center gap-3 shrink-0 bg-card/20 border-b border-border/10",
+        "hidden sm:flex px-4 py-2.5 items-center gap-3 shrink-0 bg-card/20 border-b border-border/10",
         categoryId === 'geopolitics' && "border-l-4 border-l-violet-600/40",
         categoryId === 'technology' && "border-l-4 border-l-indigo-500/40",
         categoryId === 'ai' && "border-l-4 border-l-emerald-500/40"
@@ -471,7 +472,7 @@ export function SignalColumn({
         </div>
       </div>
 
-      <div className="pt-2 pb-1">
+      <div className="pt-1 pb-1 sm:pt-2">
         <SignalColumnControlBar
           filter={filter}
           setFilter={setFilter}

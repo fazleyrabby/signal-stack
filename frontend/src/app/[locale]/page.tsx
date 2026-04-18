@@ -104,37 +104,51 @@ function SignalsDashboardContent({
         visitorCount={visitorData?.realtime}
       />
 
-      <div className="flex-1 w-full flex flex-col overflow-hidden px-3 sm:px-6 pt-1 pb-4">
-        <div className="w-[95%] mx-auto flex flex-col h-full gap-2">
+      <div className="flex-1 w-full flex flex-col overflow-hidden px-2 sm:px-6 pt-1 pb-2 sm:pb-4">
+        <div className="w-full sm:w-[95%] mx-auto flex flex-col h-full gap-1.5 sm:gap-2">
 
-          {/* Stats & Tabs Row - Desktop in one line, mobile stacked */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 py-2 px-3 rounded-lg bg-muted/20 dark:bg-muted/20 border border-border/10 w-full">
-            <div className="flex items-center gap-4">
+          {/* Stats + Tabs — single compact row on mobile, expanded on desktop */}
+          <div className="flex items-center justify-between gap-2 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg bg-muted/20 border border-border/10 w-full">
+            {/* Stats: compact on mobile, full on desktop */}
+            <div className="hidden sm:flex items-center gap-4">
               <StatsBar stats={stats} />
             </div>
-            <div className="flex items-center md:gap-1 mt-2 md:mt-0 overflow-x-auto no-scrollbar">
+            {/* Mobile: tiny stat badges */}
+            <div className="flex sm:hidden items-center gap-2 text-[10px] font-mono text-muted-foreground shrink-0">
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                {stats.last24h}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                {stats.high}
+              </span>
+            </div>
+            {/* Category tabs */}
+            <div className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveTab(cat.id)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap",
-                    activeTab === cat.id 
-                      ? cat.color === 'violet' ? "bg-violet-500/20 dark:bg-violet-600/20 text-violet-700 dark:text-violet-400 border border-violet-500/30 dark:border-violet-500/20" 
+                    "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap",
+                    activeTab === cat.id
+                      ? cat.color === 'violet' ? "bg-violet-500/20 dark:bg-violet-600/20 text-violet-700 dark:text-violet-400 border border-violet-500/30 dark:border-violet-500/20"
                       : cat.color === 'indigo' ? "bg-indigo-500/20 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 dark:border-indigo-500/20"
                       : "bg-emerald-500/20 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-500/20"
                       : "text-muted-foreground dark:text-muted-foreground/70 hover:text-foreground dark:hover:text-foreground border border-transparent"
                   )}
                 >
-                  <cat.icon className="w-4 h-4" />
-                  {t(`${cat.id}Tab`)}
+                  <cat.icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">{t(`${cat.id}Tab`)}</span>
+                  <span className="xs:hidden">{t(`${cat.id}Tab`).slice(0, 3)}</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Single Active Column */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden min-h-0">
             <div className="h-full">
               <SignalColumn
                 title={currentCategory ? t(`${currentCategory.id}Title`) : ''}
