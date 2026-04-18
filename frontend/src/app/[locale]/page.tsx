@@ -32,9 +32,9 @@ interface StatsData {
 }
 
 const CATEGORIES = [
-  { id: 'geopolitics', icon: Globe2, color: 'violet' },
-  { id: 'technology', icon: Cpu, color: 'indigo' },
-  { id: 'ai', icon: BrainCircuit, color: 'emerald' },
+  { id: 'geopolitics', icon: Globe2, color: 'violet', short: 'Geo' },
+  { id: 'technology', icon: Cpu, color: 'indigo', short: 'Tech' },
+  { id: 'ai', icon: BrainCircuit, color: 'emerald', short: 'AI' },
 ] as const;
 
 function SignalsDashboardContent({
@@ -141,7 +141,7 @@ function SignalsDashboardContent({
                 >
                   <cat.icon className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden xs:inline">{t(`${cat.id}Tab`)}</span>
-                  <span className="xs:hidden">{t(`${cat.id}Tab`).slice(0, 3)}</span>
+                  <span className="xs:hidden">{cat.short}</span>
                 </button>
               ))}
             </div>

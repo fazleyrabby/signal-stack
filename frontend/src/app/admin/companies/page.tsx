@@ -15,6 +15,7 @@ import {
 import { useResizableColumns } from "@/hooks/useResizableColumns";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 import { useRouter } from "next/navigation";
+import { useCrawl } from "@/context/CrawlContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
@@ -91,12 +92,9 @@ export default function CompaniesAdmin() {
   const [results, setResults] = useState<NearbyCompany[] | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
-  // Crawler state
+  // Crawler state — backed by global CrawlContext so results persist across navigation
   const [crawlSource, setCrawlSource] = useState<CrawlSourceKey>("basis");
-  const [crawling, setCrawling] = useState(false);
-  const [crawlResults, setCrawlResults] = useState<CrawledCompany[] | null>(null);
-  const [crawlError, setCrawlError] = useState<string | null>(null);
-  const [crawlSavedNames, setCrawlSavedNames] = useState<Set<string>>(new Set());
+  const { crawling, results: crawlResults, error: crawlError, savedNames: crawlSavedNames, runCrawl, setSavedNames: setCrawlSavedNames, clearResults } = useCrawl();
 
   // Crawler filters (persisted in localStorage)
   const [crawlLocationFilter, setCrawlLocationFilter] = useState<string>(() => {
@@ -289,27 +287,8 @@ export default function CompaniesAdmin() {
     mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
   }
 
-  async function runCrawl() {
-    setCrawling(true);
-    setCrawlResults(null);
-    setCrawlError(null);
-    setCrawlSavedNames(new Set());
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/companies/crawl`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ source: crawlSource }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setCrawlResults(data.data || []);
-    } catch (e) {
-      setCrawlError(e instanceof Error ? e.message : "Crawl failed");
-      setCrawlResults([]);
-    } finally {
-      setCrawling(false);
-    }
+  function handleRunCrawl() {
+    runCrawl(crawlSource);
   }
 
   const { widths: savedColWidths, startResize: savedStartResize } = useResizableColumns([200, 100, 120, 100, 140, 60]);
@@ -483,14 +462,14 @@ export default function CompaniesAdmin() {
                 {CRAWL_SOURCES.map((s) => (
                   <button
                     key={s.key}
-                    onClick={() => { setCrawlSource(s.key); setCrawlResults(null); setCrawlError(null); }}
+                    onClick={() => { setCrawlSource(s.key); clearResults(); }}
                     className={`text-[10px] px-2.5 py-1 rounded border transition-colors ${crawlSource === s.key ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
                   >
                     {s.label}
                   </button>
                 ))}
               </div>
-              <Button size="sm" className="h-7 px-3 text-xs gap-1.5 ml-auto" onClick={runCrawl} disabled={crawling}>
+              <Button size="sm" className="h-7 px-3 text-xs gap-1.5 ml-auto" onClick={handleRunCrawl} disabled={crawling}>
                 {crawling ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                 {crawling ? "Crawling…" : "Run Crawl"}
               </Button>

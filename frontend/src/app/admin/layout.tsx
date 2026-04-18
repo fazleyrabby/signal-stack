@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { verifyAdminSession } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
+import { CrawlProvider, useCrawl } from "@/context/CrawlContext";
+
+function CrawlStatusPill() {
+  const { crawling, source } = useCrawl();
+  if (!crawling) return null;
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-border shadow-lg text-xs font-medium text-muted-foreground">
+      <Loader2 className="w-3 h-3 animate-spin text-primary shrink-0" />
+      Crawling {source}… you can navigate away
+    </div>
+  );
+}
 
 export default function AdminLayout({
   children,
@@ -42,13 +54,16 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      <AdminSidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {children}
-        </div>
-      </main>
-    </div>
+    <CrawlProvider>
+      <div className="flex h-screen bg-background overflow-hidden">
+        <AdminSidebar />
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {children}
+          </div>
+        </main>
+        <CrawlStatusPill />
+      </div>
+    </CrawlProvider>
   );
 }

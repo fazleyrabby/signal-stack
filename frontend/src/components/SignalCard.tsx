@@ -70,19 +70,19 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
       getCategoryBorder(category),
       className
     )}>
-      <div className={cn("flex flex-col h-full", isCompact && "py-3 px-4")}>
-        <div className="flex flex-col h-full justify-between gap-4">
-          <div className="space-y-3">
+      <div className={cn("flex flex-col h-full", isCompact && "py-2 sm:py-3 px-3 sm:px-4")}>
+        <div className="flex flex-col h-full justify-between gap-2.5 sm:gap-4">
+          <div className="space-y-2 sm:space-y-3">
             {/* Header: Source + Time + Bookmark */}
             <div className="flex items-center justify-between gap-2 min-w-0">
-              <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-hidden">
                 <span className={cn(
-                  "text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm shrink-0 max-w-[100px] truncate",
+                  "text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-sm shrink-0 max-w-[90px] sm:max-w-[100px] truncate",
                   "bg-muted/50 text-muted-foreground/80"
                 )}>
                   {signal.source}
                 </span>
-                <span className="text-[12px] text-muted-foreground/60 tabular-nums shrink-0">
+                <span className="text-[11px] sm:text-[12px] text-muted-foreground/60 tabular-nums shrink-0">
                   {getRelativeTime(signal.publishedAt)}
                 </span>
                 {isCompact && (
@@ -113,7 +113,7 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
             {/* Title - Bigger text */}
             <h2 className={cn(
               "font-semibold leading-snug text-foreground/90 group-hover:text-foreground transition-colors",
-              isCompact ? "text-[16px] line-clamp-2" : "text-[15px] line-clamp-2"
+              isCompact ? "text-[14px] sm:text-[16px] line-clamp-2" : "text-[13px] sm:text-[15px] line-clamp-2"
             )}>
               {signal.title}
             </h2>
@@ -122,7 +122,7 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
             {(signal.aiSummary || signal.summary) && (
               <p className={cn(
                 "text-muted-foreground/70 leading-relaxed",
-                isCompact ? "text-[14px] line-clamp-4" : "text-[13px] line-clamp-3"
+                isCompact ? "text-[12px] sm:text-[14px] line-clamp-2 sm:line-clamp-4" : "text-[11px] sm:text-[13px] line-clamp-2 sm:line-clamp-3"
               )}>
                 {signal.aiSummary || signal.summary}
               </p>
@@ -131,18 +131,18 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
 
           {/* Footer: Impact Score + Actions + More Info */}
           <div className={cn(
-            "flex items-center justify-between pt-3 border-t border-border/10",
-            isCompact && "mt-2"
+            "flex items-center justify-between pt-2 sm:pt-3 border-t border-border/10",
+            isCompact && "mt-1 sm:mt-2"
           )}>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5 sm:gap-4">
               <div className={cn(
-                "w-8 h-8 rounded-md flex items-center justify-center font-bold text-[14px] shadow-md",
+                "w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center font-bold text-[12px] sm:text-[14px] shadow-md shrink-0",
                 impact.bg, "text-white"
               )}>
                 {Math.floor(signal.score)}
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className={cn("text-[12px] font-semibold uppercase tracking-wide", impact.text)}>
+                <span className={cn("text-[11px] sm:text-[12px] font-semibold uppercase tracking-wide", impact.text)}>
                   {signal.score >= 7 ? t('critical') : signal.score >= 5 ? t('elevated') : t('stable')}
                 </span>
                 {isCompact && signal.countryCode && (

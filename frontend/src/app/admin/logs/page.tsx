@@ -77,14 +77,13 @@ export default function AdminLogs() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/30 shrink-0">
-        <div className="flex items-center gap-3">
-          <Terminal className="w-4 h-4 text-primary" />
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-border/40 bg-card/30 shrink-0">
+        <div className="flex items-center gap-2 mr-auto">
+          <Terminal className="w-4 h-4 text-primary shrink-0" />
           <span className="font-bold text-sm">System Logs</span>
-          <span className="text-xs text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">{total} total</span>
+          <span className="text-[10px] text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">{total} total</span>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Level filters */}
+        <div className="flex items-center gap-1.5 flex-wrap">
           {(["all", "info", "warn", "error"] as const).map((lvl) => (
             <button
               key={lvl}
@@ -94,7 +93,7 @@ export default function AdminLogs() {
               {lvl}{lvl !== "all" && ` (${counts[lvl]})`}
             </button>
           ))}
-          <Button size="sm" variant="outline" className="h-7 px-3 text-xs gap-1.5 ml-2" onClick={() => fetchLogs(true)} disabled={refreshing}>
+          <Button size="sm" variant="outline" className="h-6 px-2.5 text-[10px] gap-1" onClick={() => fetchLogs(true)} disabled={refreshing}>
             <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
