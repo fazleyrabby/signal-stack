@@ -75,9 +75,9 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
           <div className="space-y-3">
             {/* Header: Source + Time + Bookmark */}
             <div className="flex items-center justify-between gap-2 min-w-0">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
                 <span className={cn(
-                  "text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm shrink-0 max-w-[130px] truncate",
+                  "text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm shrink-0 max-w-[100px] truncate",
                   "bg-muted/50 text-muted-foreground/80"
                 )}>
                   {signal.source}
@@ -88,7 +88,7 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
                 {isCompact && (
                   <>
                     <span className="text-[12px] text-muted-foreground/40 shrink-0">|</span>
-                    <span className="text-[12px] text-muted-foreground/60 truncate min-w-0">
+                    <span className="text-[12px] text-muted-foreground/60 truncate min-w-0 flex-1">
                       {signal.categoryId || signal.aiCategory}
                     </span>
                   </>

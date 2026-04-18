@@ -13,6 +13,7 @@ import { AdminGuard } from '../admin/admin.guard';
 import { CompaniesService } from './companies.service';
 import { CompaniesRepository } from './companies.repository';
 import { DirectoryCrawlerService, CRAWLER_SOURCES, CrawlerSourceKey } from './directory-crawler.service';
+import { isTechCompany } from './companies.repository';
 import { SkipThrottle } from '@nestjs/throttler';
 
 @Controller('api/admin/companies')
@@ -59,6 +60,11 @@ export class CompaniesController {
 
   @Post('save')
   async saveCompany(@Body() body: any) {
+    const source = body.source || 'osm';
+    const tags: string[] = body.tags || [];
+    if (!isTechCompany(body.name ?? '', source, tags)) {
+      throw new BadRequestException('Company does not meet tech filter criteria');
+    }
     const company = await this.companiesRepository.save({
       name: body.name,
       website: body.website || null,
@@ -69,10 +75,16 @@ export class CompaniesController {
       lat: body.lat || null,
       lng: body.lng || null,
       osmId: body.osmId || null,
-      source: body.source || 'osm',
-      tags: body.tags || [],
+      source,
+      tags,
     });
     return company;
+  }
+
+  @Post('purge-non-tech')
+  async purgeNonTech() {
+    const deleted = await this.companiesRepository.purgeNonTech();
+    return { deleted };
   }
 
   @Get('saved')
