@@ -33,7 +33,7 @@ export class CompaniesService {
   constructor(private readonly redis: RedisService) {}
 
   async findNearby(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
-    const cacheKey = `companies:nearby:v7:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cacheKey = `companies:nearby:v8:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -53,20 +53,15 @@ export class CompaniesService {
   }
 
   private async queryOverpass(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
-    // Broad query: fetch ALL offices/companies within radius regardless of type tag.
-    // We filter to tech companies in JS after — OSM tagging in South Asia is inconsistent,
-    // so relying on office=tech/software misses most real companies.
+    // Simple union: any office-tagged node or way within radius.
+    // Name-regex clauses were causing 504 timeouts on Overpass for large radii.
+    // JS-side isTechByOsm() does the tech/non-tech filtering after.
+    const safeRadius = Math.min(radius, 20000); // cap at 20km to avoid Overpass timeouts
     const query = `
-[out:json][timeout:30];
+[out:json][timeout:25];
 (
-  node["office"](around:${radius},${lat},${lng});
-  way["office"](around:${radius},${lat},${lng});
-  node["office"="company"](around:${radius},${lat},${lng});
-  way["office"="company"](around:${radius},${lat},${lng});
-  node["building"="office"]["name"](around:${radius},${lat},${lng});
-  way["building"="office"]["name"](around:${radius},${lat},${lng});
-  node["amenity"="office"]["name"](around:${radius},${lat},${lng});
-  node["name"~"software|tech|technology|digital|IT|solutions|systems|apps|web|mobile|cloud|fintech|ecommerce|startup|dev|platform|SaaS|AI|ERP|CRM|automation|computing|internet|studio|lab|innovation|byte|pixel|logic|nexus|neural|algorithm",i](around:${radius},${lat},${lng});
+  node["office"](around:${safeRadius},${lat},${lng});
+  way["office"](around:${safeRadius},${lat},${lng});
 );
 out center;
     `.trim();

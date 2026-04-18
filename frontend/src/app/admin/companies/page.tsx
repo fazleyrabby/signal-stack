@@ -60,8 +60,8 @@ interface SavedCompany {
 const RADIUS_OPTIONS = [
   { label: "5 km", value: 5000 },
   { label: "10 km", value: 10000 },
+  { label: "15 km", value: 15000 },
   { label: "20 km", value: 20000 },
-  { label: "50 km", value: 50000 },
 ];
 
 const CRAWL_SOURCES = [
