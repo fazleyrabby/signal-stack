@@ -3,7 +3,7 @@ import { RedisService } from '../ai/redis.service';
 import { SettingsService } from '../ai/settings.service';
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
-const GOOGLE_PLACES_URL = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+const GOOGLE_PLACES_URL = 'https://places.googleapis.com/v1/places:searchNearby';
 const MAPBOX_SEARCH_URL = 'https://api.mapbox.com/search/searchbox/v1/category/software';
 const CACHE_TTL = 3600; // 1 hour
 
@@ -118,31 +118,40 @@ export class CompaniesService {
       return [];
     }
 
-    // We search for 'establishment' or specific types. Google is already pretty good at filtering.
-    // We'll search for 'company' and 'software_company' if possible, or just use keyword.
-    const url = `${GOOGLE_PLACES_URL}?location=${lat},${lng}&radius=${radius}&type=establishment&keyword=software+tech+it+company&key=${apiKey}`;
-
     try {
-      const res = await fetch(url);
+      const res = await fetch(GOOGLE_PLACES_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.formattedAddress,places.location,places.types',
+        },
+        body: JSON.stringify({
+          locationRestriction: {
+            circle: {
+              center: { latitude: lat, longitude: lng },
+              radius: radius,
+            },
+          },
+          includedTypes: ['establishment'],
+          maxResultCount: 20,
+        }),
+      });
+
       if (!res.ok) {
-        this.logger.error(`Google Places HTTP ${res.status}`);
+        this.logger.error(`Google Places New HTTP ${res.status}`);
         return [];
       }
 
       const data = await res.json();
-      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        this.logger.error(`Google Places API error: ${data.status} - ${data.error_message || ''}`);
-        return [];
-      }
-
-      const results: NearbyCompany[] = (data.results || []).map((p: any) => ({
-        placeId: p.place_id,
-        name: p.name,
-        website: null, // Basic nearby search doesn't return website, need Place Details
-        city: null,    // Needs Place Details or reverse geocoding
-        country: 'Bangladesh', // Assuming BD for now as per user context, or could infer
-        lat: p.geometry.location.lat,
-        lng: p.geometry.location.lng,
+      const results: NearbyCompany[] = (data.places || []).map((p: any) => ({
+        placeId: p.id,
+        name: p.displayName?.text || 'Unknown',
+        website: p.websiteUri || null,
+        city: p.formattedAddress || null,
+        country: 'Bangladesh',
+        lat: p.location.latitude,
+        lng: p.location.longitude,
         tags: p.types || [],
         careerPageFound: false,
         careerUrl: null,
@@ -150,7 +159,7 @@ export class CompaniesService {
 
       return results.filter(c => !NON_TECH_EXCLUDE.test(c.name));
     } catch (err) {
-      this.logger.error(`Google Places fetch failed: ${err}`);
+      this.logger.error(`Google Places New fetch failed: ${err}`);
       return [];
     }
   }
