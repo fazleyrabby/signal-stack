@@ -50,6 +50,9 @@ export class SettingsService {
     osmEnabled: boolean;
     translationThreshold: number;
     forceAllTranslations: boolean;
+    macLocalEnabled: boolean;
+    macLocalEndpoint: string | null;
+    macLocalTimeout: number;
   }> {
     const groqModel = await this.getSetting('groq_model');
     const openrouterModel = await this.getSetting('openrouter_model');
@@ -61,6 +64,9 @@ export class SettingsService {
     const osmEnabled = await this.getSetting('osm_enabled');
     const translationThreshold = await this.getSetting('translation_threshold');
     const forceAllTranslations = await this.getSetting('force_all_translations');
+    const macLocalEnabled = await this.getSetting('mac_local_enabled');
+    const macLocalEndpoint = await this.getSetting('mac_local_endpoint');
+    const macLocalTimeout = await this.getSetting('mac_local_timeout');
 
     return {
       groqModel: groqModel || 'llama-3.3-70b-versatile',
@@ -73,6 +79,9 @@ export class SettingsService {
       osmEnabled: osmEnabled !== 'false',
       translationThreshold: translationThreshold ? parseInt(translationThreshold, 10) : 7,
       forceAllTranslations: forceAllTranslations === 'true',
+      macLocalEnabled: macLocalEnabled === 'true',
+      macLocalEndpoint: macLocalEndpoint,
+      macLocalTimeout: macLocalTimeout ? parseInt(macLocalTimeout, 10) : 3000,
     };
   }
 
@@ -85,6 +94,9 @@ export class SettingsService {
     osmEnabled: boolean;
     translationThreshold: number;
     forceAllTranslations: boolean;
+    macLocalEnabled: boolean;
+    macLocalEndpoint: string | null;
+    macLocalTimeout: number;
   }>): Promise<void> {
     if (config.groqModel) {
       await this.setSetting('groq_model', config.groqModel);
@@ -115,6 +127,15 @@ export class SettingsService {
     }
     if (config.forceAllTranslations !== undefined) {
       await this.setSetting('force_all_translations', String(config.forceAllTranslations));
+    }
+    if (config.macLocalEnabled !== undefined) {
+      await this.setSetting('mac_local_enabled', String(config.macLocalEnabled));
+    }
+    if (config.macLocalEndpoint !== undefined) {
+      await this.setSetting('mac_local_endpoint', config.macLocalEndpoint || '');
+    }
+    if (config.macLocalTimeout !== undefined) {
+      await this.setSetting('mac_local_timeout', String(config.macLocalTimeout));
     }
   }
 

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { LocalProvider } from './providers/local.provider';
 import { GroqProvider } from './providers/groq.provider';
 import { OpenRouterProvider } from './providers/openrouter.provider';
+import { PicoClawService } from './picoclaw.service';
 import { RedisService } from './redis.service';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
@@ -20,11 +21,25 @@ export class AIService {
     private readonly local: LocalProvider,
     private readonly groq: GroqProvider,
     private readonly openRouter: OpenRouterProvider,
+    private readonly macLocal: MacLocalProvider,
+    private readonly picoClaw: PicoClawService,
     private readonly redisService: RedisService,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
     private readonly configService: ConfigService,
     private readonly settingsService: SettingsService,
   ) {}
+
+  private isLowQuality(summary: string): boolean {
+    if (!summary || summary.length < 20) return true;
+    const genericPhrases = [
+      'provide the content',
+      'no content provided',
+      'i am an ai',
+      'helpful assistant',
+    ];
+    const lower = summary.toLowerCase();
+    return genericPhrases.some((phrase) => lower.includes(phrase));
+  }
 
   async translate(
     title: string,
@@ -147,7 +162,33 @@ export class AIService {
       }
     }
 
-    // Step 2: Fallback to OpenRouter
+    // Step 2: PicoClaw (Optional decision layer)
+    if (!summary || score >= 7 || this.isLowQuality(summary)) {
+      const picoResult = await this.picoClaw.process(trimmedContent, score);
+      if (picoResult && picoResult.result) {
+        if (picoResult.provider === 'mac') {
+          summary = typeof picoResult.result === 'string' ? picoResult.result : JSON.stringify(picoResult.result);
+          provider = 'pico_mac';
+          fallbackUsed = true;
+        } else if (picoResult.provider === 'fallback' && !summary) {
+          summary = typeof picoResult.result === 'string' ? picoResult.result : JSON.stringify(picoResult.result);
+          provider = 'pico_fallback';
+          fallbackUsed = true;
+        }
+      }
+    }
+
+    // Step 3: Mac Local (Direct Integration)
+    if ((!summary || score >= 7 || this.isLowQuality(summary)) && await this.macLocal.isAvailable()) {
+      const macSummary = await this.macLocal.summarize(title, trimmedContent);
+      if (macSummary) {
+        summary = macSummary;
+        provider = 'mac_local';
+        fallbackUsed = true;
+      }
+    }
+
+    // Step 4: Fallback to OpenRouter (if still no summary)
     if (!summary && !this.isCooldown('openrouter')) {
       logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'openrouter' });
       fallbackUsed = true;
@@ -159,7 +200,7 @@ export class AIService {
       }
     }
 
-    // Step 3: Last resort — Local AI (only if enabled and not on cooldown)
+    // Step 5: Last resort — Local AI (only if enabled and not on cooldown)
     if (!summary && localAiEnabled && !this.isCooldown('local')) {
       logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'local' });
       fallbackUsed = true;
@@ -235,38 +276,56 @@ export class AIService {
 
   async getHealth() {
     const localEnabled = await this.local.isEnabled();
+    const macLocalEnabled = await this.macLocal.isEnabled();
 
     const [
       local,
+      macLocal,
+      picoClaw,
       groq,
       openrouter,
       groqToday,
       groqAllTime,
       openrouterToday,
       openrouterAllTime,
+      macLocalToday,
+      macLocalAllTime,
     ] = await Promise.all([
       localEnabled
         ? this.local.checkHealth()
         : Promise.resolve({ status: 'disabled' }),
+      macLocalEnabled
+        ? this.macLocal.checkHealth()
+        : Promise.resolve({ status: 'disabled' }),
+      this.picoClaw.process('health_check', 0).then(r => ({ status: r ? 'healthy' : 'unhealthy' })).catch(() => ({ status: 'unhealthy' })),
       this.groq.checkHealth(),
       this.openRouter.checkHealth(),
       this.redisService.getTokenUsage('groq', true),
       this.redisService.getTokenUsage('groq', false),
       this.redisService.getTokenUsage('openrouter', true),
       this.redisService.getTokenUsage('openrouter', false),
+      this.redisService.getTokenUsage('mac_local', true),
+      this.redisService.getTokenUsage('mac_local', false),
     ]);
+
+    const pipeline = ['groq', 'pico_router'];
+    if (macLocalEnabled) pipeline.push('mac_local');
+    pipeline.push('openrouter');
+    if (localEnabled) pipeline.push('local');
 
     return {
       local: localEnabled ? { ...local, model: 'Qwen2.5-0.5B' } : local,
+      macLocal: macLocalEnabled ? { ...macLocal, model: 'llama-cpp-mac' } : macLocal,
+      picoClaw: { ...picoClaw, model: 'Orchestrator' },
       groq: { ...groq, model: this.groq.modelName },
       openrouter: { ...openrouter, model: this.openRouter.modelName },
       localEnabled,
-      pipeline: localEnabled
-        ? 'groq → openrouter → local'
-        : 'groq → openrouter',
+      macLocalEnabled,
+      pipeline: pipeline.join(' → '),
       tokenUsage: {
         groq: { today: groqToday, allTime: groqAllTime },
         openrouter: { today: openrouterToday, allTime: openrouterAllTime },
+        macLocal: { today: macLocalToday, allTime: macLocalAllTime },
       },
     };
   }

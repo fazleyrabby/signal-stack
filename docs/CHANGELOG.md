@@ -4,6 +4,33 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-19] — PicoClaw Orchestrator, Mac Local AI Tier & Admin Dashboard Updates
+
+### Added
+- **PicoClaw Orchestrator**: Lightweight Python/Flask service (LXC container) acting as a smart routing layer for AI requests.
+  - Tiered routing: Groq (Primary) → PicoClaw (Mac Local) → OpenRouter → VPS Local.
+  - Health check system: 300ms fast-fail, Redis caching (60s TTL).
+  - Circuit Breaker: 3 failures / 60s reset in NestJS `PicoClawService`.
+- **Mac Local AI Provider** (`mac_local`): Direct integration for llama.cpp running on Mac (M1/M2/M3).
+  - Configurable endpoint (LAN/Tailscale), timeout, and enabled state via Admin Dashboard.
+  - High-quality signal routing: triggered if score >= 7 or Groq output is low-quality.
+  - `isLowQuality` helper: detects short summaries (<20 chars) or generic AI boilerplate.
+- **Admin Dashboard Enhancements**:
+  - **Live AI Status Header**: Real-time status dots (🟢/🔴/⚫) for Groq, OpenRouter, PicoClaw, and Mac Local.
+  - **Mac Local Configuration Card**: Integrated UI for managing the Mac M1 LLM tier (endpoint, timeout, test connection).
+  - **AI Provider Labels**: Technical `aiProvider` strings mapped to user-friendly labels (e.g., "Pico Mac", "Mac Local") in Signal Detail Modals and Admin list.
+
+### Fixed
+- **llama.cpp Reachability**: Resolved "Connection Refused" by binding Mac server to `0.0.0.0` (LAN access for LXC).
+- **AI Provider Display**: Added `getProviderLabel` utility to ensure "Mac Local" is correctly identified in the UI.
+
+### Study Guide
+- Section 29: PicoClaw Orchestrator Architecture
+- Section 30: Mac Local LLM Integration (llama.cpp)
+- Section 31: Advanced AI Pipeline Tiering
+
+---
+
 ## [2026-04-17] — Auth Fix, AI Limit & OSM Query
 
 ### Fixed

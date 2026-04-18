@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, ExternalLink, Bookmark, Link2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, getProviderLabel } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Signal } from "@/lib/api";
 
@@ -113,7 +113,7 @@ export function SignalDetailModal({ signal, onOpenChange, isBookmarked, isBookma
             </span>
             {signal.aiProvider && signal.aiProvider !== "none" && (
               <Badge variant="outline" className="text-[10px] font-bold uppercase">
-                {signal.aiProvider}
+                {getProviderLabel(signal.aiProvider)}
               </Badge>
             )}
           </div>

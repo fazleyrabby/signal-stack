@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity, ChevronDown, Eye, EyeOff, FileDown, Download, FileText } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, getProviderLabel } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useResizableColumns } from "@/hooks/useResizableColumns";
 import { ResizeHandle } from "@/components/ui/resize-handle";
@@ -313,7 +313,7 @@ export default function SignalsAdmin() {
                         <span className="text-[9px] font-bold uppercase">Pending</span>
                       </div>
                     )}
-                    {signal.aiProvider && <span className="text-[8px] text-muted-foreground font-mono block">{signal.aiProvider}</span>}
+                    {signal.aiProvider && <span className="text-[8px] text-muted-foreground font-mono block uppercase">{getProviderLabel(signal.aiProvider)}</span>}
                   </TableCell>
                   <TableCell className="px-3 py-2">
                     <div className="flex flex-wrap gap-0.5">

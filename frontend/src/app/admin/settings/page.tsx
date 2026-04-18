@@ -65,8 +65,73 @@ export default function SettingsPage() {
   useEffect(() => { if (keysError) router.replace("/admin-login"); }, [keysError, router]);
 
   const { data: aiHealth, mutate: refreshAI } = useSWR<{
-    groq: { status: string }; openrouter: { status: string };
-  }>(`${API_BASE}/api/admin/ai/health`, fetcher, { shouldRetryOnError: false });
+    groq: { status: string; model: string };
+    openrouter: { status: string; model: string };
+    macLocal?: { status: string; model: string; latency?: number };
+    picoClaw?: { status: string; model: string };
+    pipeline: string;
+    tokenUsage: {
+      groq: { today: number; allTime: number };
+      openrouter: { today: number; allTime: number };
+      macLocal: { today: number; allTime: number };
+    };
+  }>(`${API_BASE}/api/admin/ai/health`, fetcher, { 
+    shouldRetryOnError: false,
+    refreshInterval: 10000 // Auto-refresh every 10s
+  });
+
+  // Mac Local Config
+  const { data: macLocalConfig, mutate: refreshMacLocal } = useSWR<{
+    enabled: boolean; endpoint: string; timeout: number;
+  }>(`${API_BASE}/api/admin/ai/mac-local/config`, fetcher);
+
+  const [macEndpointInput, setMacEndpointInput] = useState('');
+  const [macTimeoutInput, setMacTimeoutInput] = useState(3000);
+  const [isSavingMac, setIsSavingMac] = useState(false);
+  const [macSaved, setMacSaved] = useState(false);
+  const [isTestingMac, setIsTestingMac] = useState(false);
+  const [macTestResult, setMacTestResult] = useState<{ ok: boolean; latency?: number; error?: string } | null>(null);
+
+  useEffect(() => {
+    if (macLocalConfig) {
+      setMacEndpointInput(macLocalConfig.endpoint || '');
+      setMacTimeoutInput(macLocalConfig.timeout || 3000);
+    }
+  }, [macLocalConfig]);
+
+  const handleSaveMacLocal = async (enabled?: boolean) => {
+    setIsSavingMac(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/ai/mac-local/config`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', 
+        body: JSON.stringify({ 
+          enabled: enabled ?? macLocalConfig?.enabled,
+          endpoint: macEndpointInput.trim(),
+          timeout: macTimeoutInput
+        }),
+      });
+      await Promise.all([refreshMacLocal(), refreshAI()]);
+      setMacSaved(true);
+      setTimeout(() => setMacSaved(null), 3000);
+    } finally { setIsSavingMac(false); }
+  };
+
+  const handleTestMacLocal = async () => {
+    setIsTestingMac(true);
+    setMacTestResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/ai/mac-local/test`, {
+        method: 'POST', credentials: 'include',
+      });
+      const data = await res.json();
+      setMacTestResult({ ok: data.status === 'healthy', latency: data.latency, error: data.error });
+    } catch { setMacTestResult({ ok: false, error: 'Request failed' }); }
+    finally {
+      setIsTestingMac(null);
+      setTimeout(() => setMacTestResult(null), 5000);
+    }
+  };
 
   const [groqKeyInput, setGroqKeyInput] = useState('');
   const [openrouterKeyInput, setOpenrouterKeyInput] = useState('');
@@ -428,6 +493,104 @@ export default function SettingsPage() {
 
         <div className="border-t border-border/30" />
 
+        {/* ── Mac Local ──────────────────────────────────── */}
+        <section>
+          <SectionHeader
+            icon={Activity}
+            title="Mac Local AI"
+            subtitle="Local llama.cpp instance on your Mac"
+          />
+          <div className="px-6 py-4 space-y-4 max-w-2xl">
+            <div className={cn("space-y-4 p-4 rounded-lg border transition-colors",
+              macLocalConfig?.enabled ? "border-primary/30 bg-primary/5" : "border-border/40 bg-card/30"
+            )}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={cn("w-8 h-8 rounded-full flex items-center justify-center bg-muted/40", macLocalConfig?.enabled ? "text-primary" : "text-muted-foreground")}>
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold">Local llama.cpp (Mac)</p>
+                      {macLocalConfig?.enabled && <StatusDot status={aiHealth?.macLocal?.status || 'unknown'} />}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                       <p className="text-[10px] text-muted-foreground">Used as high-quality conditional tier for important signals.</p>
+                       {aiHealth?.macLocal?.latency && (
+                         <span className="text-[9px] font-mono text-emerald-500 bg-emerald-500/10 px-1 rounded">
+                           {aiHealth.macLocal.latency}ms
+                         </span>
+                       )}
+                    </div>
+                    {aiHealth?.tokenUsage?.macLocal && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Usage Today:</span>
+                        <span className="text-[10px] font-mono font-bold text-primary">
+                          {aiHealth.tokenUsage.macLocal.today.toLocaleString()} tokens
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <Switch checked={macLocalConfig?.enabled ?? false} onCheckedChange={(val) => handleSaveMacLocal(val)} disabled={isSavingMac} />
+              </div>
+
+              <div className="space-y-3 pt-2 border-t border-border/20">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Endpoint URL</label>
+                    <input
+                      type="url"
+                      value={macEndpointInput}
+                      onChange={(e) => setMacEndpointInput(e.target.value)}
+                      placeholder="http://192.168.0.x:8080"
+                      className="w-full h-8 px-3 rounded-md bg-background border border-border/40 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary/40"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Timeout (ms)</label>
+                    <input
+                      type="number"
+                      value={macTimeoutInput}
+                      onChange={(e) => setMacTimeoutInput(parseInt(e.target.value))}
+                      className="w-full h-8 px-3 rounded-md bg-background border border-border/40 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary/40"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1">
+                    {macTestResult && (
+                      <p className={cn("text-[10px] font-bold", macTestResult.ok ? "text-emerald-500" : "text-red-500")}>
+                        {macTestResult.ok ? `✓ Connected (${macTestResult.latency}ms)` : `✗ ${macTestResult.error || 'Connection failed'}`}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={handleTestMacLocal} disabled={!macEndpointInput || isTestingMac}>
+                      {isTestingMac ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                      Test
+                    </Button>
+                    <Button size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => handleSaveMacLocal()} disabled={isSavingMac}>
+                      {isSavingMac ? <Loader2 className="w-3 h-3 animate-spin" /> : macSaved ? <Check className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                      {macSaved ? 'Saved!' : 'Save'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {aiHealth?.pipeline && (
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 px-1">
+                <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
+                Current Pipeline: <span className="font-mono text-primary/80">{aiHealth.pipeline}</span>
+              </p>
+            )}
+          </div>
+        </section>
+
+        <div className="border-t border-border/30" />
+
         {/* ── AI API Keys ───────────────────────────────── */}
         <section>
           <SectionHeader
@@ -436,6 +599,31 @@ export default function SettingsPage() {
             subtitle="Override .env keys — stored in database, applied immediately"
           />
           <div className="px-6 py-4 space-y-4 max-w-2xl">
+            {/* Live Status Summary */}
+            <div className="flex flex-wrap gap-4 px-4 py-2 bg-card/20 border border-border/20 rounded-lg mb-2">
+              <div className="flex items-center gap-2">
+                <StatusDot status={aiHealth?.groq?.status || 'unknown'} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Groq</span>
+              </div>
+              <div className="flex items-center gap-2 border-l border-border/20 pl-4">
+                <StatusDot status={aiHealth?.openrouter?.status || 'unknown'} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">OpenRouter</span>
+              </div>
+              <div className="flex items-center gap-2 border-l border-border/20 pl-4">
+                <StatusDot status={aiHealth?.picoClaw?.status || 'unknown'} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">PicoClaw</span>
+              </div>
+              <div className="flex items-center gap-2 border-l border-border/20 pl-4">
+                <StatusDot status={aiHealth?.macLocal?.status || 'disabled'} />
+                <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  Mac Local
+                  {aiHealth?.macLocal?.latency && (
+                    <span className="text-[8px] font-mono opacity-50">({aiHealth.macLocal.latency}ms)</span>
+                  )}
+                </span>
+              </div>
+            </div>
+
             {/* Groq */}
             <div className="space-y-2 p-4 rounded-lg border border-border/40 bg-card/30">
               <div className="flex items-center justify-between">

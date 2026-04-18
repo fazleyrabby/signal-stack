@@ -68,6 +68,28 @@ Access at [http://localhost:3001](http://localhost:3001).
 
 ---
 
+## 🧠 Advanced AI Orchestration (PicoClaw)
+
+SignalStack implements a highly resilient, tiered AI pipeline using the **PicoClaw** orchestrator (running in an LXC container). This layer ensures that mission-critical or high-impact signals receive high-fidelity analysis from local models (Mac M1) while maintaining fast fallback to cloud providers.
+
+### AI Tiering Logic
+1.  **Tier 1 (Groq)**: Ultra-fast initial processing.
+2.  **Tier 2 (PicoClaw / Mac Local)**: Triggered if:
+    *   Signal `score >= 7` (High Impact).
+    *   Groq output is **Low Quality** (detected via `isLowQuality` helper).
+3.  **Tier 3 (OpenRouter)**: Fallback for complex reasoning if local models are unavailable.
+4.  **Tier 4 (VPS Local)**: Final fail-safe (lightweight 0.5B model).
+
+### Component Breakdown
+- **PicoClaw Service** (`192.168.0.213:9000`): Flask-based routing layer in LXC.
+- **Mac Local LLM** (`192.168.0.150:8081`): llama-server running Qwen 2.5 Coder 7B (Instruct).
+- **Circuit Breaker**: NestJS implements a `3-failure / 60-second` cooldown for the PicoClaw endpoint to prevent blocking queue workers.
+
+### Management
+Control all AI tiers via the **Admin Dashboard** under **Settings**. You can live-test connections, toggle providers, and update endpoints/timeouts without restarts.
+
+---
+
 ## 📊 Trends Analytics
 
 Access at [http://localhost:3001/trends](http://localhost:3001/trends). Public page showing 30-day signal analytics with interactive charts.

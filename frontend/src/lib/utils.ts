@@ -24,3 +24,17 @@ export async function trackVisit() {
     await fetch(`${API_BASE}/api/visitors`, { method: 'POST' });
   } catch {}
 }
+
+export function getProviderLabel(provider: string | null): string {
+  if (!provider || provider === 'none') return '';
+  const labels: Record<string, string> = {
+    'groq': 'Groq',
+    'openrouter': 'OpenRouter',
+    'local': 'Local AI',
+    'pico_mac': 'Pico Mac',
+    'pico_fallback': 'Pico Fallback',
+    'mac_local': 'Mac Local',
+    'failed': 'Failed',
+  };
+  return labels[provider] || provider;
+}

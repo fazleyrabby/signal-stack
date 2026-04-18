@@ -25,6 +25,7 @@ import { ConfigService } from '@nestjs/config';
 import { DiscordService } from '../alerts/discord.service';
 import { GroqProvider } from '../ai/providers/groq.provider';
 import { OpenRouterProvider } from '../ai/providers/openrouter.provider';
+import { MacLocalProvider } from '../ai/providers/mac-local.provider';
 import { CompaniesService } from '../companies/companies.service';
 
 @Controller('api/admin')
@@ -42,6 +43,7 @@ export class AdminController {
     private readonly discordService: DiscordService,
     private readonly groqProvider: GroqProvider,
     private readonly openRouterProvider: OpenRouterProvider,
+    private readonly macLocalProvider: MacLocalProvider,
     private readonly companiesService: CompaniesService,
   ) {}
 
@@ -50,6 +52,34 @@ export class AdminController {
   async getAIHealth() {
     const health = await this.aiService.getHealth();
     return { ...health, queueSize: this.aiQueue.queueSize };
+  }
+
+  // --- Mac Local ---
+  @Get('ai/mac-local/config')
+  async getMacLocalConfig() {
+    const config = await this.settingsService.getModelConfig();
+    return {
+      enabled: config.macLocalEnabled,
+      endpoint: config.macLocalEndpoint,
+      timeout: config.macLocalTimeout,
+    };
+  }
+
+  @Put('ai/mac-local/config')
+  async updateMacLocalConfig(
+    @Body() body: { enabled?: boolean; endpoint?: string; timeout?: number },
+  ) {
+    await this.settingsService.setModelConfig({
+      macLocalEnabled: body.enabled,
+      macLocalEndpoint: body.endpoint,
+      macLocalTimeout: body.timeout,
+    });
+    return { success: true };
+  }
+
+  @Post('ai/mac-local/test')
+  async testMacLocal() {
+    return this.macLocalProvider.checkHealth();
   }
 
   // --- LLM Models ---
