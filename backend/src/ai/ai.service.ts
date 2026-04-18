@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { LocalProvider } from './providers/local.provider';
 import { GroqProvider } from './providers/groq.provider';
 import { OpenRouterProvider } from './providers/openrouter.provider';
+import { MacLocalProvider } from './providers/mac-local.provider';
 import { PicoClawService } from './picoclaw.service';
 import { RedisService } from './redis.service';
 import { DATABASE_CONNECTION } from '../database/database.module';

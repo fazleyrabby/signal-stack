@@ -52,10 +52,10 @@ export class MacLocalProvider {
       
       const latency = Date.now() - start;
       // Cache result in Redis for 60s
-      await this.redisService.set('mac_local:status', 'online', 60);
+      await this.redisService.set('mac_local:status', 'online', 'EX', 60);
       return { status: 'healthy', latency };
     } catch (error: any) {
-      await this.redisService.set('mac_local:status', 'offline', 60);
+      await this.redisService.set('mac_local:status', 'offline', 'EX', 60);
       return { status: 'unhealthy', error: error.message };
     }
   }
@@ -93,7 +93,7 @@ export class MacLocalProvider {
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        await this.redisService.set('mac_local:status', 'offline', 60);
+        await this.redisService.set('mac_local:status', 'offline', 'EX', 60);
         return null;
       }
 
@@ -112,7 +112,7 @@ export class MacLocalProvider {
       return data?.choices?.[0]?.message?.content?.trim() || null;
     } catch (error: any) {
       logEvent('warn', 'mac_local_provider_error', { message: error.message });
-      await this.redisService.set('mac_local:status', 'offline', 60);
+      await this.redisService.set('mac_local:status', 'offline', 'EX', 60);
       return null;
     }
   }
