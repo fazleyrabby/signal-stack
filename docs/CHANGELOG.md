@@ -4,6 +4,24 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-19] — PicoClaw mDNS Stability, Health Timeout Fix & Mac Routing
+
+### Fixed
+- **Health check timeout**: `mac-local.provider.ts` health check was hardcoded to 1000ms — too short for LAN round-trips. Now uses `macLocalTimeout` setting (default 5000ms).
+- **PicoClaw MAC_URL hardcoded IP**: Replaced `192.168.0.150` with `Rabbis-MacBook-Pro.local` (mDNS hostname) in `/opt/picoclaw/app.py`. Mac IP change no longer breaks routing.
+- **mDNS on PicoClaw host**: Installed `avahi-daemon` + `libnss-mdns` on PicoClaw LXC (`192.168.0.213`) to resolve `.local` hostnames.
+
+### Architecture
+- PicoClaw runs at `192.168.0.213:9000` (Python/Flask, LXC container).
+- Routes to Mac llama.cpp at `Rabbis-MacBook-Pro.local:8081`.
+- SignalStack mac_local endpoint: `http://192.168.0.213:9000`.
+- VPS llama.cpp (`signalstack-llama`) remains on VPS port 8080 — separate tier.
+
+### Study Guide
+- Section 32: PicoClaw LAN Routing & mDNS Hostname Stability
+
+---
+
 ## [2026-04-19] — PicoClaw Orchestrator, Mac Local AI Tier & Admin Dashboard Updates
 
 ### Added

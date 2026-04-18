@@ -40,10 +40,13 @@ export class MacLocalProvider {
     const endpoint = await this.getEndpoint();
     if (!endpoint) return { status: 'no_endpoint' };
 
+    const config = await this.settingsService.getModelConfig();
+    const timeout = config.macLocalTimeout || 5000;
+
     const start = Date.now();
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1000);
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const res = await fetch(`${endpoint}/health`, {
         method: 'GET',
