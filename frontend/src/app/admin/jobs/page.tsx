@@ -37,7 +37,7 @@ export default function JobsAdmin() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { widths: colWidths, startResize } = useResizableColumns([220, 140, 130, 90, 80, 90, 40]);
+  const { widths: colWidths, startResize } = useResizableColumns([220, 140, 130, 110, 90, 90, 40]);
 
   const { data: jobsData, isLoading: jobsLoading } = useSWR(
     `${API_BASE}/api/admin/jobs?page=${page}&limit=30&search=${search}`, fetcher
@@ -142,16 +142,16 @@ export default function JobsAdmin() {
                           <span className="truncate max-w-[110px]">{job.location || "Remote / Global"}</span>
                         </span>
                       </TableCell>
-                      <TableCell className="px-3 py-2">
-                        <span className="text-[9px] font-bold uppercase tracking-wider bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground">{job.source}</span>
+                      <TableCell className="px-3 py-2 overflow-hidden">
+                        <span className="text-[9px] font-bold uppercase tracking-wider bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground block truncate max-w-full" title={job.source}>{job.source}</span>
                       </TableCell>
-                      <TableCell className="px-3 py-2">
+                      <TableCell className="px-3 py-2 overflow-hidden">
                         <div className="flex flex-col gap-0.5">
                           {job.remote && (
                             <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400">Remote</span>
                           )}
                           {job.jobType && (
-                            <span className="text-[9px] text-muted-foreground uppercase">{job.jobType}</span>
+                            <span className="text-[9px] text-muted-foreground uppercase truncate block">{job.jobType}</span>
                           )}
                         </div>
                       </TableCell>
