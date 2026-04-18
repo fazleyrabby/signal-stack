@@ -33,7 +33,7 @@ export class CompaniesService {
   constructor(private readonly redis: RedisService) {}
 
   async findNearby(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
-    const cacheKey = `companies:nearby:v8:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cacheKey = `companies:nearby:v9:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -44,8 +44,9 @@ export class CompaniesService {
     const raw = await this.queryOverpass(lat, lng, radius);
     this.logger.log(`Overpass found ${raw.length} raw companies at ${lat},${lng} (radius ${radius}m)`);
 
-    // Filter out clearly non-tech (embassies, hospitals, banks) — keep everything else
-    const results = raw.filter((c) => isTechByOsm(c)).slice(0, 100);
+    // Filter out clearly non-tech (embassies, hospitals, banks) — keep everything else.
+    // OSM coverage in Bangladesh/South Asia is sparse so we keep the filter lenient.
+    const results = raw.filter((c) => isTechByOsm(c)).slice(0, 200);
     this.logger.log(`After tech filter: ${results.length} companies`);
 
     await this.redis.set(cacheKey, JSON.stringify(results), 'EX', CACHE_TTL);
@@ -58,17 +59,23 @@ export class CompaniesService {
     // JS-side isTechByOsm() does the tech/non-tech filtering after.
     const safeRadius = Math.min(radius, 20000); // cap at 20km to avoid Overpass timeouts
     const query = `
-[out:json][timeout:25];
+[out:json][timeout:30];
 (
   node["office"](around:${safeRadius},${lat},${lng});
   way["office"](around:${safeRadius},${lat},${lng});
+  node["amenity"="company"](around:${safeRadius},${lat},${lng});
+  way["amenity"="company"](around:${safeRadius},${lat},${lng});
+  node["company"](around:${safeRadius},${lat},${lng});
+  way["company"](around:${safeRadius},${lat},${lng});
+  node["name"]["building"="commercial"](around:${safeRadius},${lat},${lng});
+  way["name"]["building"="commercial"](around:${safeRadius},${lat},${lng});
 );
 out center;
     `.trim();
 
     this.logger.log(`Querying Overpass: around ${radius}m of ${lat},${lng}`);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 29000);
+    const timeoutId = setTimeout(() => controller.abort(), 35000);
 
     try {
       const res = await fetch(OVERPASS_URL, {
