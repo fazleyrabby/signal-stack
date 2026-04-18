@@ -282,4 +282,87 @@ export class AdminService {
 
     return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
   }
+
+  // ── Cache Management ──────────────────────────────────────────────────────
+
+  private readonly CACHE_GROUPS = [
+    {
+      id: 'radar_osm',
+      label: 'Company Radar — OSM',
+      pattern: 'companies:nearby:*:osm:*',
+      description: 'Overpass/OpenStreetMap nearby company search results (1hr TTL)',
+    },
+    {
+      id: 'radar_mapbox',
+      label: 'Company Radar — Mapbox',
+      pattern: 'companies:nearby:*:mapbox:*',
+      description: 'Mapbox nearby company search results (1hr TTL)',
+    },
+    {
+      id: 'radar_google',
+      label: 'Company Radar — Google Places',
+      pattern: 'companies:nearby:*:google:*',
+      description: 'Google Places nearby company search results (1hr TTL)',
+    },
+    {
+      id: 'sig_cache',
+      label: 'Signal Translations',
+      pattern: 'sig_cache:*',
+      description: 'Per-signal translation cache (all languages)',
+    },
+    {
+      id: 'ai_processed',
+      label: 'AI Dedup Cache',
+      pattern: 'ai:processed:*',
+      description: 'Tracks which signals have already been AI-processed',
+    },
+    {
+      id: 'ai_daily',
+      label: 'AI Daily Counter',
+      pattern: 'ai:daily_count:*',
+      description: 'Daily AI request count (resets at UTC midnight)',
+    },
+    {
+      id: 'ai_tokens',
+      label: 'AI Token Usage',
+      pattern: 'ai:tokens:*',
+      description: 'Daily token usage per provider (Groq, OpenRouter, local)',
+    },
+    {
+      id: 'translation_locks',
+      label: 'Translation Locks',
+      pattern: 'lock:translation:*',
+      description: 'Distributed locks preventing duplicate translation jobs',
+    },
+  ];
+
+  async getCacheStats() {
+    const groups = await Promise.all(
+      this.CACHE_GROUPS.map(async (g) => ({
+        ...g,
+        count: await this.redis.countPattern(g.pattern),
+      })),
+    );
+    // Also include queue sizes (sorted sets, not key-pattern based)
+    const queues = [
+      { id: 'queue_ai', label: 'AI Summary Queue', count: await this.redis.zcard('queue:ai_summary'), description: 'Pending AI summary jobs' },
+      { id: 'queue_translation', label: 'Translation Queue', count: await this.redis.zcard('queue:translation'), description: 'Pending translation jobs' },
+    ];
+    return { groups, queues };
+  }
+
+  async clearCacheGroup(id: string): Promise<{ deleted: number }> {
+    const group = this.CACHE_GROUPS.find((g) => g.id === id);
+    if (!group) throw new Error(`Unknown cache group: ${id}`);
+    const deleted = await this.redis.deletePattern(group.pattern);
+    return { deleted };
+  }
+
+  async clearAllCache(): Promise<{ deleted: number }> {
+    let total = 0;
+    for (const g of this.CACHE_GROUPS) {
+      total += await this.redis.deletePattern(g.pattern);
+    }
+    return { deleted: total };
+  }
 }

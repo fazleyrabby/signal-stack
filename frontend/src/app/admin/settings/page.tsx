@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   Settings, ShieldCheck, Zap, Check, Loader2, Sun, Moon,
-  MessageSquare, Key, Palette, Activity, MapPin, Navigation, Globe
+  MessageSquare, Key, Palette, Activity, MapPin, Navigation, Globe,
+  Database, Trash2, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -599,7 +600,160 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+
+        <div className="border-t border-border/30" />
+
+        {/* ── Cache Management ─────────────────────────────── */}
+        <CacheSection apiBase={API_BASE} />
+
       </div>
     </div>
+  );
+}
+
+// ── Cache Management Component ────────────────────────────────────────────────
+
+interface CacheGroup {
+  id: string;
+  label: string;
+  description: string;
+  pattern: string;
+  count: number;
+}
+
+interface CacheQueue {
+  id: string;
+  label: string;
+  description: string;
+  count: number;
+}
+
+function CacheSection({ apiBase }: { apiBase: string }) {
+  const { data, mutate, isLoading } = useSWR<{ groups: CacheGroup[]; queues: CacheQueue[] }>(
+    `${apiBase}/api/admin/cache`,
+    (url: string) => fetch(url, { credentials: 'include' }).then(r => r.json()),
+    { refreshInterval: 10000 }
+  );
+
+  const [clearing, setClearing] = useState<string | null>(null);
+  const [clearResult, setClearResult] = useState<{ id: string; deleted: number } | null>(null);
+
+  async function clearGroup(id: string) {
+    setClearing(id);
+    setClearResult(null);
+    try {
+      const res = await fetch(`${apiBase}/api/admin/cache/${id}`, {
+        method: 'DELETE', credentials: 'include',
+      });
+      const d = await res.json();
+      setClearResult({ id, deleted: d.deleted });
+      await mutate();
+    } finally {
+      setClearing(null);
+      setTimeout(() => setClearResult(null), 4000);
+    }
+  }
+
+  async function clearAll() {
+    setClearing('__all__');
+    setClearResult(null);
+    try {
+      const res = await fetch(`${apiBase}/api/admin/cache`, {
+        method: 'DELETE', credentials: 'include',
+      });
+      const d = await res.json();
+      setClearResult({ id: '__all__', deleted: d.deleted });
+      await mutate();
+    } finally {
+      setClearing(null);
+      setTimeout(() => setClearResult(null), 4000);
+    }
+  }
+
+  const totalKeys = (data?.groups ?? []).reduce((s, g) => s + g.count, 0);
+
+  return (
+    <section>
+      <div className="px-6 pt-5 pb-1 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Database className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs font-bold">Cache Management</p>
+            <p className="text-[10px] text-muted-foreground">
+              {isLoading ? 'Loading…' : `${totalKeys} cached entries across all groups`}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] gap-1.5" onClick={() => mutate()} disabled={isLoading}>
+            <RefreshCw className={cn("w-3 h-3", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+          <Button variant="destructive" size="sm" className="h-7 px-3 text-[10px] gap-1.5" onClick={clearAll} disabled={!!clearing || totalKeys === 0}>
+            {clearing === '__all__' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+            Clear All
+          </Button>
+        </div>
+      </div>
+
+      {clearResult && (
+        <p className={cn("px-6 text-[10px] font-bold mb-2",
+          clearResult.deleted > 0 ? "text-emerald-500" : "text-muted-foreground"
+        )}>
+          {clearResult.id === '__all__' ? 'All caches' : 'Cache group'} cleared — {clearResult.deleted} keys deleted
+        </p>
+      )}
+
+      <div className="px-6 pb-6 space-y-2 max-w-2xl">
+        {(data?.groups ?? []).map((g) => (
+          <div key={g.id} className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-card/30 gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[11px] font-bold">{g.label}</p>
+                <span className="text-[9px] font-mono border border-border/40 px-1.5 py-0.5 rounded text-muted-foreground">
+                  {g.count} {g.count === 1 ? 'key' : 'keys'}
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground/60 truncate">{g.description}</p>
+              <p className="text-[9px] text-muted-foreground/30 font-mono mt-0.5">{g.pattern}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2.5 text-[10px] gap-1 shrink-0"
+              disabled={!!clearing || g.count === 0}
+              onClick={() => clearGroup(g.id)}
+            >
+              {clearing === g.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+              Clear
+            </Button>
+          </div>
+        ))}
+
+        {(data?.queues ?? []).length > 0 && (
+          <>
+            <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider font-bold pt-2">Active Queues (read-only)</p>
+            {(data?.queues ?? []).map((q) => (
+              <div key={q.id} className="flex items-center justify-between p-3 rounded-lg border border-border/30 bg-muted/10 gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[11px] font-bold">{q.label}</p>
+                    <span className={cn(
+                      "text-[9px] font-mono border px-1.5 py-0.5 rounded",
+                      q.count > 0 ? "border-amber-500/30 text-amber-500 bg-amber-500/10" : "border-border/40 text-muted-foreground"
+                    )}>
+                      {q.count} pending
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/60">{q.description}</p>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </section>
   );
 }

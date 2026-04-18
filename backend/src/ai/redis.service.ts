@@ -200,4 +200,34 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } while (cursor !== '0');
     return sum;
   }
+
+  /** Count keys matching a glob pattern using SCAN (no KEYS block). */
+  async countPattern(pattern: string): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    let cursor = '0';
+    let total = 0;
+    do {
+      const [next, keys] = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
+      cursor = next;
+      total += keys.length;
+    } while (cursor !== '0');
+    return total;
+  }
+
+  /** Delete all keys matching a glob pattern using SCAN + DEL. */
+  async deletePattern(pattern: string): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    let cursor = '0';
+    let deleted = 0;
+    do {
+      const [next, keys] = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
+      cursor = next;
+      if (keys.length > 0) {
+        await this.client.del(...keys);
+        deleted += keys.length;
+      }
+    } while (cursor !== '0');
+    return deleted;
+  }
+
 }

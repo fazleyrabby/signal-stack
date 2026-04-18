@@ -402,6 +402,22 @@ export class AdminController {
     return result;
   }
 
+  // --- Cache Management ---
+  @Get('cache')
+  async getCacheStats() {
+    return this.adminService.getCacheStats();
+  }
+
+  @Delete('cache')
+  async clearAllCache() {
+    return this.adminService.clearAllCache();
+  }
+
+  @Delete('cache/:id')
+  async clearCacheGroup(@Param('id') id: string) {
+    return this.adminService.clearCacheGroup(id);
+  }
+
   // --- Email Digest ---
   @Post('digest/test')
   async triggerTestDigest() {
