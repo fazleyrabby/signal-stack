@@ -11,11 +11,12 @@ interface SortableHeadProps {
   order: "asc" | "desc";
   onSort: (column: string) => void;
   width?: number;
+  style?: React.CSSProperties;
   className?: string;
   children?: React.ReactNode; // for ResizeHandle
 }
 
-export function SortableHead({ label, column, sort, order, onSort, width, className, children }: SortableHeadProps) {
+export function SortableHead({ label, column, sort, order, onSort, width, style, className, children }: SortableHeadProps) {
   const active = sort === column;
   return (
     <TableHead
@@ -24,7 +25,7 @@ export function SortableHead({ label, column, sort, order, onSort, width, classN
         active && "text-primary",
         className,
       )}
-      style={width ? { width } : undefined}
+      style={style ?? (width ? { width } : undefined)}
       onClick={() => onSort(column)}
     >
       <span className="flex items-center gap-1">
