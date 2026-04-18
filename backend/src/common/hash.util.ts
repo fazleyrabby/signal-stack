@@ -38,7 +38,7 @@ function normalizeTitle(title: string): string {
 }
 
 /**
- * Generate a SHA-256 hash for deduplication
+ * Generate a SHA-256 hash for deduplication (title + url)
  */
 export function generateHash(title: string, url: string): string {
   const normalizedTitle = normalizeTitle(title);
@@ -46,5 +46,16 @@ export function generateHash(title: string, url: string): string {
 
   return createHash('sha256')
     .update(`${normalizedTitle}|${normalizedUrl}`)
+    .digest('hex');
+}
+
+/**
+ * Cross-source dedup hash (title + company) — catches same job posted on multiple boards
+ */
+export function generateContentHash(title: string, company: string): string {
+  const normalizedTitle = normalizeTitle(title);
+  const normalizedCompany = company.trim().toLowerCase().replace(/\s+/g, ' ');
+  return createHash('sha256')
+    .update(`${normalizedTitle}|${normalizedCompany}`)
     .digest('hex');
 }

@@ -173,6 +173,15 @@ export class AdminService {
     return result || null;
   }
 
+  async markAllSignalsRead(): Promise<number> {
+    const result = await this.db
+      .update(signals)
+      .set({ isRead: true })
+      .where(eq(signals.isRead, false))
+      .returning({ id: signals.id });
+    return result.length;
+  }
+
   async deleteSignal(id: string): Promise<void> {
     // Delete bookmarks first (FK constraint)
     await this.db.delete(bookmarks).where(eq(bookmarks.signalId, id));

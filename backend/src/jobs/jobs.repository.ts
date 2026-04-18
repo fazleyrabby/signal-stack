@@ -17,7 +17,15 @@ export class JobsRepository {
       .from(jobs)
       .where(eq(jobs.hash, hash))
       .limit(1);
+    return result.length > 0;
+  }
 
+  async contentHashExists(contentHash: string): Promise<boolean> {
+    const result = await this.db
+      .select({ id: jobs.id })
+      .from(jobs)
+      .where(eq(jobs.contentHash, contentHash))
+      .limit(1);
     return result.length > 0;
   }
 

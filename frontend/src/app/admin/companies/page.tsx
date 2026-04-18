@@ -759,7 +759,16 @@ export default function CompaniesAdmin() {
                   <TableRow key={company.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
                     <TableCell className="px-4 py-2 overflow-hidden">
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-xs font-semibold truncate" title={company.name}>{company.name}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-xs font-semibold truncate" title={company.name}>{company.name}</span>
+                          <a
+                            href={`/admin/jobs?search=${encodeURIComponent(company.name)}`}
+                            title="Find jobs at this company"
+                            className="shrink-0 text-muted-foreground/30 hover:text-primary transition-colors"
+                          >
+                            <Search className="w-2.5 h-2.5" />
+                          </a>
+                        </div>
                         {company.tags.length > 0 && (
                           <span className="text-[9px] text-muted-foreground/50 truncate" title={company.tags.join(", ")}>{company.tags.join(", ")}</span>
                         )}

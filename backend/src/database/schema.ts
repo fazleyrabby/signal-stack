@@ -55,6 +55,7 @@ export const jobs = pgTable(
     description: text('description'),
     url: text('url').notNull(),
     hash: varchar('hash', { length: 64 }).notNull().unique(),
+    contentHash: varchar('content_hash', { length: 64 }),
     tags: jsonb('tags').$type<string[]>().default([]),
     publishedAt: timestamp('published_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -63,6 +64,7 @@ export const jobs = pgTable(
   },
   (table) => ({
     hashIdx: index('idx_jobs_hash').on(table.hash),
+    contentHashIdx: index('idx_jobs_content_hash').on(table.contentHash),
     createdAtIdx: index('idx_jobs_created_at').on(table.createdAt),
     companyIdx: index('idx_jobs_company').on(table.company),
     remoteIdx: index('idx_jobs_remote').on(table.remote),
@@ -93,6 +95,7 @@ export const signals = pgTable(
     aiFailed: boolean('ai_failed').notNull().default(false),
     countryCode: varchar('country_code', { length: 2 }),
     translations: jsonb('translations').$type<Record<string, { title: string; aiSummary: string }>>().default({}),
+    isRead: boolean('is_read').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

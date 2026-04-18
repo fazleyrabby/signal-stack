@@ -2,111 +2,155 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Database, Loader2, RefreshCw, Terminal } from "lucide-react";
+import { Loader2, RefreshCw, Terminal, AlertTriangle, Info, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
+interface LogEntry {
+  ts: string;
+  level: "info" | "warn" | "error";
+  context: string;
+  message: string;
+}
+
+const LEVEL_STYLES: Record<string, string> = {
+  info:  "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  warn:  "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  error: "text-red-400 bg-red-500/10 border-red-500/20",
+};
+
+const LEVEL_ICON: Record<string, React.ReactNode> = {
+  info:  <Info className="w-2.5 h-2.5" />,
+  warn:  <AlertTriangle className="w-2.5 h-2.5" />,
+  error: <AlertCircle className="w-2.5 h-2.5" />,
+};
+
+function parseMessage(raw: string): { event?: string; data: Record<string, string> } {
+  try {
+    const obj = JSON.parse(raw);
+    const { event, ...rest } = obj;
+    return { event, data: rest };
+  } catch {
+    return { data: { message: raw } };
+  }
+}
+
 export default function AdminLogs() {
-  const [logs, setLogs] = useState("");
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<"all" | "info" | "warn" | "error">("all");
   const router = useRouter();
 
-  const fetchLogs = async (isRefreshing = false) => {
+  async function fetchLogs(isRefreshing = false) {
     if (isRefreshing) setRefreshing(true);
     else setLoading(true);
-    
     try {
-      const res = await fetch(`${API_BASE}/api/admin/logs`, { credentials: "include" });
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.replace("/admin-login");
-        }
-        throw new Error("Failed to load logs");
-      }
+      const res = await fetch(`${API_BASE}/api/admin/logs?limit=300`, { credentials: "include" });
+      if (res.status === 401) { router.replace("/admin-login"); return; }
       const data = await res.json();
-      setLogs(data.logs || "No logs available.");
-    } catch (err) {
-      console.error(err);
-      setLogs("FAILED_TO_LOAD_PROTOCOL_LOGS: System response 500");
+      setLogs(data.logs || []);
+      setTotal(data.total || 0);
+    } catch {
+      setLogs([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  useEffect(() => {
-    fetchLogs();
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Initializing Terminal Access...</span>
-      </div>
-    );
   }
 
-  return (
-    <div className="flex-1 p-4 md:p-8 space-y-8">
-      <div className="max-w-[1400px] mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight">System Diagnostics</h1>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] flex items-center gap-2">
-              <Database className="w-3.5 h-3.5 text-primary" />
-              Real-time Kernel Events & Trace Logs
-            </p>
-          </div>
+  useEffect(() => { fetchLogs(); }, []);
 
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => fetchLogs(true)} 
-            disabled={refreshing}
-            className="rounded-lg gap-2 h-10 px-6 border-border/10 bg-card/50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Refresh Logs</span>
+  const filtered = filter === "all" ? logs : logs.filter((l) => l.level === filter);
+  const counts = { info: logs.filter(l => l.level === "info").length, warn: logs.filter(l => l.level === "warn").length, error: logs.filter(l => l.level === "error").length };
+
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+    </div>
+  );
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/30 shrink-0">
+        <div className="flex items-center gap-3">
+          <Terminal className="w-4 h-4 text-primary" />
+          <span className="font-bold text-sm">System Logs</span>
+          <span className="text-xs text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">{total} total</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Level filters */}
+          {(["all", "info", "warn", "error"] as const).map((lvl) => (
+            <button
+              key={lvl}
+              onClick={() => setFilter(lvl)}
+              className={`text-[10px] px-2 py-0.5 rounded border transition-colors font-mono uppercase ${filter === lvl ? "border-primary text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-border"}`}
+            >
+              {lvl}{lvl !== "all" && ` (${counts[lvl]})`}
+            </button>
+          ))}
+          <Button size="sm" variant="outline" className="h-7 px-3 text-xs gap-1.5 ml-2" onClick={() => fetchLogs(true)} disabled={refreshing}>
+            <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
           </Button>
         </div>
+      </div>
 
-        {/* Logs Terminal */}
-        <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-violet-500/20 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
-          <div className="relative bg-zinc-950 rounded-2xl border border-white/5 shadow-2xl overflow-hidden flex flex-col">
-            {/* Terminal Header */}
-            <div className="flex items-center justify-between px-6 py-3 bg-white/5 border-b border-white/5">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                  <div className="w-3 h-3 rounded-full bg-amber-500/50" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/50" />
-                </div>
-                <div className="w-px h-4 bg-white/10 mx-2" />
-                <Terminal className="w-3.5 h-3.5 text-zinc-500" />
-                <span className="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-widest">signalstack_runtime.log</span>
-              </div>
-              <div className="text-[10px] font-mono text-zinc-600">UTF-8</div>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 overflow-auto custom-scrollbar max-h-[70vh]">
-              <pre className="font-mono text-[11px] leading-relaxed text-zinc-400 selection:bg-primary/30 selection:text-white whitespace-pre-wrap">
-                {logs}
-              </pre>
-            </div>
-            
-            {/* Terminal Footer */}
-            <div className="px-6 py-2 bg-white/[0.02] border-t border-white/5 flex justify-between items-center">
-              <span className="text-[9px] font-mono text-zinc-600 uppercase">Live Stream Active</span>
-              <span className="text-[9px] font-mono text-zinc-600 uppercase">Line: {logs.split('\n').length}</span>
-            </div>
+      {/* Table */}
+      <div className="flex-1 overflow-auto">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground/40">
+            <Terminal className="w-8 h-8" />
+            <p className="text-xs">No log entries yet — logs appear after first feed cycle</p>
           </div>
-        </div>
+        ) : (
+          <Table className="min-w-max table-fixed">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
+                <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground" style={{ width: 160 }}>Time</TableHead>
+                <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground" style={{ width: 60 }}>Level</TableHead>
+                <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground" style={{ width: 120 }}>Context</TableHead>
+                <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground" style={{ width: 180 }}>Event</TableHead>
+                <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Details</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((log, i) => {
+                const { event, data } = parseMessage(log.message);
+                const { timestamp, ...details } = data as any;
+                return (
+                  <TableRow key={i} className={`border-b border-border/20 hover:bg-muted/10 transition-colors ${log.level === "error" ? "bg-red-500/5" : log.level === "warn" ? "bg-amber-500/5" : ""}`}>
+                    <TableCell className="px-3 py-1.5 font-mono text-[10px] text-muted-foreground/60 whitespace-nowrap">
+                      {new Date(log.ts).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "medium" })}
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5">
+                      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 gap-1 flex items-center w-fit ${LEVEL_STYLES[log.level]}`}>
+                        {LEVEL_ICON[log.level]}{log.level}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5 font-mono text-[10px] text-muted-foreground/70 truncate">{log.context}</TableCell>
+                    <TableCell className="px-3 py-1.5 font-mono text-[10px] font-semibold truncate">{event || "—"}</TableCell>
+                    <TableCell className="px-3 py-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {Object.entries(details).map(([k, v]) => (
+                          <span key={k} className="text-[10px] font-mono text-muted-foreground/60">
+                            <span className="text-muted-foreground/40">{k}:</span>{" "}
+                            <span className={typeof v === "number" && (v as number) > 0 ? "text-emerald-400" : ""}>{String(v)}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );

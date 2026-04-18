@@ -4,7 +4,7 @@ import { JobsFeedService } from './jobs-feed.service';
 import { SettingsService } from '../ai/settings.service';
 import { DiscordService } from '../alerts/discord.service';
 import { JobPreferences, RawJob } from '../common/types';
-import { generateHash } from '../common/hash.util';
+import { generateHash, generateContentHash } from '../common/hash.util';
 import { logEvent } from '../common/logger';
 
 @Injectable()
@@ -54,15 +54,21 @@ export class JobsService {
     let newJobsCount = 0;
     let matchesCount = 0;
 
+    let crossSourceDupes = 0;
     for (const raw of rawJobs) {
       const hash = generateHash(raw.title, raw.url);
-      const exists = await this.repository.hashExists(hash);
-      
-      if (exists) continue;
+      const contentHash = raw.company ? generateContentHash(raw.title, raw.company) : undefined;
+
+      if (await this.repository.hashExists(hash)) continue;
+      if (contentHash && await this.repository.contentHashExists(contentHash)) {
+        crossSourceDupes++;
+        continue;
+      }
 
       const inserted = await this.repository.insert({
         ...raw,
         hash,
+        contentHash,
       });
 
       if (inserted) {
@@ -74,10 +80,11 @@ export class JobsService {
       }
     }
 
-    logEvent('info', 'jobs_process_complete', { 
-      totalFetched: rawJobs.length, 
+    logEvent('info', 'jobs_process_complete', {
+      totalFetched: rawJobs.length,
       newJobs: newJobsCount,
-      matches: matchesCount 
+      matches: matchesCount,
+      crossSourceDupes,
     });
   }
 

@@ -1,7 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ConsoleLogger } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
+import { createWriteStream, mkdirSync } from 'fs';
+import { join } from 'path';
+
+// Write logs to file so admin panel can read them
+const logDir = join(process.cwd(), 'logs');
+mkdirSync(logDir, { recursive: true });
+const logStream = createWriteStream(join(logDir, 'app.log'), { flags: 'a' });
+
+class FileLogger extends ConsoleLogger {
+  private write(level: string, message: string, context?: string) {
+    const line = JSON.stringify({
+      ts: new Date().toISOString(),
+      level,
+      context: context || this.context,
+      message,
+    });
+    logStream.write(line + '\n');
+  }
+  log(message: string, context?: string)   { super.log(message, context);   this.write('info',  message, context); }
+  warn(message: string, context?: string)  { super.warn(message, context);  this.write('warn',  message, context); }
+  error(message: string, context?: string) { super.error(message, context); this.write('error', message, context); }
+}
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -15,7 +37,7 @@ async function bootstrap() {
     logger.warn('DISCORD_WEBHOOK_URL not set — alerts will be skipped');
   }
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { logger: new FileLogger() });
 
   app.use(cookieParser());
 

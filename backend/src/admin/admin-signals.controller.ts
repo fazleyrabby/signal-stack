@@ -71,7 +71,7 @@ export class AdminSignalsController {
 
   @Patch(':id')
   async updateSignal(@Param('id') id: string, @Body() body: Record<string, any>) {
-    const allowed = ['title', 'content', 'summary', 'severity', 'score', 'categoryId', 'countryCode', 'aiSummary'];
+    const allowed = ['title', 'content', 'summary', 'severity', 'score', 'categoryId', 'countryCode', 'aiSummary', 'isRead'];
     const update: Record<string, any> = {};
     for (const key of allowed) {
       if (key in body) update[key] = body[key];
@@ -88,6 +88,12 @@ export class AdminSignalsController {
   async deleteSignal(@Param('id') id: string) {
     await this.adminService.deleteSignal(id);
     return { deleted: true, id };
+  }
+
+  @Post('mark-all-read')
+  async markAllRead() {
+    const count = await this.adminService.markAllSignalsRead();
+    return { marked: count };
   }
 
   @Post(':id/translate')

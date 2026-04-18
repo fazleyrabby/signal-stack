@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity, ChevronDown } from "lucide-react";
+import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useResizableColumns } from "@/hooks/useResizableColumns";
@@ -28,7 +28,7 @@ interface Signal {
   aiSummary: string | null; url: string; score: number; severity: "high" | "medium" | "low";
   categoryId: string; source: string; countryCode: string | null; aiProcessed: boolean;
   aiFailed: boolean; aiProvider: string | null; translations: Record<string, Translation>;
-  publishedAt: string | null; createdAt: string;
+  publishedAt: string | null; createdAt: string; isRead: boolean;
 }
 interface SignalsResponse { data: Signal[]; meta: { page: number; limit: number; total: number; totalPages: number; }; }
 interface Category { slug: string; name: string; }
@@ -71,6 +71,16 @@ export default function SignalsAdmin() {
   const [bulkLang, setBulkLang] = useState("bn");
   const [translatingId, setTranslatingId] = useState<string | null>(null);
   const { widths: colWidths, startResize } = useResizableColumns([260, 90, 90, 90, 70, 110, 90]);
+
+  async function handleMarkRead(id: string, isRead: boolean) {
+    await fetch(`${API_BASE}/api/admin/signals/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ isRead }) });
+    mutate((key) => typeof key === 'string' && key.startsWith(`${API_BASE}/api/admin/signals`));
+  }
+
+  async function handleMarkAllRead() {
+    await fetch(`${API_BASE}/api/admin/signals/mark-all-read`, { method: "POST", credentials: "include" });
+    mutate((key) => typeof key === 'string' && key.startsWith(`${API_BASE}/api/admin/signals`));
+  }
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this signal?")) return;
@@ -121,6 +131,11 @@ export default function SignalsAdmin() {
           <span className="text-xs text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">
             {signalsData?.meta.total.toLocaleString() ?? "…"} rows
           </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="h-7 px-3 text-xs gap-1.5" onClick={handleMarkAllRead}>
+            <Eye className="w-3 h-3" />Mark All Read
+          </Button>
         </div>
         <form onSubmit={handleBulkTranslate} className="flex items-center gap-2">
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hidden sm:block">Bulk Queue</span>
@@ -231,12 +246,15 @@ export default function SignalsAdmin() {
               </TableRow>
             ) : (
               signalsData?.data.map((signal) => (
-                <TableRow key={signal.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
+                <TableRow key={signal.id} className={cn("border-b border-border/30 hover:bg-muted/20 transition-colors group", !signal.isRead && "bg-primary/[0.03]")}>
                   <TableCell className="px-4 py-2">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-xs font-semibold leading-tight line-clamp-1 group-hover:text-primary transition-colors max-w-[220px] block truncate" title={signal.title}>
-                        {signal.title}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {!signal.isRead && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" title="Unread" />}
+                        <span className="text-xs font-semibold leading-tight line-clamp-1 group-hover:text-primary transition-colors max-w-[210px] block truncate" title={signal.title}>
+                          {signal.title}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-[9px] uppercase bg-muted px-1 py-0.5 rounded text-muted-foreground font-bold">{signal.source}</span>
                         <a href={signal.url} target="_blank" className="text-[10px] text-muted-foreground/50 hover:text-primary truncate max-w-[180px] font-mono">{signal.url}</a>
@@ -300,6 +318,9 @@ export default function SignalsAdmin() {
                   </TableCell>
                   <TableCell className="px-3 py-2 text-right">
                     <div className="flex items-center justify-end gap-0.5">
+                      <Button variant="ghost" size="icon" className={cn("h-7 w-7", signal.isRead ? "text-muted-foreground/30 hover:text-muted-foreground" : "text-primary hover:text-primary/70")} title={signal.isRead ? "Mark unread" : "Mark read"} onClick={() => handleMarkRead(signal.id, !signal.isRead)}>
+                        {signal.isRead ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      </Button>
                       <TranslateButton
                         signalId={signal.id}
                         isTranslating={translatingId === signal.id}
