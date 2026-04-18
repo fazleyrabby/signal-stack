@@ -160,7 +160,8 @@ export class CompaniesService {
     if (!apiKey) return { status: 'no_api_key' };
 
     try {
-      const res = await fetch(`https://api.mapbox.com/search/searchbox/v6/category/software?limit=1&access_token=${apiKey}`);
+      // Mapbox V6 requires proximity or other location context
+      const res = await fetch(`https://api.mapbox.com/search/searchbox/v6/category/software?limit=1&proximity=90.41,23.81&access_token=${apiKey}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         return { status: 'error', error: data.message || `HTTP ${res.status}` };
