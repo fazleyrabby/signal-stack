@@ -141,11 +141,11 @@ export class TranslationQueue implements OnModuleInit, OnModuleDestroy {
 
       const config = await this.settings.getModelConfig();
       const signalScore = signal?.score || job.score || 5;
+      const priority = job.priority || 'MEDIUM';
 
       let translated;
       if (signalScore >= config.translationThreshold) {
         // High quality translation
-        const priority = job.priority || 'MEDIUM';
         translated = priority === 'HIGH'
           ? await this.aiService.translateSpeculative(job.title, job.summary, job.lang)
           : await this.aiService.translate(job.title, job.summary, job.lang);
