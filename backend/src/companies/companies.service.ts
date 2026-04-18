@@ -2,9 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../ai/redis.service';
 import { SettingsService } from '../ai/settings.service';
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+// Multiple Overpass instances — try in order on 504/timeout
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+];
 const GOOGLE_PLACES_URL = 'https://places.googleapis.com/v1/places:searchNearby';
-const MAPBOX_SEARCH_URL = 'https://api.mapbox.com/search/searchbox/v1/category/software';
+const MAPBOX_SEARCH_URL = 'https://api.mapbox.com/search/searchbox/v1/forward';
 const CACHE_TTL = 3600; // 1 hour
 
 // Non-tech names to explicitly exclude (embassies, hospitals, schools, banks, etc.)
@@ -55,15 +60,22 @@ export class CompaniesService {
     }
 
     let results: NearbyCompany[] = [];
+    let fetchError: string | null = null;
 
-    if (source === 'google') {
-      results = await this.findNearbyGoogle(lat, lng, radius);
-    } else if (source === 'mapbox') {
-      results = await this.findNearbyMapbox(lat, lng, radius);
-    } else {
-      const raw = await this.queryOverpass(lat, lng, radius);
-      this.logger.log(`Overpass found ${raw.length} raw companies at ${lat},${lng} (radius ${radius}m)`);
-      results = raw.filter((c) => isTechByOsm(c)).slice(0, 200);
+    try {
+      if (source === 'google') {
+        results = await this.findNearbyGoogle(lat, lng, radius);
+      } else if (source === 'mapbox') {
+        results = await this.findNearbyMapbox(lat, lng, radius);
+      } else {
+        const raw = await this.queryOverpass(lat, lng, radius);
+        this.logger.log(`Overpass found ${raw.length} raw companies at ${lat},${lng} (radius ${radius}m)`);
+        results = raw.filter((c) => isTechByOsm(c)).slice(0, 200);
+      }
+    } catch (err: any) {
+      fetchError = err?.message || 'Unknown error';
+      this.logger.error(`findNearby [${source}] failed: ${fetchError}`);
+      return { data: [], error: fetchError } as any;
     }
 
     this.logger.log(`After tech filter: ${results.length} companies from ${source}`);
@@ -79,37 +91,48 @@ export class CompaniesService {
       return [];
     }
 
-    // Mapbox Category Search: Category "software" or "tech"
-    // Radius is not directly supported in Category Search, we use proximity
-    const url = `${MAPBOX_SEARCH_URL}?proximity=${lng},${lat}&access_token=${apiKey}&limit=25`;
+    // Mapbox Searchbox forward text search — more reliable than category search
+    // Run two queries ("tech company" + "software company") and merge unique results
+    const queries = ['tech company', 'software company'];
+    const seen = new Set<string>();
+    const allResults: NearbyCompany[] = [];
 
-    try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        this.logger.error(`Mapbox HTTP ${res.status}`);
-        return [];
+    for (const q of queries) {
+      const url = `${MAPBOX_SEARCH_URL}?q=${encodeURIComponent(q)}&proximity=${lng},${lat}&access_token=${apiKey}&limit=25`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          this.logger.error(`Mapbox HTTP ${res.status} for query "${q}": ${JSON.stringify(errBody)}`);
+          continue;
+        }
+
+        const data = await res.json();
+        this.logger.log(`Mapbox query "${q}" found ${data.features?.length || 0} features near ${lng},${lat}`);
+
+        for (const f of (data.features || [])) {
+          const id = f.properties?.mapbox_id || f.id;
+          if (!id || seen.has(id)) continue;
+          seen.add(id);
+          allResults.push({
+            placeId: id,
+            name: f.properties?.name || 'Unknown',
+            website: f.properties?.metadata?.website || null,
+            city: f.properties?.context?.place?.name || f.properties?.full_address || null,
+            country: f.properties?.context?.country?.name || null,
+            lat: f.geometry?.coordinates?.[1] ?? lat,
+            lng: f.geometry?.coordinates?.[0] ?? lng,
+            tags: f.properties?.categories || [],
+            careerPageFound: false,
+            careerUrl: null,
+          });
+        }
+      } catch (err) {
+        this.logger.error(`Mapbox fetch failed for query "${q}": ${err}`);
       }
-
-      const data = await res.json();
-      this.logger.log(`Mapbox found ${data.features?.length || 0} features for proximity ${lng},${lat}`);
-      const results: NearbyCompany[] = (data.features || []).map((f: any) => ({
-        placeId: f.properties.mapbox_id,
-        name: f.properties.name,
-        website: f.properties.metadata?.website || null,
-        city: f.properties.context?.place?.name || f.properties.full_address || null,
-        country: f.properties.context?.country?.name || 'Bangladesh',
-        lat: f.geometry.coordinates[1],
-        lng: f.geometry.coordinates[0],
-        tags: f.properties.categories || [],
-        careerPageFound: false,
-        careerUrl: null,
-      }));
-
-      return results.filter(c => !NON_TECH_EXCLUDE.test(c.name));
-    } catch (err) {
-      this.logger.error(`Mapbox fetch failed: ${err}`);
-      return [];
     }
+
+    return allResults.filter(c => !NON_TECH_EXCLUDE.test(c.name));
   }
 
   private async findNearbyGoogle(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
@@ -170,8 +193,8 @@ export class CompaniesService {
     if (!apiKey) return { status: 'no_api_key' };
 
     try {
-      // Mapbox V1 requires proximity or other location context
-      const res = await fetch(`https://api.mapbox.com/search/searchbox/v1/category/software?limit=1&proximity=90.41,23.81&access_token=${apiKey}`);
+      // Use forward text search for health check (category/software is not a valid Mapbox category)
+      const res = await fetch(`https://api.mapbox.com/search/searchbox/v1/forward?q=tech+company&limit=1&proximity=90.41,23.81&access_token=${apiKey}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         return { status: 'error', error: data.message || `HTTP ${res.status}` };
@@ -231,20 +254,44 @@ out center;
     `.trim();
 
     this.logger.log(`Querying Overpass: around ${radius}m of ${lat},${lng}`);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 35000);
+
+    // Try each mirror in order — skip to next on 429/504/timeout
+    let res: Response | null = null;
+    let lastError = '';
+    for (const mirror of OVERPASS_MIRRORS) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      try {
+        const attempt = await fetch(mirror, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'SignalStack/1.0 (Contact: admin@signalstack.local)',
+          },
+          body: `data=${encodeURIComponent(query)}`,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (attempt.status === 504 || attempt.status === 429 || attempt.status === 503) {
+          lastError = `Overpass mirror ${mirror} HTTP ${attempt.status}`;
+          this.logger.warn(`${lastError} — trying next mirror`);
+          continue;
+        }
+        res = attempt;
+        this.logger.log(`Overpass success via ${mirror}`);
+        break;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        lastError = `Overpass mirror ${mirror} failed: ${err.message}`;
+        this.logger.warn(`${lastError} — trying next mirror`);
+      }
+    }
+
+    if (!res) {
+      throw new Error(`All Overpass mirrors failed. Last error: ${lastError}`);
+    }
 
     try {
-      const res = await fetch(OVERPASS_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'SignalStack/1.0 (Contact: admin@signalstack.local)',
-        },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: controller.signal,
-      });
-
       if (!res.ok) {
         const errText = await res.text().catch(() => 'no body');
         this.logger.error(`Overpass HTTP ${res.status}: ${errText}`);
@@ -294,8 +341,8 @@ out center;
       }
 
       return companies;
-    } finally {
-      clearTimeout(timeoutId);
+    } catch (err) {
+      throw err;
     }
   }
 

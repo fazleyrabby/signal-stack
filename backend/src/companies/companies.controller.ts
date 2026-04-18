@@ -79,8 +79,12 @@ export class CompaniesController {
       throw new BadRequestException('lat and lng are required');
     }
 
-    const companies = await this.companiesService.findNearby(latNum, lngNum, radiusNum, source);
-    return { data: companies, total: companies.length };
+    const result = await this.companiesService.findNearby(latNum, lngNum, radiusNum, source);
+    // findNearby returns NearbyCompany[] normally, or { data: [], error: string } on fetch failure
+    if (Array.isArray(result)) {
+      return { data: result, total: result.length };
+    }
+    return result;
   }
 
   @Get('crawl/sources')

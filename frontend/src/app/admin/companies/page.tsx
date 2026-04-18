@@ -234,15 +234,20 @@ export default function CompaniesAdmin() {
     );
   }
 
+  const [searchError, setSearchError] = useState<string | null>(null);
+
   async function searchCompanies() {
     if (!selectedLoc) return;
     setSearching(true);
     setResults(null);
+    setSearchError(null);
     try {
       const res = await fetch(`${API_BASE}/api/admin/companies/nearby?lat=${selectedLoc.lat}&lng=${selectedLoc.lng}&radius=${radius}&source=${radarSource}`, { credentials: "include" });
       const data = await res.json();
+      if (data.error) setSearchError(data.error);
       setResults(data.data || []);
-    } catch {
+    } catch (e: any) {
+      setSearchError(e?.message || 'Request failed');
       setResults([]);
     } finally {
       setSearching(false);
@@ -250,7 +255,7 @@ export default function CompaniesAdmin() {
   }
 
   async function saveCompany(company: NearbyCompany) {
-    const source = company.placeId ? "google" : "osm";
+    const source = company.placeId ? radarSource : "osm";
     await fetch(`${API_BASE}/api/admin/companies/save`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -430,7 +435,7 @@ export default function CompaniesAdmin() {
             {searching && (
               <div className="flex flex-col items-center justify-center h-40 gap-3 text-muted-foreground/50">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <p className="text-xs">Querying {radarSource === 'osm' ? 'OpenStreetMap' : 'Google Places'} + checking career pages…</p>
+                <p className="text-xs">Querying {radarSource === 'osm' ? 'OpenStreetMap' : radarSource === 'mapbox' ? 'Mapbox' : 'Google Places'} + checking career pages…</p>
               </div>
             )}
             {!searching && results === null && (
@@ -442,7 +447,11 @@ export default function CompaniesAdmin() {
             {!searching && results !== null && results.length === 0 && (
               <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground/40 text-center px-6">
                 <XCircle className="w-6 h-6" />
-                <p className="text-xs">No IT/tech companies found in this area via OpenStreetMap.</p>
+                {searchError ? (
+                  <p className="text-xs text-red-400">{radarSource.toUpperCase()} error: {searchError}</p>
+                ) : (
+                  <p className="text-xs">No IT/tech companies found in this area via {radarSource === 'osm' ? 'OpenStreetMap' : radarSource === 'mapbox' ? 'Mapbox' : 'Google Places'}.</p>
+                )}
                 <div className="space-y-1">
                   <p className="text-[10px]">Try a larger radius or a different city.</p>
                   <p className="text-[10px] text-primary/60">If you are in Bangladesh, try the <strong>Directory Crawler</strong> tab instead.</p>
