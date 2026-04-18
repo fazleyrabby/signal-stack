@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useRef, useCallback, ReactNode } from "react";
-import { toast } from "sonner";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -42,8 +41,6 @@ export function CrawlProvider({ children }: { children: ReactNode }) {
   const runCrawl = useCallback(async (source: string) => {
     setState((s) => ({ ...s, crawling: true, results: null, error: null, source, savedNames: new Set() }));
 
-    const toastId = toast.loading(`Crawling ${source}… this takes 30–60s`, { duration: Infinity });
-
     try {
       const res = await fetch(`${API_BASE}/api/admin/companies/crawl`, {
         method: "POST",
@@ -55,11 +52,9 @@ export function CrawlProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       const results: CrawledCompany[] = data.data || [];
       setState((s) => ({ ...s, crawling: false, results }));
-      toast.success(`Crawl done — ${results.length} companies found`, { id: toastId });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Crawl failed";
       setState((s) => ({ ...s, crawling: false, results: [], error: msg }));
-      toast.error(`Crawl failed: ${msg}`, { id: toastId });
     }
   }, []);
 
