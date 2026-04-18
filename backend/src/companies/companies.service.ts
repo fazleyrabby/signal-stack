@@ -54,7 +54,7 @@ export class CompaniesService {
     if (source === 'google' && !config.googlePlacesEnabled) return [];
     if (source === 'mapbox' && !config.mapboxEnabled) return [];
 
-    const cacheKey = `companies:nearby:v12:${source}:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cacheKey = `companies:nearby:v13:${source}:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -96,12 +96,12 @@ export class CompaniesService {
 
     // Mapbox Searchbox forward text search — more reliable than category search
     // Run two queries ("tech company" + "software company") and merge unique results
-    const queries = ['tech company', 'software company'];
+    const queries = ['tech company', 'software company', 'IT company', 'startup'];
     const seen = new Set<string>();
     const allResults: NearbyCompany[] = [];
 
     for (const q of queries) {
-      const url = `${MAPBOX_SEARCH_URL}?q=${encodeURIComponent(q)}&proximity=${lng},${lat}&access_token=${apiKey}&limit=25`;
+      const url = `${MAPBOX_SEARCH_URL}?q=${encodeURIComponent(q)}&proximity=${lng},${lat}&access_token=${apiKey}&limit=10`;
       try {
         const res = await fetch(url);
         if (!res.ok) {
