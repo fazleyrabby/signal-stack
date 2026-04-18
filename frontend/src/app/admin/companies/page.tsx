@@ -133,6 +133,11 @@ export default function CompaniesAdmin() {
     localStorage.setItem("crawl_filter_keywords", v);
   }
 
+  function filterResult(c: NearbyCompany, q: string): boolean {
+    const hay = [c.name, c.city, c.country, ...c.tags].filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(q.toLowerCase());
+  }
+
   function applyFilters(companies: CrawledCompany[]): CrawledCompany[] {
     let result = companies;
     const loc = crawlLocationFilter.trim().toLowerCase();
@@ -235,12 +240,14 @@ export default function CompaniesAdmin() {
   }
 
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [resultFilter, setResultFilter] = useState("");
 
   async function searchCompanies() {
     if (!selectedLoc) return;
     setSearching(true);
     setResults(null);
     setSearchError(null);
+    setResultFilter("");
     try {
       const res = await fetch(`${API_BASE}/api/admin/companies/nearby?lat=${selectedLoc.lat}&lng=${selectedLoc.lng}&radius=${radius}&source=${radarSource}`, { credentials: "include" });
       const data = await res.json();
@@ -431,6 +438,31 @@ export default function CompaniesAdmin() {
             )}
           </div>
 
+          {!searching && results && results.length > 0 && (
+            <div className="px-6 py-2 border-b border-border/40 bg-muted/10 shrink-0 flex items-center gap-2">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/40" />
+                <input
+                  type="text"
+                  placeholder="Filter results by name, city, tag…"
+                  value={resultFilter}
+                  onChange={(e) => setResultFilter(e.target.value)}
+                  className="h-7 w-full pl-7 pr-6 text-[11px] bg-background border border-border/40 rounded focus:outline-none focus:border-primary/50"
+                />
+                {resultFilter && (
+                  <button onClick={() => setResultFilter("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground">
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                )}
+              </div>
+              <span className="text-[10px] text-muted-foreground/50 shrink-0">
+                {resultFilter
+                  ? `${results.filter(c => filterResult(c, resultFilter)).length} of ${results.length}`
+                  : `${results.length} companies`}
+              </span>
+            </div>
+          )}
+
           <div className="flex-1 overflow-auto p-6">
             {searching && (
               <div className="flex flex-col items-center justify-center h-40 gap-3 text-muted-foreground/50">
@@ -458,9 +490,16 @@ export default function CompaniesAdmin() {
                 </div>
               </div>
             )}
-            {!searching && results && results.length > 0 && (
+            {!searching && results && results.length > 0 && (() => {
+              const filtered = resultFilter ? results.filter(c => filterResult(c, resultFilter)) : results;
+              return filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground/40">
+                  <XCircle className="w-5 h-5" />
+                  <p className="text-xs">No companies match "{resultFilter}"</p>
+                </div>
+              ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                {results.map((company) => {
+                {filtered.map((company) => {
                   const id = company.placeId || company.osmId!;
                   const isSaved = savedIds.has(id);
                   return (
@@ -505,7 +544,8 @@ export default function CompaniesAdmin() {
                   );
                 })}
               </div>
-            )}
+              );
+            })()}
           </div>
         </TabsContent>
 
