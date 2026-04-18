@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableHead, toggleSort } from "@/components/ui/sortable-head";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, MapPin, Loader2, ExternalLink, CheckCircle2, XCircle,
@@ -141,6 +142,9 @@ export default function CompaniesAdmin() {
   const [savedSource, setSavedSource] = useState('');
   const [savedCity, setSavedCity] = useState('');
   const [savedSearchInput, setSavedSearchInput] = useState('');
+  const [savedSort, setSavedSort] = useState('createdAt');
+  const [savedOrder, setSavedOrder] = useState<'asc' | 'desc'>('desc');
+  function handleSavedSort(col: string) { const n = toggleSort({ sort: savedSort, order: savedOrder }, col); setSavedSort(n.sort); setSavedOrder(n.order as 'asc' | 'desc'); setSavedPage(1); }
 
   function applySearch() {
     setSavedSearch(savedSearchInput.trim());
@@ -158,6 +162,8 @@ export default function CompaniesAdmin() {
   const savedQuery = new URLSearchParams({
     page: String(savedPage),
     limit: '20',
+    sort: savedSort,
+    order: savedOrder,
     ...(savedSearch && { search: savedSearch }),
     ...(savedSource && { source: savedSource }),
     ...(savedCity && { city: savedCity }),
@@ -657,6 +663,21 @@ export default function CompaniesAdmin() {
           })()}
         </TabsContent>
 
+        {/* ── Floating Save All (mobile/tablet) ─────────────────────────── */}
+        {tab === "crawler" && !crawling && crawlResults !== null && (() => {
+          const filtered = applyFilters(crawlResults);
+          const unsaved = filtered.filter((c) => !crawlSavedNames.has(c.name));
+          if (!unsaved.length) return null;
+          return (
+            <div className="fixed bottom-4 right-4 z-50 md:hidden">
+              <Button className="h-10 px-4 text-xs gap-2 shadow-lg" onClick={saveAllFiltered} disabled={savingAll}>
+                {savingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
+                {savingAll ? "Saving…" : `Save All (${unsaved.length})`}
+              </Button>
+            </div>
+          );
+        })()}
+
         {/* ── Saved Tab ─────────────────────────────────────────────────────── */}
         <TabsContent value="saved" className="flex-1 flex flex-col overflow-hidden mt-0">
           {/* Filter bar */}
@@ -709,12 +730,22 @@ export default function CompaniesAdmin() {
             <Table className="min-w-max table-fixed">
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-                  {(["Company", "Source", "Location", "Careers", "Website", "Del"] as const).map((label, i) => (
-                    <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: savedColWidths[i] }}>
-                      <span className={i === 5 ? "flex justify-end" : ""}>{label}</span>
-                      {i < 5 && <ResizeHandle onMouseDown={(e) => savedStartResize(i, e)} />}
-                    </TableHead>
-                  ))}
+                  <SortableHead label="Company" column="name" sort={savedSort} order={savedOrder} onSort={handleSavedSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: savedColWidths[0] }}>
+                    <ResizeHandle onMouseDown={(e) => savedStartResize(0, e)} />
+                  </SortableHead>
+                  <SortableHead label="Source" column="source" sort={savedSort} order={savedOrder} onSort={handleSavedSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: savedColWidths[1] }}>
+                    <ResizeHandle onMouseDown={(e) => savedStartResize(1, e)} />
+                  </SortableHead>
+                  <SortableHead label="Location" column="city" sort={savedSort} order={savedOrder} onSort={handleSavedSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: savedColWidths[2] }}>
+                    <ResizeHandle onMouseDown={(e) => savedStartResize(2, e)} />
+                  </SortableHead>
+                  <TableHead className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: savedColWidths[3] }}>
+                    Careers<ResizeHandle onMouseDown={(e) => savedStartResize(3, e)} />
+                  </TableHead>
+                  <SortableHead label="Website" column="website" sort={savedSort} order={savedOrder} onSort={handleSavedSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: savedColWidths[4] }}>
+                    <ResizeHandle onMouseDown={(e) => savedStartResize(4, e)} />
+                  </SortableHead>
+                  <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right" style={{ width: savedColWidths[5] }}>Del</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

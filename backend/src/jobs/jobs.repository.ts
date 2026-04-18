@@ -46,8 +46,10 @@ export class JobsRepository {
     remote?: boolean;
     company?: string;
     search?: string;
+    sort?: string;
+    order?: 'asc' | 'desc';
   }) {
-    const { page, limit, source, remote, company, search } = params;
+    const { page, limit, source, remote, company, search, sort = 'createdAt', order = 'desc' } = params;
     const offset = (page - 1) * limit;
 
     const conditions: SQL[] = [];
@@ -68,12 +70,23 @@ export class JobsRepository {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
+    const sortColumns: Record<string, any> = {
+      title: jobs.title,
+      company: jobs.company,
+      location: jobs.location,
+      source: jobs.source,
+      createdAt: jobs.createdAt,
+      publishedAt: jobs.publishedAt,
+    };
+    const sortCol = sortColumns[sort] ?? jobs.createdAt;
+    const orderFn = order === 'asc' ? asc : desc;
+
     const [data, countResult] = await Promise.all([
       this.db
         .select()
         .from(jobs)
         .where(whereClause)
-        .orderBy(desc(jobs.createdAt))
+        .orderBy(orderFn(sortCol))
         .limit(limit)
         .offset(offset),
       this.db

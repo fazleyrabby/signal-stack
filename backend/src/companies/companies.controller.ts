@@ -94,6 +94,8 @@ export class CompaniesController {
     @Query('search') search: string = '',
     @Query('source') source: string = '',
     @Query('city') city: string = '',
+    @Query('sort') sort: string = 'createdAt',
+    @Query('order') order: string = 'desc',
   ) {
     return this.companiesRepository.findAll({
       page: parseInt(page, 10),
@@ -101,6 +103,8 @@ export class CompaniesController {
       search: search || undefined,
       source: source || undefined,
       city: city || undefined,
+      sort,
+      order: order === 'asc' ? 'asc' : 'desc',
     });
   }
 

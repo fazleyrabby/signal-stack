@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import useSWR, { mutate } from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableHead, toggleSort } from "@/components/ui/sortable-head";
 import {
   Briefcase, Search, RefreshCw, ExternalLink, MapPin, Building2,
   Settings2, CheckCircle2, XCircle, Clock, Loader2, Check, ChevronLeft, ChevronRight
@@ -36,11 +37,18 @@ export default function JobsAdmin() {
   const [activeTab, setActiveTab] = useState("feed");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("createdAt");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { widths: colWidths, startResize } = useResizableColumns([220, 140, 130, 110, 90, 90, 40]);
 
+  function handleSort(col: string) {
+    const next = toggleSort({ sort, order }, col);
+    setSort(next.sort); setOrder(next.order); setPage(1);
+  }
+
   const { data: jobsData, isLoading: jobsLoading } = useSWR(
-    `${API_BASE}/api/admin/jobs?page=${page}&limit=30&search=${search}`, fetcher
+    `${API_BASE}/api/admin/jobs?page=${page}&limit=30&search=${search}&sort=${sort}&order=${order}`, fetcher
   );
   const { data: preferences, mutate: mutatePrefs } = useSWR<JobPreferences>(
     `${API_BASE}/api/admin/jobs/preferences`, fetcher
@@ -102,12 +110,13 @@ export default function JobsAdmin() {
             <Table className="min-w-max table-fixed">
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-                  {(["Job Title","Company","Location","Source","Type","Date",""] as const).map((label, i) => (
-                    <TableHead key={i} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
-                      {label}
-                      {i < 6 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
-                    </TableHead>
-                  ))}
+                  <SortableHead label="Job Title" column="title" sort={sort} order={order} onSort={handleSort} width={colWidths[0]}><ResizeHandle onMouseDown={(e) => startResize(0, e)} /></SortableHead>
+                  <SortableHead label="Company" column="company" sort={sort} order={order} onSort={handleSort} width={colWidths[1]}><ResizeHandle onMouseDown={(e) => startResize(1, e)} /></SortableHead>
+                  <SortableHead label="Location" column="location" sort={sort} order={order} onSort={handleSort} width={colWidths[2]}><ResizeHandle onMouseDown={(e) => startResize(2, e)} /></SortableHead>
+                  <SortableHead label="Source" column="source" sort={sort} order={order} onSort={handleSort} width={colWidths[3]}><ResizeHandle onMouseDown={(e) => startResize(3, e)} /></SortableHead>
+                  <SortableHead label="Type" column="jobType" sort={sort} order={order} onSort={handleSort} width={colWidths[4]}><ResizeHandle onMouseDown={(e) => startResize(4, e)} /></SortableHead>
+                  <SortableHead label="Date" column="createdAt" sort={sort} order={order} onSort={handleSort} width={colWidths[5]}><ResizeHandle onMouseDown={(e) => startResize(5, e)} /></SortableHead>
+                  <SortableHead label="" column="" sort={sort} order={order} onSort={() => {}} width={colWidths[6]} />
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -22,6 +22,8 @@ export class JobsController {
     @Query('remote') remote?: string,
     @Query('company') company?: string,
     @Query('search') search?: string,
+    @Query('sort') sort?: string,
+    @Query('order') order?: string,
   ) {
     return this.jobsRepository.findAll({
       page: parseInt(page, 10),
@@ -30,6 +32,8 @@ export class JobsController {
       remote: remote === 'true' ? true : remote === 'false' ? false : undefined,
       company,
       search,
+      sort,
+      order: order === 'asc' ? 'asc' : 'desc',
     });
   }
 

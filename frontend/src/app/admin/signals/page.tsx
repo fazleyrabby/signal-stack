@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import useSWR, { mutate } from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableHead, toggleSort } from "@/components/ui/sortable-head";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -208,12 +209,13 @@ export default function SignalsAdmin() {
         <Table className="min-w-max table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-              {(["Signal","Score","Category","AI Status","Langs","Timestamp","Actions"] as const).map((label, i) => (
-                <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
-                  <span className={i === 6 ? "flex justify-end" : ""}>{label}</span>
-                  {i < 6 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
-                </TableHead>
-              ))}
+              <SortableHead label="Signal" column="title" sort={sort} order={order as "asc"|"desc"} onSort={(col) => { const n = toggleSort({sort, order: order as "asc"|"desc"}, col); setSort(n.sort); setOrder(n.order); setPage(1); }} width={colWidths[0]}><ResizeHandle onMouseDown={(e) => startResize(0, e)} /></SortableHead>
+              <SortableHead label="Score" column="score" sort={sort} order={order as "asc"|"desc"} onSort={(col) => { const n = toggleSort({sort, order: order as "asc"|"desc"}, col); setSort(n.sort); setOrder(n.order); setPage(1); }} width={colWidths[1]}><ResizeHandle onMouseDown={(e) => startResize(1, e)} /></SortableHead>
+              <SortableHead label="Category" column="aiCategory" sort={sort} order={order as "asc"|"desc"} onSort={(col) => { const n = toggleSort({sort, order: order as "asc"|"desc"}, col); setSort(n.sort); setOrder(n.order); setPage(1); }} width={colWidths[2]}><ResizeHandle onMouseDown={(e) => startResize(2, e)} /></SortableHead>
+              <SortableHead label="AI Status" column="aiProcessed" sort={sort} order={order as "asc"|"desc"} onSort={(col) => { const n = toggleSort({sort, order: order as "asc"|"desc"}, col); setSort(n.sort); setOrder(n.order); setPage(1); }} width={colWidths[3]}><ResizeHandle onMouseDown={(e) => startResize(3, e)} /></SortableHead>
+              <SortableHead label="Langs" column="translationLang" sort={sort} order={order as "asc"|"desc"} onSort={(col) => { const n = toggleSort({sort, order: order as "asc"|"desc"}, col); setSort(n.sort); setOrder(n.order); setPage(1); }} width={colWidths[4]}><ResizeHandle onMouseDown={(e) => startResize(4, e)} /></SortableHead>
+              <SortableHead label="Timestamp" column="createdAt" sort={sort} order={order as "asc"|"desc"} onSort={(col) => { const n = toggleSort({sort, order: order as "asc"|"desc"}, col); setSort(n.sort); setOrder(n.order); setPage(1); }} width={colWidths[5]}><ResizeHandle onMouseDown={(e) => startResize(5, e)} /></SortableHead>
+              <SortableHead label="Actions" column="" sort={sort} order={order as "asc"|"desc"} onSort={() => {}} width={colWidths[6]} />
             </TableRow>
           </TableHeader>
           <TableBody>

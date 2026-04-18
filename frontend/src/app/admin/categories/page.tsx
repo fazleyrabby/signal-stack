@@ -5,6 +5,7 @@ import useSWR, { mutate } from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableHead, toggleSort } from "@/components/ui/sortable-head";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Edit2, Loader2, Layers } from "lucide-react";
@@ -28,6 +29,13 @@ export default function CategoriesAdmin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const { widths: colWidths, startResize } = useResizableColumns([160, 200, 320, 80]);
+  const [sort, setSort] = useState("slug");
+  const [order, setOrder] = useState<"asc" | "desc">("asc");
+  function handleSort(col: string) { const n = toggleSort({ sort, order }, col); setSort(n.sort); setOrder(n.order); }
+  const sortedCategories = [...(categories ?? [])].sort((a: any, b: any) => {
+    const av = a[sort] ?? ""; const bv = b[sort] ?? "";
+    return order === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
 
   useEffect(() => { if (error) router.replace("/admin-login"); }, [error, router]);
 
@@ -101,19 +109,23 @@ export default function CategoriesAdmin() {
         <Table className="min-w-max table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-              {(["Slug","Name","Description","Actions"] as const).map((label, i) => (
-                <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
-                  <span className={i === 3 ? "flex justify-end" : ""}>{label}</span>
-                  {i < 3 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
-                </TableHead>
-              ))}
+              <SortableHead label="Slug" column="slug" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[0] }}>
+                <ResizeHandle onMouseDown={(e) => startResize(0, e)} />
+              </SortableHead>
+              <SortableHead label="Name" column="name" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[1] }}>
+                <ResizeHandle onMouseDown={(e) => startResize(1, e)} />
+              </SortableHead>
+              <SortableHead label="Description" column="description" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[2] }}>
+                <ResizeHandle onMouseDown={(e) => startResize(2, e)} />
+              </SortableHead>
+              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right" style={{ width: colWidths[3] }}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow><TableCell colSpan={4} className="text-center py-16 text-muted-foreground/50"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></TableCell></TableRow>
             )}
-            {categories?.map((cat) => (
+            {sortedCategories.map((cat) => (
               <TableRow key={cat.slug} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
                 <TableCell className="px-4 py-2 font-mono text-xs text-primary font-bold">{cat.slug}</TableCell>
                 <TableCell className="px-3 py-2 text-xs font-semibold">{cat.name}</TableCell>

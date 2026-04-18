@@ -5,6 +5,7 @@ import useSWR, { mutate } from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableHead, toggleSort } from "@/components/ui/sortable-head";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,14 @@ export default function SourcesAdmin() {
   const [checkingHealth, setCheckingHealth] = useState<string | null>(null);
   const [healthResults, setHealthResults] = useState<Record<string, any>>({});
   const { widths: colWidths, startResize } = useResizableColumns([280, 110, 90, 120, 100]);
+  const [sort, setSort] = useState("name");
+  const [order, setOrder] = useState<"asc" | "desc">("asc");
+  function handleSort(col: string) { const n = toggleSort({ sort, order }, col); setSort(n.sort); setOrder(n.order); }
+
+  const sortedSources = [...(sources ?? [])].sort((a: any, b: any) => {
+    const av = a[sort] ?? ""; const bv = b[sort] ?? "";
+    return order === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -132,19 +141,26 @@ export default function SourcesAdmin() {
         <Table className="min-w-max table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
-              {(["Source","Category","Trust","Status","Actions"] as const).map((label, i) => (
-                <TableHead key={label} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground overflow-visible" style={{ width: colWidths[i] }}>
-                  <span className={i === 4 ? "flex justify-end" : ""}>{label}</span>
-                  {i < 4 && <ResizeHandle onMouseDown={(e) => startResize(i, e)} />}
-                </TableHead>
-              ))}
+              <SortableHead label="Source" column="name" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[0] }}>
+                <ResizeHandle onMouseDown={(e) => startResize(0, e)} />
+              </SortableHead>
+              <SortableHead label="Category" column="categoryId" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[1] }}>
+                <ResizeHandle onMouseDown={(e) => startResize(1, e)} />
+              </SortableHead>
+              <SortableHead label="Trust" column="trustScore" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[2] }}>
+                <ResizeHandle onMouseDown={(e) => startResize(2, e)} />
+              </SortableHead>
+              <SortableHead label="Status" column="isActive" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[3] }}>
+                <ResizeHandle onMouseDown={(e) => startResize(3, e)} />
+              </SortableHead>
+              <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground text-right" style={{ width: colWidths[4] }}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow><TableCell colSpan={5} className="text-center py-16 text-muted-foreground/50"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></TableCell></TableRow>
             )}
-            {sources?.map((source) => (
+            {sortedSources.map((source) => (
               <TableRow key={source.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
                 <TableCell className="px-4 py-2">
                   <div className="flex flex-col gap-0.5">

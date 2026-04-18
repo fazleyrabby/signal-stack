@@ -3337,3 +3337,176 @@ In compact mode (Job Intelligence Live Feed), the source badge, timestamp, and c
 ```
 
 `flex-1` on the category span means it expands to fill whatever space the source badge + timestamp don't use, then truncates cleanly instead of pushing siblings.
+
+---
+
+## Section 33: Sortable Column Headers — All Admin Tables (April 2026)
+
+### 33.1 Shared Component: `SortableHead`
+
+Created `frontend/src/components/ui/sortable-head.tsx`. Renders a clickable `TableHead` that toggles between asc/desc and shows directional icons.
+
+**Key design choices:**
+- `children` slot allows `ResizeHandle` to nest inside — same cell handles click-to-sort and drag-to-resize
+- `ChevronsUpDown` at 30% opacity = inactive column indicator
+- `ChevronUp/Down` for active column with direction
+- `select-none` prevents text selection on rapid clicks
+
+`toggleSort` helper:
+```typescript
+export function toggleSort(current: { sort: string; order: "asc" | "desc" }, column: string) {
+  if (current.sort === column)
+    return { sort: column, order: current.order === "asc" ? "desc" : "asc" };
+  return { sort: column, order: "asc" as const };
+}
+```
+
+### 33.2 Client-Side Sorting (Sources, Categories)
+
+Small lookup tables — sort in-memory, no API call:
+
+```tsx
+const sortedSources = [...(sources ?? [])].sort((a: any, b: any) => {
+  const av = a[sort] ?? "";
+  const bv = b[sort] ?? "";
+  return order === "asc"
+    ? String(av).localeCompare(String(bv))
+    : String(bv).localeCompare(String(av));
+});
+```
+
+### 33.3 Server-Side Sorting (Jobs, Signals, Companies Saved)
+
+Sort params go to the API URL; backend uses Drizzle's `asc()`/`desc()` functions with a column map:
+
+```typescript
+// companies.repository.ts
+const sortColumns: Record<string, any> = {
+  name: companies.name,
+  source: companies.source,
+  city: companies.city,
+  website: companies.website,
+  createdAt: companies.createdAt,
+};
+const sortCol = sortColumns[sort] ?? companies.createdAt;
+const orderFn = order === "asc" ? asc : desc;
+```
+
+### 33.4 Pages Updated
+
+| Page | Sort type | Sortable columns |
+|------|-----------|-----------------|
+| `signals/page.tsx` | Server-side | Signal, Score, Category, AI Status, Langs, Timestamp |
+| `jobs/page.tsx` | Server-side | Title, Company, Location, Source, Date |
+| `sources/page.tsx` | Client-side | Source, Category, Trust, Status |
+| `categories/page.tsx` | Client-side | Slug, Name, Description |
+| `companies/page.tsx` (saved tab) | Server-side | Company, Source, Location, Website |
+
+---
+
+## Section 34: Floating "Save All" Button — Company Radar (April 2026)
+
+### 34.1 Problem
+
+The "Save All" button in Directory Crawler tab was only in the footer. On mobile, users had to scroll past a 2000-row table to find it.
+
+### 34.2 Fix
+
+Added a `fixed` floating button visible only on mobile (`md:hidden`) when unsaved results exist:
+
+```tsx
+{tab === "crawler" && !crawling && crawlResults !== null && (() => {
+  const unsaved = applyFilters(crawlResults).filter((c) => !crawlSavedNames.has(c.name));
+  if (!unsaved.length) return null;
+  return (
+    <div className="fixed bottom-4 right-4 z-50 md:hidden">
+      <Button className="h-10 px-4 text-xs gap-2 shadow-lg" onClick={saveAllFiltered} disabled={savingAll}>
+        {savingAll ? "Saving..." : `Save All (${unsaved.length})`}
+      </Button>
+    </div>
+  );
+})()}
+```
+
+- `md:hidden` = visible only below 768px
+- `z-50` = floats above table and tab bar
+- Auto-disappears when count reaches zero
+- Same `saveAllFiltered()` as the desktop footer button
+
+---
+
+## Section 35: System Bottleneck & Performance Analysis (April 2026)
+
+### 35.1 Critical: `saveAllFiltered()` — Concurrent Request Bomb
+
+**Current code** fires `Promise.all()` for all unsaved companies simultaneously. With e-CAB at 2935 companies, that is 2935 concurrent HTTP requests hitting the backend, which in turn fires 2935 concurrent DB INSERTs — exhausting the Postgres connection pool.
+
+**Fix — chunk to 50 at a time:**
+```typescript
+const CHUNK = 50;
+for (let i = 0; i < toSave.length; i += CHUNK) {
+  await Promise.all(
+    toSave.slice(i, i + CHUNK).map((company) =>
+      fetch(`${API_BASE}/api/admin/companies/save`, { ... })
+    )
+  );
+}
+```
+
+### 35.2 Missing Database Indexes
+
+The `findAll()` WHERE clause filters on `source`, `city`, `name` (regex), and the tech filter every time. Without indexes, Postgres full-scans the table.
+
+**Check current indexes:**
+```sql
+SELECT indexname, tablename FROM pg_indexes WHERE schemaname = 'public';
+```
+
+**Recommended additions (one migration):**
+```sql
+CREATE INDEX IF NOT EXISTS idx_companies_source ON companies(source);
+CREATE INDEX IF NOT EXISTS idx_companies_city ON companies(city);
+CREATE INDEX IF NOT EXISTS idx_jobs_source ON jobs(source);
+CREATE INDEX IF NOT EXISTS idx_jobs_company ON jobs(company);
+CREATE INDEX IF NOT EXISTS idx_signals_category ON signals("categoryId");
+```
+
+Note: The regex `~*` filter on `name` cannot use a B-tree index. For large tables, consider `pg_trgm` GIN index:
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX idx_companies_name_trgm ON companies USING GIN (name gin_trgm_ops);
+```
+
+### 35.3 SQL Tech Filter Duplication
+
+The regex-heavy tech filter SQL is copy-pasted in 3 places in `companies.repository.ts`:
+- `findAll()` WHERE clause
+- `purgeNonTech()` DELETE
+- `countResult` subquery uses the same `where` variable (OK here, but fragile)
+
+**Fix:** Extract to a module-level `const TECH_FILTER = sql\`...\`` and reuse.
+
+### 35.4 Redis Cache Stale Risk
+
+Cache keys are manually versioned (`v8`). If filter logic changes, old results return until someone bumps the version. Consider:
+- Including a hash of the filter constants in the key
+- Adding a `POST /api/admin/companies/cache/clear` admin endpoint
+
+### 35.5 Rate Limiting Status
+
+`@SkipThrottle()` is on all admin routes. Public routes are throttled by `@nestjs/throttler`. Verify public signal/job feed endpoints have throttle applied:
+
+```bash
+grep -r "ThrottlerGuard\|@Throttle\|@SkipThrottle" backend/src/
+```
+
+### 35.6 Priority Fix Summary
+
+| Priority | Issue | Effort |
+|----------|-------|--------|
+| High | Chunk saveAllFiltered() — avoid 2000 concurrent requests | Low |
+| High | Add DB indexes on filtered/sorted columns | Low (one migration) |
+| Medium | Deduplicate tech filter SQL into shared constant | Medium |
+| Medium | Add cache-clear admin endpoint | Low |
+| Low | Load test public endpoints before launch | Medium |
+| Low | Per-user rate limits on signal/job feeds | Medium |

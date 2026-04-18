@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { desc, sql } from 'drizzle-orm';
+import { desc, asc, sql } from 'drizzle-orm';
 import { companies, Company, NewCompany } from '../database/schema';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
@@ -40,8 +40,8 @@ export class CompaniesRepository {
     return inserted;
   }
 
-  async findAll(params: { page: number; limit: number; search?: string; source?: string; city?: string }) {
-    const { page, limit, search, source, city } = params;
+  async findAll(params: { page: number; limit: number; search?: string; source?: string; city?: string; sort?: string; order?: 'asc' | 'desc' }) {
+    const { page, limit, search, source, city, sort = 'createdAt', order = 'desc' } = params;
     const offset = (page - 1) * limit;
 
     const techFilter = sql`(
@@ -64,12 +64,22 @@ export class CompaniesRepository {
 
     const where = sql`${techFilter} ${searchFilter} ${sourceFilter} ${cityFilter}`;
 
+    const sortColumns: Record<string, any> = {
+      name: companies.name,
+      source: companies.source,
+      city: companies.city,
+      website: companies.website,
+      createdAt: companies.createdAt,
+    };
+    const sortCol = sortColumns[sort] ?? companies.createdAt;
+    const orderFn = order === 'asc' ? asc : desc;
+
     const [data, countResult] = await Promise.all([
       this.db
         .select()
         .from(companies)
         .where(where)
-        .orderBy(desc(companies.createdAt))
+        .orderBy(orderFn(sortCol))
         .limit(limit)
         .offset(offset),
       this.db.select({ count: sql<number>`count(*)::int` }).from(companies).where(where),
