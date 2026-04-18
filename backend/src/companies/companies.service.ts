@@ -54,7 +54,7 @@ export class CompaniesService {
     if (source === 'google' && !config.googlePlacesEnabled) return [];
     if (source === 'mapbox' && !config.mapboxEnabled) return [];
 
-    const cacheKey = `companies:nearby:v13:${source}:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cacheKey = `companies:nearby:v14:${source}:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
 
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -94,14 +94,18 @@ export class CompaniesService {
       return [];
     }
 
-    // Mapbox Searchbox forward text search — more reliable than category search
-    // Run two queries ("tech company" + "software company") and merge unique results
+    // Build a bounding box from the radius to restrict results geographically.
+    // Mapbox proximity only *biases* results — bbox enforces a hard boundary.
+    const latDelta = radius / 111000; // 1 degree lat ≈ 111 km
+    const lngDelta = radius / (111000 * Math.cos(lat * Math.PI / 180));
+    const bbox = `${(lng - lngDelta).toFixed(6)},${(lat - latDelta).toFixed(6)},${(lng + lngDelta).toFixed(6)},${(lat + latDelta).toFixed(6)}`;
+
     const queries = ['tech company', 'software company', 'IT company', 'startup'];
     const seen = new Set<string>();
     const allResults: NearbyCompany[] = [];
 
     for (const q of queries) {
-      const url = `${MAPBOX_SEARCH_URL}?q=${encodeURIComponent(q)}&proximity=${lng},${lat}&access_token=${apiKey}&limit=10`;
+      const url = `${MAPBOX_SEARCH_URL}?q=${encodeURIComponent(q)}&proximity=${lng},${lat}&bbox=${bbox}&access_token=${apiKey}&limit=10`;
       try {
         const res = await fetch(url);
         if (!res.ok) {
@@ -117,14 +121,18 @@ export class CompaniesService {
           const id = f.properties?.mapbox_id || f.id;
           if (!id || seen.has(id)) continue;
           seen.add(id);
+          const featureLat = f.geometry?.coordinates?.[1] ?? lat;
+          const featureLng = f.geometry?.coordinates?.[0] ?? lng;
+          // Hard distance filter — discard anything outside the requested radius
+          if (haversineMeters(lat, lng, featureLat, featureLng) > radius) continue;
           allResults.push({
             placeId: id,
             name: f.properties?.name || 'Unknown',
             website: f.properties?.metadata?.website || null,
             city: f.properties?.context?.place?.name || f.properties?.full_address || null,
             country: f.properties?.context?.country?.name || null,
-            lat: f.geometry?.coordinates?.[1] ?? lat,
-            lng: f.geometry?.coordinates?.[0] ?? lng,
+            lat: featureLat,
+            lng: featureLng,
             tags: f.properties?.categories || [],
             careerPageFound: false,
             careerUrl: null,
@@ -390,4 +398,12 @@ function isTechByOsm(company: NearbyCompany): boolean {
   // OSM coverage in South Asia is sparse — most tech companies only have office=yes
   // with no further categorisation. Showing them is better than showing nothing.
   return true;
+}
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
