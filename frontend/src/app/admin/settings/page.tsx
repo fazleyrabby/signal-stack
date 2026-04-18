@@ -128,7 +128,7 @@ export default function SettingsPage() {
       setMacTestResult({ ok: data.status === 'healthy', latency: data.latency, error: data.error });
     } catch { setMacTestResult({ ok: false, error: 'Request failed' }); }
     finally {
-      setIsTestingMac(null);
+      setIsTestingMac(false);
       setTimeout(() => setMacTestResult(null), 5000);
     }
   };
