@@ -17,7 +17,11 @@ export class MacLocalProvider {
 
   async getEndpoint(): Promise<string | null> {
     const config = await this.settingsService.getModelConfig();
-    return config.macLocalEndpoint;
+    let endpoint = config.macLocalEndpoint;
+    if (endpoint && !endpoint.startsWith('http')) {
+      endpoint = `http://${endpoint}`;
+    }
+    return endpoint;
   }
 
   async isAvailable(): Promise<boolean> {
