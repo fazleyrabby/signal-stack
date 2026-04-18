@@ -66,6 +66,7 @@ export const jobs = pgTable(
     createdAtIdx: index('idx_jobs_created_at').on(table.createdAt),
     companyIdx: index('idx_jobs_company').on(table.company),
     remoteIdx: index('idx_jobs_remote').on(table.remote),
+    sourceIdx: index('idx_jobs_source').on(table.source),
   }),
 );
 
@@ -203,6 +204,8 @@ export const companies = pgTable(
     osmIdIdx: index('idx_companies_osm_id').on(table.osmId),
     createdAtIdx: index('idx_companies_created_at').on(table.createdAt),
     nameSourceUniq: uniqueIndex('uq_companies_name_source').on(table.name, table.source),
+    sourceIdx: index('idx_companies_source').on(table.source),
+    cityIdx: index('idx_companies_city').on(table.city),
   }),
 );
 

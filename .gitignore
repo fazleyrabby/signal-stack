@@ -60,6 +60,7 @@ tmp/
 
 # --- Backup Files ---
 backups/
+backup/
 
 # --- Spec / Planning Docs (root-level only, docs/ folder is tracked) ---
 /STUDY_GUIDE.md

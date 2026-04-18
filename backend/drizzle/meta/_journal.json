@@ -15,6 +15,13 @@
       "when": 1776368593656,
       "tag": "0001_black_penance",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776495815427,
+      "tag": "0002_add_missing_indexes",
+      "breakpoints": true
     }
   ]
 }

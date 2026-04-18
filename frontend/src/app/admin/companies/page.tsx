@@ -263,17 +263,20 @@ export default function CompaniesAdmin() {
     if (!toSave.length) return;
     setSavingAll(true);
     try {
-      await Promise.all(
-        toSave.map((company) =>
-          fetch(`${API_BASE}/api/admin/companies/save`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(company),
-          })
-        )
-      );
-      setCrawlSavedNames((prev) => new Set([...prev, ...toSave.map((c) => c.name)]));
+      const CHUNK = 50;
+      for (let i = 0; i < toSave.length; i += CHUNK) {
+        await Promise.all(
+          toSave.slice(i, i + CHUNK).map((company) =>
+            fetch(`${API_BASE}/api/admin/companies/save`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify(company),
+            })
+          )
+        );
+        setCrawlSavedNames((prev) => new Set([...prev, ...toSave.slice(i, i + CHUNK).map((c) => c.name)]));
+      }
       mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
     } finally {
       setSavingAll(false);
