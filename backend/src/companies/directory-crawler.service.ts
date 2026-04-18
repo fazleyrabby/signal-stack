@@ -366,87 +366,119 @@ export class DirectoryCrawlerService {
   }
 
   // ─── e-CAB ────────────────────────────────────────────────────────────────
-  // Server-rendered: GET https://e-cab.net/member-list?page=N
-  // Structure: <h5><a href="...">COMPANY NAME</a></h5> or similar heading
+  // Vue SPA — data via JSON API: GET https://e-cab.net/get-member-list?member_category=General&page=N
+  // Response: { data: [{company_name, website, current_office_address, ...}], meta: {last_page, total} }
   private async crawlEcab(): Promise<CrawledCompany[]> {
     const results: CrawledCompany[] = [];
     const seen = new Set<string>();
 
-    for (let page = 1; page <= 10; page++) {
-      const url = `https://e-cab.net/member-list?page=${page}`;
-      const html = await this.fetchPage(url);
-      if (!html) break;
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const url = `https://e-cab.net/get-member-list?member_category=General&page=${page}`;
+      const json = await this.fetchJson(url, {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': 'https://e-cab.net/member-list',
+      });
+      if (!json) break;
 
-      let pos = 0;
-      let count = 0;
-      while (true) {
-        // Look for any link that might be a member name
-        const aStart = html.indexOf('<a ', pos);
-        if (aStart === -1) break;
-        const aClose = html.indexOf('>', aStart);
-        if (aClose === -1) { pos = aStart + 3; continue; }
-        
-        const aEnd = html.indexOf('</a>', aClose);
-        if (aEnd === -1) { pos = aClose + 1; continue; }
+      const items: any[] = json.data ?? [];
+      if (items.length === 0) break;
 
-        const name = html.slice(aClose + 1, aEnd).replace(/<[^>]+>/g, '').trim();
-        pos = aEnd + 4;
-
-        // e-CAB specific: members are usually inside headings or have specific classes
-        // but we can filter by length and common words
-        if (name.length < 3 || name.length > 100) continue;
-        if (/^(home|about|contact|login|register|member|policy|terms|join|apply)/i.test(name)) continue;
-
+      let anyNew = false;
+      for (const item of items) {
+        const name = (item.company_name ?? '').trim();
+        if (!name) continue;
         const key = name.toLowerCase();
         if (seen.has(key)) continue;
         seen.add(key);
 
+        const address = (item.current_office_address ?? item.office_address ?? '').trim();
+        const website = item.website?.startsWith('http') ? item.website : null;
+
         results.push({
           name,
-          website: null,
-          city: detectCity(name, null),
+          website,
+          city: detectCity(name + ' ' + address, null),
           country: 'Bangladesh',
           source: 'ecab',
-          tags: ['ecommerce', 'fintech'],
+          tags: ['ecommerce', 'fintech', 'logistics'],
         });
-        count++;
+        anyNew = true;
       }
-      this.logger.log(`e-CAB page ${page}: found ${count} candidates`);
-      if (count === 0) break;
+      if (!anyNew) break;
+
+      const lastPage: number = json.meta?.last_page ?? page;
+      this.logger.log(`e-CAB page ${page}/${lastPage}: +${items.length} (total ${results.length})`);
+      if (page >= lastPage || page >= MAX_PAGES) break;
       await this.randomDelay();
     }
     return results;
   }
 
   // ─── GitHub BD Tech List ──────────────────────────────────────────────────
-  // Markdown: [Company Name](http://website.com) - Location
+  // AsciiDoc table format (README.adoc):
+  //   |Company Name
+  //   |Head Office: Address
+  //   |Technologies
+  //   |http://website.com[Website]
+  //   |headcount
   private async crawlGithubBd(): Promise<CrawledCompany[]> {
     const results: CrawledCompany[] = [];
-    const url = 'https://raw.githubusercontent.com/MBSTUPC/tech-companies-in-bangladesh/master/README.md';
-    const md = await this.fetchPage(url);
-    if (!md) return results;
+    const url = 'https://raw.githubusercontent.com/MBSTUPC/tech-companies-in-bangladesh/master/README.adoc';
+    const adoc = await this.fetchPage(url);
+    if (!adoc) return results;
 
-    const lines = md.split('\n');
-    for (const line of lines) {
-      // Pattern: [Name](URL) - Description/Location
-      const match = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)(.*)/.exec(line);
-      if (match) {
-        const name = match[1].trim();
-        const website = match[2].trim();
-        const desc = match[3].trim();
+    const seen = new Set<string>();
+    const lines = adoc.split('\n');
 
-        if (name.toLowerCase().includes('company name')) continue;
+    // Table rows: 5 consecutive lines starting with | per company
+    // Row 1: |Company Name  (may have trailing whitespace)
+    // Row 2: |Address
+    // Row 3: |Technologies
+    // Row 4: |http://url[Text] or |url[Text] links
+    // Row 5: |headcount
+    // Skip header row (|Company Name |Office location ...)
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i].trimEnd();
 
+      // Start of a company row: | followed by text, not a header separator or |===
+      if (!line.startsWith('|') || line.startsWith('|===') || line.startsWith('|Company Name')) {
+        i++;
+        continue;
+      }
+
+      const name = line.slice(1).trim();
+      if (!name || name.length < 2) { i++; continue; }
+
+      // Next line: address
+      const addrLine = (lines[i + 1] ?? '').trimEnd();
+      const address = addrLine.startsWith('|') ? addrLine.slice(1).trim() : '';
+
+      // Skip 3rd line (technologies), grab 4th for website
+      const webLine = (lines[i + 3] ?? '').trimEnd();
+      let website: string | null = null;
+      if (webLine.startsWith('|')) {
+        // Pattern: http://url[Text] or https://url[Text]
+        const webMatch = /(https?:\/\/[^\[]+)\[/.exec(webLine);
+        if (webMatch) website = webMatch[1].trim();
+      }
+
+      const key = name.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
         results.push({
           name,
           website,
-          city: detectCity(name + ' ' + desc, null),
+          city: detectCity(name + ' ' + address, null),
           country: 'Bangladesh',
           source: 'github_bd',
           tags: ['tech', 'software'],
         });
       }
+      i += 5; // advance past all 5 columns
     }
+
     this.logger.log(`GitHub Tech List: found ${results.length} companies`);
     return results;
   }
