@@ -147,7 +147,7 @@ export default function SourcesAdmin() {
               <SortableHead label="Category" column="categoryId" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[1] }}>
                 <ResizeHandle onMouseDown={(e) => startResize(1, e)} />
               </SortableHead>
-              <SortableHead label="Trust" column="trustScore" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[2] }}>
+              <SortableHead label="Trust Score" column="trustScore" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[2] }}>
                 <ResizeHandle onMouseDown={(e) => startResize(2, e)} />
               </SortableHead>
               <SortableHead label="Status" column="isActive" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[3] }}>

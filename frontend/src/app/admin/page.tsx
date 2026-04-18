@@ -386,10 +386,10 @@ export default function AdminDashboard() {
    };
 
   const modules: Array<{ title: string; description: string; icon: React.ElementType; color: string; href?: string; onClick?: () => void; loading?: boolean }> = [
-    { title: "Manage Signals",    description: "Review and translate intelligence signals.", icon: Activity,    href: "/admin/signals",    color: "bg-blue-500/10" },
-    { title: "News Sources",      description: "Manage intelligence telemetry feeds.",       icon: Rss,         href: "/admin/sources",    color: "bg-emerald-500/10" },
-    { title: "Signal Categories", description: "Tune classification & routing logic.",       icon: Layers,      href: "/admin/categories", color: "bg-violet-500/10" },
-    { title: "Database Backup",   description: "Create a full corpus security snapshot.",    icon: ShieldCheck, onClick: handleBackup,     loading: isBackingUp,       color: "bg-amber-500/10" },
+    { title: "Manage Signals",    description: "Review, edit, and translate signals.",        icon: Activity,    href: "/admin/signals",    color: "bg-blue-500/10" },
+    { title: "News Sources",      description: "Add, edit, or remove news feed sources.",    icon: Rss,         href: "/admin/sources",    color: "bg-emerald-500/10" },
+    { title: "Signal Categories", description: "Manage signal categories and settings.",     icon: Layers,      href: "/admin/categories", color: "bg-violet-500/10" },
+    { title: "Database Backup",   description: "Download a full backup of the database.",    icon: ShieldCheck, onClick: handleBackup,     loading: isBackingUp,       color: "bg-amber-500/10" },
     { title: "Test Digest",       description: "Send a test email digest of recent signals.",icon: Zap,         onClick: handleTestDigest, loading: isSendingTestDigest, color: "bg-primary/10" },
   ];
 
@@ -426,7 +426,7 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-black tracking-tight uppercase">Command Center</h1>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.25em] flex items-center gap-1.5 mt-1">
               <ShieldCheck className="w-3 h-3 text-primary" />
-              Strategic Operational Overview
+              System Overview
             </p>
           </div>
           <Link href="/admin/settings">
@@ -539,8 +539,8 @@ export default function AdminDashboard() {
           <section className="space-y-3">
             <SectionHeader
               icon={BarChart3}
-              title="Signal Intelligence"
-              subtitle={statsData ? `${statsData.last24h?.toLocaleString()} signals in last 24h` : "Loading..."}
+              title="Signal Overview"
+              subtitle={statsData ? `${statsData.last24h?.toLocaleString()} signals in the last 24 hours` : "Loading..."}
             />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               <StatCard label="Total Signals"   value={statsData?.total?.toLocaleString()}       icon={<TrendingUp className="w-4 h-4 text-primary" />} />
@@ -584,8 +584,8 @@ export default function AdminDashboard() {
             <section className="space-y-3">
               <SectionHeader
                 icon={Cpu}
-                title="AI Processing Breakdown"
-                subtitle="Signals processed per provider (all time)"
+                title="AI Usage by Provider"
+                subtitle="Total signals processed per AI provider (all time)"
               />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {providerStats.map((stat) => {
@@ -607,16 +607,16 @@ export default function AdminDashboard() {
             <section className="space-y-3">
               <SectionHeader
                 icon={Activity}
-                title="Worker Intelligence"
-                subtitle="Live queue depths · today's throughput · cache"
+                title="Background Workers"
+                subtitle="Live processing queues and cache performance"
               />
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <StatCard label="Translation Queue"     value={metrics.queue.translationDepth}  icon={<Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />}      accent="bg-blue-500/15 dark:bg-blue-500/10" />
-                <StatCard label="AI Summary Queue"      value={metrics.queue.aiSummaryDepth}    icon={<Activity className="w-4 h-4 text-violet-600 dark:text-violet-400" />}  accent="bg-violet-500/15 dark:bg-violet-500/10" />
-                <StatCard label="Cache Hit Ratio"       value={`${(metrics.cache.hitRatio * 100).toFixed(1)}%`} icon={<Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />} accent="bg-emerald-500/15 dark:bg-emerald-500/10" />
+                <StatCard label="Pending Translations"   value={metrics.queue.translationDepth}  icon={<Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />}      accent="bg-blue-500/15 dark:bg-blue-500/10" />
+                <StatCard label="Pending AI Summaries"  value={metrics.queue.aiSummaryDepth}    icon={<Activity className="w-4 h-4 text-violet-600 dark:text-violet-400" />}  accent="bg-violet-500/15 dark:bg-violet-500/10" />
+                <StatCard label="Cache Hit Rate"        value={`${(metrics.cache.hitRatio * 100).toFixed(1)}%`} icon={<Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />} accent="bg-emerald-500/15 dark:bg-emerald-500/10" />
                 <StatCard
-                  label="Avg Translate Latency"
+                  label="Avg Translation Time"
                   value={(() => {
                     const entries = Object.values(metrics.translation.latency);
                     if (entries.length === 0) return "—";
@@ -696,7 +696,7 @@ export default function AdminDashboard() {
             <SectionHeader
               icon={Server}
               title="Quick Actions"
-              subtitle="Navigation shortcuts & system operations"
+              subtitle="Jump to key pages and run system tasks"
             />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* Navigation links */}
