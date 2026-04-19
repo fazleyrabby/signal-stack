@@ -60,23 +60,31 @@ export class AIService {
         if (res) response = res;
       }
 
-      // 2. Fallback to OpenRouter
+      // 2. PicoClaw (Mac local) — free, no cloud cost
+      if (!response) {
+        const picoResult = await this.picoClaw.translate(title, summary, targetLang);
+        if (picoResult && !('error' in picoResult)) {
+          logEvent('info', 'ai_translation_completed', { targetLang, source: 'pico_mac' });
+          return { title: picoResult.title, aiSummary: picoResult.aiSummary };
+        }
+      }
+
+      // 3. Fallback to OpenRouter
       if (!response && !this.isCooldown('openrouter')) {
         const res = await this.openRouter.complete(prompt, systemPrompt, modelOverride);
         if (res) response = res;
       }
 
-      // 3. Last resort — Local AI
+      // 4. Last resort — Local AI
       if (!response && await this.local.isEnabled() && !this.isCooldown('local')) {
         response = await this.local.summarize('Translation Request', prompt);
       }
 
       if (!response) return null;
-      
+
       const parsed = JSON.parse(response.replace(/```json|```/g, '').trim());
-      
-      // Log Success & Meta for Cost Tracking
-      logEvent('info', 'ai_translation_completed', { 
+
+      logEvent('info', 'ai_translation_completed', {
         targetLang,
         source: response ? 'external' : 'local'
       });

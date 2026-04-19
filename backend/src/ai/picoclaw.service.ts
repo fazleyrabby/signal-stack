@@ -18,6 +18,39 @@ export class PicoClawService {
     this.enabled = this.configService.get<boolean>('PICOCLAW_ENABLED', true);
   }
 
+  async translate(title: string, summary: string, targetLang: string): Promise<{ title: string; aiSummary: string; provider: string } | null> {
+    if (!this.enabled || this.isCircuitOpen()) return null;
+
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), this.timeout + 5000); // extra time for translation
+
+      const response = await fetch(`${this.baseUrl}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, summary, targetLang }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(id);
+
+      if (!response.ok) throw new Error(`PicoClaw translate error: ${response.statusText}`);
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      this.failureCount = 0;
+      logEvent('info', 'picoclaw_translate_success', { targetLang, provider: data.provider });
+      return data;
+    } catch (error) {
+      this.handleFailure();
+      logEvent('warn', 'picoclaw_translate_failed', {
+        error: error.name === 'AbortError' ? 'timeout' : error.message,
+      });
+      return null;
+    }
+  }
+
   async process(signal: string, score: number): Promise<{ result: any; provider: string } | null> {
     if (!this.enabled || this.isCircuitOpen()) {
       return null;
