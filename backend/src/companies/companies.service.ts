@@ -87,6 +87,81 @@ export class CompaniesService {
     return results;
   }
 
+  async suggestLocations(query: string): Promise<any[]> {
+    if (!query || query.length < 3) return [];
+
+    const cacheKey = `geo_suggest:${query.toLowerCase().trim()}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const config = await this.settings.getModelConfig();
+    let suggestions: any[] = [];
+
+    try {
+      if (config.mapboxEnabled) {
+        const apiKey = await this.settings.getSetting('mapbox_api_key');
+        if (apiKey) {
+          const url = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(query)}&language=en&access_token=${apiKey}&session_token=signalstack_session&limit=5&types=place,locality`;
+          const res = await fetch(url);
+          const data = await res.json();
+          
+          suggestions = (data.suggestions || []).map((s: any) => ({
+            label: s.full_address || s.name,
+            name: s.name,
+            mapbox_id: s.mapbox_id,
+            provider: 'mapbox'
+          }));
+        }
+      }
+
+      if (suggestions.length === 0) {
+        // OSM Fallback
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1&featuretype=city`;
+        const res = await fetch(url, { headers: { 'User-Agent': 'SignalStack/1.0' } });
+        const data = await res.json();
+        
+        suggestions = data.map((item: any) => ({
+          label: item.display_name,
+          name: item.name || item.display_name.split(',')[0],
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+          provider: 'osm'
+        }));
+      }
+
+      // Cache for 24 hours
+      if (suggestions.length > 0) {
+        await this.redis.set(cacheKey, JSON.stringify(suggestions), 'EX', 86400);
+      }
+      return suggestions;
+    } catch (error) {
+      this.logger.error(`suggestLocations failed for "${query}": ${error.message}`);
+      return [];
+    }
+  }
+
+  async getMapboxDetails(mapboxId: string): Promise<{ lat: number; lng: number } | null> {
+    const apiKey = await this.settings.getSetting('mapbox_api_key');
+    if (!apiKey) return null;
+
+    const url = `https://api.mapbox.com/search/searchbox/v1/retrieve/${mapboxId}?access_token=${apiKey}&session_token=signalstack_session`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      const feature = data.features?.[0];
+      if (feature?.geometry?.coordinates) {
+        return {
+          lng: feature.geometry.coordinates[0],
+          lat: feature.geometry.coordinates[1],
+        };
+      }
+      return null;
+    } catch (error) {
+      this.logger.error(`getMapboxDetails failed for ${mapboxId}: ${error.message}`);
+      return null;
+    }
+  }
+
   private async findNearbyMapbox(lat: number, lng: number, radius: number): Promise<NearbyCompany[]> {
     const apiKey = await this.settings.getSetting('mapbox_api_key');
     if (!apiKey) {

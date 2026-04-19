@@ -86,7 +86,72 @@ export default function CompaniesAdmin() {
 
   // Location state
   const [locationQuery, setLocationQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [selectedLoc, setSelectedLoc] = useState<{ lat: number; lng: number; label: string } | null>(null);
+
+  // Debounce autocomplete
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (locationQuery.length >= 3 && !selectedLoc?.label.includes(locationQuery)) {
+        try {
+          const res = await fetch(`${API_BASE}/api/admin/companies/geocoding/suggest?q=${encodeURIComponent(locationQuery)}`, { credentials: "include" });
+          const data = await res.json();
+          setSuggestions(data);
+          setShowSuggestions(true);
+          setSelectedIndex(-1);
+        } catch (e) {
+          console.error("Autocomplete failed", e);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [locationQuery, selectedLoc]);
+
+  async function handleSelectSuggestion(s: any) {
+    setLocationQuery(s.label);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    
+    if (s.provider === 'mapbox') {
+      setGeocoding(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/companies/geocoding/retrieve?id=${s.mapbox_id}`, { credentials: "include" });
+        const coords = await res.json();
+        setSelectedLoc({ lat: coords.lat, lng: coords.lng, label: s.label });
+      } catch (e) {
+        setGeoError("Failed to retrieve coordinates from Mapbox");
+      } finally {
+        setGeocoding(false);
+      }
+    } else {
+      setSelectedLoc({ lat: s.lat, lng: s.lng, label: s.label });
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === "Enter") geocodeLocation();
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      setSelectedIndex(prev => (prev + 1) % suggestions.length);
+      e.preventDefault();
+    } else if (e.key === "ArrowUp") {
+      setSelectedIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
+      e.preventDefault();
+    } else if (e.key === "Enter" && selectedIndex >= 0) {
+      handleSelectSuggestion(suggestions[selectedIndex]);
+      e.preventDefault();
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  }
   const [radius, setRadius] = useState(10000);
   const [customRadius, setCustomRadius] = useState("");
   const [radarSource, setRadarSource] = useState<'osm' | 'google' | 'mapbox'>('osm');
@@ -368,9 +433,30 @@ export default function CompaniesAdmin() {
                   placeholder="Search city (e.g. Berlin, London, Tokyo...)"
                   value={locationQuery}
                   onChange={(e) => setLocationQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && geocodeLocation()}
+                  onKeyDown={handleKeyDown}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   className="h-8 pl-8 text-xs"
                 />
+                
+                {/* Autocomplete Suggestions */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 w-full z-50 bg-card border border-border/40 rounded-md shadow-xl mt-1 overflow-hidden">
+                    {suggestions.map((s, idx) => (
+                      <button
+                        key={s.mapbox_id || idx}
+                        onClick={() => handleSelectSuggestion(s)}
+                        onMouseEnter={() => setSelectedIndex(idx)}
+                        className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${selectedIndex === idx ? "bg-primary/10 text-primary" : "hover:bg-muted/30"}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-3 h-3 shrink-0 opacity-40" />
+                          <span className="truncate">{s.label}</span>
+                          <span className="text-[9px] uppercase tracking-tighter opacity-30 ml-auto shrink-0">{s.provider}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <Button size="sm" variant="outline" className="h-8 px-3 text-xs gap-1.5" onClick={geocodeLocation} disabled={geocoding || !locationQuery.trim()}>
                 {geocoding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}

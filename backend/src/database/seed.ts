@@ -240,6 +240,13 @@ async function seed() {
       trustScore: 4,
       type: 'job' as const,
     },
+    {
+      name: 'Remote OK',
+      url: 'https://remoteok.com/remote-jobs.rss',
+      categoryId: 'technology',
+      trustScore: 5,
+      type: 'job' as const,
+    },
   ];
 
   for (const src of jobSourceData) {

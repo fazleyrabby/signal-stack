@@ -74,6 +74,11 @@ export class FeedScheduler implements OnModuleInit {
     logEvent('info', 'feed_cycle_start', {});
 
     try {
+      const activeSources = await this.db
+        .select()
+        .from(sources)
+        .where(eq(sources.isActive, true));
+      
       const scoredSignals = await this.feedService.fetchAllFeeds();
       let stored = 0;
       let discarded = 0;
@@ -81,6 +86,14 @@ export class FeedScheduler implements OnModuleInit {
       let alerted = 0;
 
       for (const signal of scoredSignals) {
+        // Find the source for this signal to check its type
+        const source = activeSources.find(s => s.name === signal.source);
+        
+        // CRITICAL: Skip any source explicitly marked as a job source
+        if (source?.type === 'job') {
+          continue;
+        }
+
         // Discard low-value signals (< 5)
         if (signal.score < 5) {
           discarded++;
@@ -113,7 +126,8 @@ export class FeedScheduler implements OnModuleInit {
         }
 
         // 2. Extra filter: Even if score is high, skip if title sounds like a job post
-        const isJobRelated = /\b(hiring|recruitment|vacancy|career|job|jobs|developer|engineer|internship|intern|opening|position)\b/i.test(signal.title);
+        // Enhanced regex to catch more job-related titles
+        const isJobRelated = /\b(hiring|recruitment|vacancy|career|job|jobs|developer|engineer|internship|intern|opening|position|lead|manager|specialist|recruiter|head of|director of|architect)\b/i.test(signal.title);
  
         if (shouldAlert && !isJobRelated) {
           await this.discordService.sendAlert(signal);

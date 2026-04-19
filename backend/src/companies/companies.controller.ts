@@ -87,6 +87,18 @@ export class CompaniesController {
     return result;
   }
 
+  @Get('geocoding/suggest')
+  async suggest(@Query('q') q: string) {
+    return this.companiesService.suggestLocations(q);
+  }
+
+  @Get('geocoding/retrieve')
+  async retrieve(@Query('id') id: string) {
+    const details = await this.companiesService.getMapboxDetails(id);
+    if (!details) throw new BadRequestException('Failed to retrieve location details');
+    return details;
+  }
+
   @Get('crawl/sources')
   getCrawlSources() {
     return CRAWLER_SOURCES;
