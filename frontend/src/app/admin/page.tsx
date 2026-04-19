@@ -475,13 +475,28 @@ export default function AdminDashboard() {
               }
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+              {/* PicoClaw Router (Orchestrator) */}
+              <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={aiHealth?.picoClaw?.status || "unhealthy"} />
+                    <span className="text-sm font-bold">PicoClaw Router</span>
+                  </div>
+                  <StatusLabel status={aiHealth?.picoClaw?.status || "unhealthy"} />
+                </div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-teal-400/70 border border-teal-400/20 bg-teal-500/5 px-1.5 py-0.5 rounded w-fit">Local Orchestrator</p>
+                {aiHealth?.picoClaw?.model && (
+                  <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.picoClaw.model}</p>
+                )}
+              </div>
+
               {/* VPS Local — Qwen */}
               <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <StatusDot status={aiHealth?.local?.status || "unhealthy"} />
-                    <span className="text-sm font-bold">VPS · Qwen</span>
+                    <span className="text-sm font-bold">VPS Local</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[9px] font-black uppercase text-muted-foreground">
@@ -490,7 +505,7 @@ export default function AdminDashboard() {
                     <Switch checked={aiHealth?.localEnabled ?? false} onCheckedChange={handleLocalAIToggle} className="scale-75 origin-right" />
                   </div>
                 </div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400/70 border border-indigo-400/20 bg-indigo-500/5 px-1.5 py-0.5 rounded w-fit">VPS Container</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400/70 border border-indigo-400/20 bg-indigo-500/5 px-1.5 py-0.5 rounded w-fit">Docker · Qwen</p>
                 {aiHealth?.local?.model && (
                   <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.local.model}</p>
                 )}
@@ -499,16 +514,16 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              {/* Mac M1 Local — PicoClaw */}
+              {/* PicoClaw Mac */}
               <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <StatusDot status={aiHealth?.macLocal?.status || "unhealthy"} />
-                    <span className="text-sm font-bold">Mac M1 · Local</span>
+                    <span className="text-sm font-bold">PicoClaw Mac</span>
                   </div>
                   <StatusLabel status={aiHealth?.macLocal?.status || "unhealthy"} />
                 </div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-orange-400/70 border border-orange-400/20 bg-orange-500/5 px-1.5 py-0.5 rounded w-fit">Mac · PicoClaw</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-orange-400/70 border border-orange-400/20 bg-orange-500/5 px-1.5 py-0.5 rounded w-fit">Mac · llama.cpp</p>
                 {aiHealth?.macLocal?.model && (
                   <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.macLocal.model}</p>
                 )}
@@ -525,12 +540,12 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              {/* Groq */}
+              {/* Groq Cloud */}
               <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <StatusDot status={aiHealth?.groq?.status || "unhealthy"} />
-                    <span className="text-sm font-bold">Groq</span>
+                    <span className="text-sm font-bold">Groq Cloud</span>
                   </div>
                   <StatusLabel status={aiHealth?.groq?.status || "unhealthy"} />
                 </div>
@@ -650,11 +665,14 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {providerStats.map((stat) => {
                   const cfg = {
-                    local:         { label: "VPS llama",     accent: "bg-emerald-500/15 dark:bg-emerald-500/10",  icon: <Bot className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> },
-                    groq:          { label: "Groq",         accent: "bg-blue-500/15 dark:bg-blue-500/10",        icon: <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /> },
-                    openrouter:    { label: "OpenRouter",   accent: "bg-violet-500/15 dark:bg-violet-500/10",  icon: <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" /> },
-                    none:          { label: "None",         accent: "bg-zinc-500/15 dark:bg-zinc-500/10",        icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> },
-                  }[stat.provider] ?? { label: "PicoLLM",      accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> };
+                    local:         { label: "VPS Local",     accent: "bg-indigo-500/15 dark:bg-indigo-500/10",   icon: <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
+                    groq:          { label: "Groq Cloud",    accent: "bg-blue-500/15 dark:bg-blue-500/10",         icon: <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /> },
+                    openrouter:    { label: "OpenRouter",    accent: "bg-violet-500/15 dark:bg-violet-500/10",   icon: <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" /> },
+                    pico_router:   { label: "PicoClaw Router", accent: "bg-teal-500/15 dark:bg-teal-500/10",     icon: <Bot className="w-4 h-4 text-teal-600 dark:text-teal-400" /> },
+                    pico_mac:      { label: "PicoClaw Mac",    accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
+                    mac_local:     { label: "PicoClaw Mac",    accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
+                    none:          { label: "None",          accent: "bg-zinc-500/15 dark:bg-zinc-500/10",         icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> },
+                  }[stat.provider] ?? { label: "PicoClaw",      accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> };
                   return (
                     <StatCard key={stat.provider} label={cfg.label} value={stat.count.toLocaleString()} icon={cfg.icon} accent={cfg.accent} />
                   );

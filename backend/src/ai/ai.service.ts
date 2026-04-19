@@ -350,9 +350,9 @@ export class AIService {
     const translationPipeline = config.translationPipeline;
 
     return {
-      local: localEnabled ? { ...local, model: 'Qwen2.5-0.5B' } : local,
-      macLocal: macLocalEnabled ? { ...macLocal, model: 'llama-cpp-mac' } : macLocal,
-      picoClaw: { ...picoClaw, model: 'Orchestrator' },
+      local: localEnabled ? { ...local, model: 'VPS · Qwen 0.5B' } : local,
+      macLocal: macLocalEnabled ? { ...macLocal, model: 'Mac · llama.cpp' } : macLocal,
+      picoClaw: { ...picoClaw, model: 'PicoClaw · Orchestrator' },
       groq: { ...groq, model: this.groq.modelName },
       openrouter: { ...openrouter, model: this.openRouter.modelName },
       localEnabled,

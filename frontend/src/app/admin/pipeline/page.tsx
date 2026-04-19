@@ -55,8 +55,8 @@ interface ProviderMeta {
 const PROVIDERS: ProviderMeta[] = [
   {
     id: 'pico_router',
-    name: 'Local AI Router',
-    subtitle: 'LXC Proxy — intelligent routing',
+    name: 'PicoClaw Router',
+    subtitle: 'LXC Orchestrator — intelligent local routing',
     icon: <Router className="w-4 h-4" />,
     type: 'local',
     color: 'teal',
@@ -64,8 +64,8 @@ const PROVIDERS: ProviderMeta[] = [
   },
   {
     id: 'mac_local',
-    name: 'Mac M1 llama.cpp',
-    subtitle: 'Local inference via Tailscale',
+    name: 'PicoClaw Mac',
+    subtitle: 'Local Mac Inference (llama.cpp)',
     icon: <Activity className="w-4 h-4" />,
     type: 'local',
     color: 'emerald',
@@ -73,8 +73,8 @@ const PROVIDERS: ProviderMeta[] = [
   },
   {
     id: 'groq',
-    name: 'Groq',
-    subtitle: 'Cloud — fast & free tier',
+    name: 'Groq Cloud',
+    subtitle: 'Fast Llama 3 Inference',
     icon: <Zap className="w-4 h-4" />,
     type: 'cloud',
     color: 'blue',
@@ -83,7 +83,7 @@ const PROVIDERS: ProviderMeta[] = [
   {
     id: 'openrouter',
     name: 'OpenRouter',
-    subtitle: 'Cloud — paid fallback',
+    subtitle: 'Cloud — backup/paid fallback',
     icon: <Globe className="w-4 h-4" />,
     type: 'cloud',
     color: 'violet',
@@ -91,8 +91,8 @@ const PROVIDERS: ProviderMeta[] = [
   },
   {
     id: 'local',
-    name: 'VPS Qwen (Local)',
-    subtitle: 'Docker container on VPS',
+    name: 'VPS Local (Qwen)',
+    subtitle: 'Container-based fallback',
     icon: <Server className="w-4 h-4" />,
     type: 'local',
     color: 'orange',

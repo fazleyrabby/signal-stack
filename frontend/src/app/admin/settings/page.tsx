@@ -596,24 +596,24 @@ export default function SettingsPage() {
           />
           <div className="px-6 py-4 space-y-4 max-w-2xl">
             {/* Live Status Summary */}
-            <div className="flex flex-wrap gap-4 px-4 py-2 bg-card/20 border border-border/20 rounded-lg mb-2">
+            <div className="flex flex-wrap gap-6 px-4 py-2 bg-card/20 border border-border/20 rounded-lg mb-2">
               <div className="flex items-center gap-2">
                 <StatusDot status={aiHealth?.groq?.status || 'unknown'} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Groq</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Groq Cloud</span>
               </div>
-              <div className="flex items-center gap-2 border-l border-border/20 pl-4">
+              <div className="flex items-center gap-2 border-l border-border/20 pl-6">
                 <StatusDot status={aiHealth?.openrouter?.status || 'unknown'} />
                 <span className="text-[10px] font-bold uppercase tracking-wider">OpenRouter</span>
               </div>
-              <div className="flex items-center gap-2 border-l border-border/20 pl-4">
+              <div className="flex items-center gap-2 border-l border-border/20 pl-6">
                 <StatusDot status={aiHealth?.picoClaw?.status || 'unknown'} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">AI Router</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">PicoClaw Router</span>
               </div>
-              <div className="flex items-center gap-2 border-l border-border/20 pl-4">
+              <div className="flex items-center gap-2 border-l border-border/20 pl-6">
                 <StatusDot status={aiHealth?.macLocal?.status || 'disabled'} />
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    Mac Local
+                    PicoClaw Mac
                     {aiHealth?.macLocal?.latency && (
                       <span className="text-[8px] font-mono opacity-50">({aiHealth.macLocal.latency}ms)</span>
                     )}
