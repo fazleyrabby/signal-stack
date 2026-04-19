@@ -3497,6 +3497,66 @@ CREATE INDEX IF NOT EXISTS idx_companies_city ON companies(city);
 CREATE INDEX IF NOT EXISTS idx_jobs_source ON jobs(source);
 CREATE INDEX IF NOT EXISTS idx_jobs_company ON jobs(company);
 CREATE INDEX IF NOT EXISTS idx_signals_category ON signals("categoryId");
+
+---
+
+## Section 37: Intelligent Location Autocomplete & Caching
+
+### 36.1 Dual-Provider Architecture
+The "Nearby Search" radar now features a high-fidelity location autocomplete engine that acts as a proxy between the frontend and geocoding providers.
+
+- **Primary**: **Mapbox Searchbox API v1**. Provides structured suggestions (place, locality) with globally relevant rankings.
+- **Fallback**: **Nominatim (OpenStreetMap)**. Used if Mapbox is disabled or rate-limited.
+- **Retrieval**: For Mapbox suggestions, a second call to the `retrieve` endpoint is made to fetch precise latitude/longitude coordinates only when a user selects an item.
+
+### 36.2 Redis-Backed Suggestion Cache
+Geocoding suggestions are expensive in terms of both latency and API cost. To optimize this:
+- **Key Pattern**: `geo_suggest:{query_slug}`
+- **TTL**: 24 Hours.
+- **Impact**: Repeat searches for common cities (e.g., "Berlin", "Dhaka") return in <10ms and consume zero API quota.
+
+### 36.3 UI Implementation
+- **Debounced Input**: 300ms wait time before firing API calls to prevent flooding the backend with partial keystrokes.
+- **Keyboard Navigation**: Full support for `ArrowUp`/`ArrowDown` to navigate suggestions and `Enter` to select.
+- **Absolute Positioning**: The suggestion dropdown uses `z-50` and `absolute top-full` to float over other UI elements without breaking the table layout.
+
+---
+
+## Section 38: Strict Source-Type Routing & Job Filtering
+
+### 37.1 The "Cross-Contamination" Bug
+A bug was identified where job postings (e.g., from "Remote OK") were leaking into the main news channel. This happened because some job sources were categorized as `technology`, which the news scheduler also monitors.
+
+### 37.2 Two-Layer Enforcement Fix
+1. **Source-Type Validation**: The `FeedScheduler` now retrieves the `type` column for every source. Any source where `type === 'job'` is strictly excluded from the news signal cycle, regardless of its category.
+2. **Strengthened Regex Heuristics**: Even if a signal comes from a "signal" type source, its title is scanned against an expanded `isJobRelated` regex.
+
+**Enhanced Regex Patterns:**
+- `\b(lead|manager|specialist|recruiter|head of|director of|architect)\b`
+- `\b(hiring|recruitment|vacancy|career|job|jobs)\b`
+
+### 37.3 Automated Verification
+A new test suite (`feed.scheduler.spec.ts`) was added to ensure this logic remains intact. It mocks sources of both types and verifies that job-type sources never trigger a news alert, even with a high severity score.
+
+---
+
+## Section 39: Enhanced AI Token Analytics & Pipeline Fallback
+
+### 38.1 Token Usage Monitoring
+To monitor the cost and efficiency of local vs. cloud AI, token tracking was expanded to the Mac Local tier.
+- **Implementation**: The OpenAI-compatible `/v1/chat/completions` response from `llama.cpp` is parsed for the `usage` object.
+- **Redis Tracking**: Increments `ai:tokens:mac_local:prompt:{date}` and `ai:tokens:mac_local:completion:{date}`.
+- **Visibility**: Displayed on the Mac M1 provider card in the Command Center and in the micro-health summary on the Settings page.
+
+### 38.2 Distinct Pipeline Fallbacks
+The backend logic for `mac_local` and `pico_router` (Local AI Router) was decoupled.
+- **Direct Path**: Tries the direct Tailscale IP first for lowest latency.
+- **Proxy Path**: Falls back to the LXC-based Router if the direct path fails.
+- **Stat Label**: If the Router rescues a signal, the database records the provider as `pico_fallback`, which is now tracked as a distinct metric in the AI Usage breakdown.
+
+### 38.3 Verification
+A dedicated pipeline test suite (`ai.pipeline.spec.ts`) verifies the sequential waterfall and ensures that fallback only occurs when a primary provider truly fails or returns low-quality output.
+
 ```
 
 Note: The regex `~*` filter on `name` cannot use a B-tree index. For large tables, consider `pg_trgm` GIN index:
