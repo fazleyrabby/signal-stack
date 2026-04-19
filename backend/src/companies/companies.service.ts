@@ -13,7 +13,7 @@ const MAPBOX_SEARCH_URL = 'https://api.mapbox.com/search/searchbox/v1';
 const CACHE_TTL = 3600; // 1 hour
 
 // Non-tech names to explicitly exclude (embassies, hospitals, schools, banks, etc.)
-const NON_TECH_EXCLUDE = /\b(bank|banks|banking|finance|financial|insurance|leasing|hospital|clinic|pharmacy|pharma|restaurant|hotel|real estate|realty|property|construction|garments|textile|apparel|clothing|fashion|food|beverage|grocery|supermarket|retail|trade|import|export|transport|shipping|courier|airline|travel|tourism|newspaper|media|printing|school|college|university|madrasa|ngo|foundation|charity|government|ministry|embassy|consulate|diplomatic|church|mosque|temple|police|fire station|law firm|advocate|chamber of commerce|chamber|trading|enterprise|industries|mills|group of companies|agro|agri|poultry|fisheries|ceramics|cement|steel|iron|paint|furniture|decoration|hardware|stationery|tailoring|beauty|salon|spa|diagnostic|laboratory|pathology|dental|eye care|optical|flour|rice|oil|fuel|gas|petroleum|power|energy|solar|water|sanitation|security|guard|cleaning|laundry|packaging|printing|press|publisher|tv|radio|telecom operator)\b/i;
+const NON_TECH_EXCLUDE = /\b(bank|banks|banking|finance|financial|insurance|leasing|hospital|clinic|pharmacy|pharma|restaurant|hotel|real estate|realty|property|construction|garments|textile|apparel|clothing|fashion|food|beverage|grocery|supermarket|retail|trade|import|export|transport|shipping|courier|airline|travel|tourism|newspaper|media|printing|school|college|university|madrasa|ngo|foundation|charity|government|ministry|embassy|consulate|diplomatic|church|mosque|temple|police|fire station|law firm|advocate|chamber of commerce|chamber|trading|enterprise|industries|mills|group of companies|agro|agri|poultry|fisheries|ceramics|cement|steel|iron|paint|furniture|decoration|hardware|stationery|tailoring|beauty|salon|spa|diagnostic|laboratory|pathology|dental|eye care|optical|flour|rice|oil|fuel|gas|petroleum|power|energy|solar|water|sanitation|security|guard|cleaning|laundry|packaging|printing|press|publisher|tv|radio|telecom operator|auto|automobile|car bike|vehicle|ticket|bus|rail|tax|gst|income tax|consultancy|advise|agent|agency|broker|dealer|showroom|stand|store|shop)\b/i;
 
 // OSM office type tags that are definitely not tech
 const NON_TECH_OFFICE_TAGS = new Set(['diplomatic', 'government', 'educational_institution', 'association', 'ngo', 'religion', 'lawyer', 'accountant', 'notary', 'financial', 'insurance', 'estate_agent']);
@@ -195,13 +195,30 @@ export class CompaniesService {
 
         data = await res.json();
 
-        // Fallback: if no results with bbox, try without bbox (for sparse areas)
+        // Fallback 1: if no results with bbox, try without bbox (for sparse areas)
         if (!data.features?.length) {
           url = `${MAPBOX_SEARCH_URL}/category/${encodeURIComponent(category)}?proximity=${lng},${lat}&limit=25&access_token=${apiKey}`;
           this.logger.log(`Mapbox category "${category}" had 0 results with bbox, retrying without bbox`);
           res = await fetch(url);
           if (res.ok) {
             data = await res.json();
+          }
+        }
+
+        // Fallback 2: try forward geocoding as last resort for sparse areas
+        if (!data.features?.length) {
+          const queries = ['tech company', 'software company', 'IT company', 'startup'];
+          for (const q of queries) {
+            url = `${MAPBOX_SEARCH_URL}/forward?q=${encodeURIComponent(q)}&proximity=${lng},${lat}&limit=10&access_token=${apiKey}`;
+            const fgRes = await fetch(url);
+            if (fgRes.ok) {
+              const fgData = await fgRes.json();
+              if (fgData.features?.length) {
+                data = fgData;
+                this.logger.log(`Mapbox category "${category}" falling back to forward geocoding "${q}" found ${fgData.features.length} results`);
+                break;
+              }
+            }
           }
         }
 

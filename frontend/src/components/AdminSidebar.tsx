@@ -21,6 +21,7 @@ import {
   Layers,
   Building2,
   GitBranch,
+  Users,
 } from "lucide-react";
 import { logoutAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ const navItems = [
   { name: 'Sources', href: '/admin/sources', icon: Rss },
   { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
   { name: 'Companies', href: '/admin/companies', icon: Building2 },
+  { name: 'Visitors', href: '/admin/visitors', icon: Users },
   { name: 'Logs', href: '/admin/logs', icon: Database },
   { name: 'AI Pipeline', href: '/admin/pipeline', icon: GitBranch },
   { name: 'Settings', href: '/admin/settings', icon: Settings },

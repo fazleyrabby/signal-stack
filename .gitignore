@@ -75,3 +75,7 @@ models/
 
 # --- GeoIP ---
 /geoip/
+# Database sync
+*.sql
+*.dump
+db-backups/

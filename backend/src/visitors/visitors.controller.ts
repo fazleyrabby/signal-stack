@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Req } from '@nestjs/common';
+import { Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { VisitorsService } from './visitors.service';
 import type { Request } from 'express';
 
@@ -22,5 +22,15 @@ export class VisitorsController {
   @Get('stats')
   async getStats() {
     return this.visitorsService.getStats();
+  }
+
+  @Get()
+  async list(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const p = page ? parseInt(page, 10) : 1;
+    const l = limit ? parseInt(limit, 10) : 20;
+    return this.visitorsService.getVisitors(p, Math.min(l, 100));
   }
 }

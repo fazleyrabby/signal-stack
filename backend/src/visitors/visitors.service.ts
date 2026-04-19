@@ -18,6 +18,15 @@ export class VisitorsService {
   ) {}
 
   async track(ip: string, userAgent: string | null, sessionId: string) {
+    // Skip tracking for excluded IPs (admin/owner)
+    const excludedIps = (process.env.ANALYTICS_EXCLUDE_IPS || '')
+      .split(',')
+      .map(ip => ip.trim())
+      .filter(ip => ip);
+    if (excludedIps.includes(ip) || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('127.')) {
+      return;
+    }
+
     const now = new Date();
     const existing = await this.db
       .select()
@@ -88,6 +97,35 @@ export class VisitorsService {
     } catch (err) {
       // Fail silently as per requirements
     }
+  }
+
+  async getVisitors(page = 1, limit = 20) {
+    const offset = (page - 1) * limit;
+    const countResult = await this.db.execute(sql<any[]>`SELECT COUNT(*) as count FROM visitors`);
+    const total = Number(countResult[0]?.count) || 0;
+    
+    // Use select() with raw SQL
+    const results = await this.db.select()
+      .from(visitors)
+      .limit(limit)
+      .offset(offset);
+    
+    const data = results.map((v: any) => ({
+      id: v.id,
+      ip: v.ip,
+      session_id: v.sessionId,
+      user_agent: v.userAgent,
+      is_bot: v.isBot,
+      page_views: v.pageViews,
+      first_seen: v.firstSeen,
+      last_seen: v.lastSeen,
+      country: v.country,
+      city: v.city,
+    }));
+    return {
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async getStats() {

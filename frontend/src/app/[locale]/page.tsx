@@ -16,6 +16,7 @@ import {
 import { Header } from "@/components/Header";
 import { StatsBar } from "@/components/StatsBar";
 import { SignalColumn } from "@/components/SignalColumn";
+import { ApiHealthWrapper } from "@/components/ApiHealthWrapper";
 import { cn, trackVisit, type VisitorStats } from "@/lib/utils";
 import { useSearch } from "@/context/SearchContext";
 
@@ -178,8 +179,10 @@ function SignalsDashboardWithQuery() {
 
 export default function SignalsDashboard() {
   return (
-    <Suspense fallback={<SignalsDashboardContent showBookmarksFromQuery={false} />}>
-      <SignalsDashboardWithQuery />
-    </Suspense>
+    <ApiHealthWrapper>
+      <Suspense fallback={<SignalsDashboardContent showBookmarksFromQuery={false} />}>
+        <SignalsDashboardWithQuery />
+      </Suspense>
+    </ApiHealthWrapper>
   );
 }
