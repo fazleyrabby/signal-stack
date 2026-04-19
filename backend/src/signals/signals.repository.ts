@@ -144,7 +144,7 @@ export class SignalsRepository {
         .select()
         .from(signals)
         .where(whereClause)
-        .orderBy(orderFn(sortColumn))
+        .orderBy(orderFn(sortColumn), desc(signals.id))
         .limit(limit)
         .offset(offset),
       this.db
