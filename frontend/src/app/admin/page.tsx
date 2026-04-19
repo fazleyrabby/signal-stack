@@ -26,14 +26,17 @@ type ProviderHealth = {
 
 type AIHealth = {
   local: ProviderHealth;
+  macLocal?: ProviderHealth;
   groq: ProviderHealth;
   openrouter: ProviderHealth;
   localEnabled: boolean;
+  macLocalEnabled?: boolean;
   pipeline: string;
   queueSize: number;
   tokenUsage?: {
     groq: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
     openrouter: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
+    macLocal?: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
   };
 };
 
