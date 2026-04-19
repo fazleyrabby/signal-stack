@@ -99,7 +99,6 @@ function MaintenancePage({ onReload }: MaintenancePageProps) {
   }, [isClient]);
 
   const handleReload = () => {
-    setStatus("checking");
     onReload();
   };
 
