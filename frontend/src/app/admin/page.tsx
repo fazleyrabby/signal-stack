@@ -650,14 +650,11 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {providerStats.map((stat) => {
                   const cfg = {
-                    local:           { label: "VPS llama",    accent: "bg-emerald-500/15 dark:bg-emerald-500/10",  icon: <Bot className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> },
-                    pico_router:     { label: "Pico Router", accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
-                    pico_mac:       { label: "Mac Pico",   accent: "bg-teal-500/15 dark:bg-teal-500/10",   icon: <Bot className="w-4 h-4 text-teal-600 dark:text-teal-400" /> },
-                    pico_fallback: { label: "PicoLLM",    accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
-                    groq:           { label: "Groq",       accent: "bg-blue-500/15 dark:bg-blue-500/10",        icon: <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /> },
-                    openrouter:      { label: "OpenRouter",  accent: "bg-violet-500/15 dark:bg-violet-500/10",  icon: <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" /> },
-                    none:            { label: "None",       accent: "bg-zinc-500/15 dark:bg-zinc-500/10",        icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> },
-                  }[stat.provider] ?? { label: stat.provider, accent: "bg-zinc-500/15 dark:bg-zinc-500/10", icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> };
+                    local:         { label: "VPS llama",     accent: "bg-emerald-500/15 dark:bg-emerald-500/10",  icon: <Bot className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> },
+                    groq:          { label: "Groq",         accent: "bg-blue-500/15 dark:bg-blue-500/10",        icon: <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /> },
+                    openrouter:    { label: "OpenRouter",   accent: "bg-violet-500/15 dark:bg-violet-500/10",  icon: <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" /> },
+                    none:          { label: "None",         accent: "bg-zinc-500/15 dark:bg-zinc-500/10",        icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> },
+                  }[stat.provider] ?? { label: "PicoLLM",      accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> };
                   return (
                     <StatCard key={stat.provider} label={cfg.label} value={stat.count.toLocaleString()} icon={cfg.icon} accent={cfg.accent} />
                   );
