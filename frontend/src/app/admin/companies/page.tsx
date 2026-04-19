@@ -792,7 +792,7 @@ export default function CompaniesAdmin() {
           const unsaved = filtered.filter((c) => !crawlSavedNames.has(c.name));
           if (!unsaved.length) return null;
           return (
-            <div className="fixed bottom-4 right-4 z-50 md:hidden">
+            <div className="fixed bottom-20 right-4 z-50 md:hidden">
               <Button className="h-10 px-4 text-xs gap-2 shadow-lg" onClick={saveAllFiltered} disabled={savingAll}>
                 {savingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
                 {savingAll ? "Saving…" : `Save All (${unsaved.length})`}

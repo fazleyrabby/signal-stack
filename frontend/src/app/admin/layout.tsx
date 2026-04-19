@@ -11,7 +11,7 @@ function CrawlStatusPill() {
   const { crawling, source } = useCrawl();
   if (!crawling) return null;
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-border shadow-lg text-xs font-medium text-muted-foreground">
+    <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-border shadow-lg text-xs font-medium text-muted-foreground">
       <Loader2 className="w-3 h-3 animate-spin text-primary shrink-0" />
       Crawling {source}… you can navigate away
     </div>
