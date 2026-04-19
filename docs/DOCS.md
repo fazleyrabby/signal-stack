@@ -68,25 +68,25 @@ Access at [http://localhost:3001](http://localhost:3001).
 
 ---
 
-## 🧠 Advanced AI Orchestration (PicoClaw)
+## 🧠 Advanced AI Orchestration (Local AI Router)
 
-SignalStack implements a highly resilient, tiered AI pipeline using the **PicoClaw** orchestrator (running in an LXC container). This layer ensures that mission-critical or high-impact signals receive high-fidelity analysis from local models (Mac M1) while maintaining fast fallback to cloud providers.
+SignalStack implements a highly resilient, tiered AI pipeline using a dedicated **Local AI Router** (LXC container). This layer ensures that mission-critical or high-impact signals receive high-fidelity analysis from local models while maintaining fast fallback to cloud providers.
 
-### AI Tiering Logic
-1.  **Tier 1 (Groq)**: Ultra-fast initial processing.
-2.  **Tier 2 (PicoClaw / Mac Local)**: Triggered if:
-    *   Signal `score >= 7` (High Impact).
-    *   Groq output is **Low Quality** (detected via `isLowQuality` helper).
-3.  **Tier 3 (OpenRouter)**: Fallback for complex reasoning if local models are unavailable.
-4.  **Tier 4 (VPS Local)**: Final fail-safe (lightweight 0.5B model).
+### AI Tiering & Pipeline Order
+The system follows a strict sequential waterfall to minimize costs and maximize privacy:
+1.  **Local AI Router**: Intelligent LXC-based proxy for flexible routing between local devices.
+2.  **Mac M1 llama.cpp**: Direct direct Tailscale connection to Apple Silicon hardware.
+3.  **Groq ⚡**: Ultra-fast initial cloud fallback.
+4.  **OpenRouter 🧠**: High-fidelity cloud fallback for complex reasoning.
+5.  **VPS Local**: Final fail-safe (lightweight 0.5B Qwen model running in Docker).
 
-### Component Breakdown
-- **PicoClaw Service** (`192.168.0.213:9000`): Flask-based routing layer in LXC.
-- **Mac Local LLM** (`100.84.207.28:8081`): llama-server on Mac M1 Pro, reachable via Tailscale (stable IP regardless of local network).
-- **Circuit Breaker**: NestJS implements a `3-failure / 60-second` cooldown for the PicoClaw endpoint to prevent blocking queue workers.
+### Key Features
+- **Intelligent Fallback**: The backend tracks `pico_fallback` events when the LXC Router rescues a failed direct connection to the Mac.
+- **Token Usage Tracking**: Real-time monitoring of token consumption across all providers, including Mac Local, visible on the Admin Dashboard.
+- **Circuit Breaker**: NestJS implements a `3-failure / 60-second` cooldown for local endpoints to prevent blocking background queue workers.
 
 ### Management
-Control all AI tiers via the **Admin Dashboard** under **Settings**. You can live-test connections, toggle providers, and update endpoints/timeouts without restarts.
+Control all AI tiers via the **Admin Dashboard** under **Settings**. You can live-test connections, reorder the pipeline via drag-and-drop, and update endpoints/timeouts without restarts.
 
 ---
 
@@ -959,6 +959,22 @@ New "Export Reports" tab in Admin Signals page:
 - `GET /api/admin/signals/export/csv?days=N` downloads signal history as CSV.
 - Frontend opens URL in new tab — browser handles download.
 
-#### 7. Background Crawl with Toast
+#### 8. AI Router Consolidation & Local Mac Tier
 
-Directory crawler now runs in background via `CrawlContext` (`frontend/src/context/CrawlContext.tsx`). UI shows a toast notification on completion instead of blocking the admin page.
+The AI pipeline has been refined to emphasize local privacy and zero-cost inference.
+- **Local AI Router**: Renamed from PicoClaw to reflect its role as an intelligent LXC-based proxy.
+- **Mac M1 Priority**: Direct direct Tailscale connection to Apple Silicon hardware now acts as the primary local target, with the Router acting as a fallback for multiple local devices.
+- **Today's Usage**: Admin dashboard now features live token usage metrics for the Mac local tier.
+
+#### 9. Location Auto-Suggest Engine
+
+The Admin Radar (Nearby Search) now includes a debounced autocomplete system:
+- **Mapbox Searchbox Integration**: Provides high-quality suggestions for cities and localities globally.
+- **Intelligent Fallback**: Seamlessly switches to Nominatim (OSM) if Mapbox is disabled or rate-limited.
+- **Result Caching**: Redis-backed geocoding cache (24h TTL) ensures sub-10ms response times for repeat searches.
+
+#### 10. Robust Discord Routing & Verification
+
+- **Strict Source-Type Filtering**: `FeedScheduler` now validates the `type` column in the `sources` table. Any source marked as `type: 'job'` is strictly excluded from the news signal cycle to prevent cross-channel leaks.
+- **Automated Verification**: Introduced `jest` test suites for the Feed Scheduler and AI Pipeline, ensuring regression-free deployments.
+

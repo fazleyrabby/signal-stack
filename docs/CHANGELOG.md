@@ -4,6 +4,37 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-04-19] — AI Router Consolidation, Location Auto-Suggest & Discord Routing Fix
+
+### Added
+- **Local AI Router Consolidation**: Renamed "PicoClaw Router" to **Local AI Router** (LXC Proxy) in the UI for better architectural clarity.
+- **Location Auto-Suggest (Radar)**: Implemented Google-style location autocomplete in the Admin Radar (Nearby Search).
+  - Dual-provider: Mapbox Searchbox API (Primary) with Nominatim/OSM (Fallback).
+  - Performance: 24-hour Redis caching for geocoding suggestions.
+  - UI/UX: Debounced input (300ms), keyboard navigation (Arrows/Enter), and automatic coordinate retrieval.
+- **Automated Verification Suites**:
+  - `feed.scheduler.spec.ts`: Unit tests for job leak prevention and source-type filtering.
+  - `ai.pipeline.spec.ts`: Integration tests for AI pipeline fallback logic and token usage tracking.
+- **Token Usage Monitoring**: Added live "Mac Local" token usage counters to the Admin Command Center and Settings pages.
+
+### Fixed
+- **Discord Job Leak**: Fixed a critical bug where job postings (e.g., from "Remote OK") were leaking into the main news channel.
+  - Fix: `FeedScheduler` now explicitly skips any source where `type === 'job'`.
+  - Enhancement: Strengthened `isJobRelated` title heuristics to catch common job-related keywords (Lead, Manager, Architect, etc.).
+- **AI Pipeline Robustness**: Decoupled `mac_local` and `pico_router` logic in the backend, ensuring the system treats direct-to-mac and proxy-to-mac as distinct failover steps.
+- **Production Build Integrity**: Fixed a missing `sources` import in `FeedScheduler` that was causing VPS deployment failures.
+
+### Architecture
+- **Refined Pipeline**: `Local AI Router` → `Mac M1 llama.cpp` → `Groq` → `OpenRouter` → `VPS Qwen`.
+- **Health System**: Backend now reports `pico_fallback` when the LXC proxy successfully rescues a failed direct Mac connection.
+
+### Study Guide
+- Section 33: Intelligent Location Autocomplete & Caching
+- Section 34: Strict Source-Type Routing & Job Filtering
+- Section 35: Enhanced AI Token Analytics
+
+---
+
 ## [2026-04-19] — PicoClaw mDNS Stability, Health Timeout Fix & Mac Routing
 
 ### Fixed
