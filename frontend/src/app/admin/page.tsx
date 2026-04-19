@@ -238,32 +238,33 @@ export default function AdminDashboard() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
   const [isSendingTestDigest, setIsSendingTestDigest] = useState(false);
-  const { data: statsData, mutate: refreshStats } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
+  const { data: statsData, mutate: refreshStats, error: statsError } = useSWR<SignalStats>(`${API_BASE}/api/signals/stats`, fetcher);
   const { data: aiHealth, isValidating: aiLoading, mutate: refreshAI, error: aiError } = useSWR<AIHealth>(
     `${API_BASE}/api/admin/ai/health`,
     fetcher,
     { refreshInterval: 60000, shouldRetryOnError: false }
   );
-  const { data: metrics, mutate: refreshMetrics } = useSWR<MetricsResponse>(
+  const { data: metrics, mutate: refreshMetrics, error: metricsError } = useSWR<MetricsResponse>(
     `${API_BASE}/api/admin/metrics`,
     fetcher,
     { refreshInterval: 30000 }
   );
 
   useEffect(() => {
-    if (aiError) {
+    if (aiError?.message?.includes("Unauthorized")) {
       router.replace("/admin-login");
     }
   }, [aiError, router]);
-  const { data: modelsData, mutate: refreshModels } = useSWR<ModelsResponse>(
+
+  const { data: modelsData, mutate: refreshModels, error: modelsError } = useSWR<ModelsResponse>(
     `${API_BASE}/api/admin/ai/models`,
     fetcher
   );
-  const { data: providerStats } = useSWR<{ provider: string; count: number }[]>(
+  const { data: providerStats, error: providerStatsError } = useSWR<{ provider: string; count: number }[]>(
     `${API_BASE}/api/signals/ai-providers`,
     fetcher
   );
-  const { data: visitorStats } = useSWR<{ total: number; today: number; realtime: number }>(
+  const { data: visitorStats, error: visitorStatsError } = useSWR<{ total: number; today: number; realtime: number }>(
     `${API_BASE}/api/visitors/stats`,
     fetcher,
     { refreshInterval: 30000 }
@@ -404,14 +405,22 @@ export default function AdminDashboard() {
     : 0;
 
   // Shared section header pattern
-  const SectionHeader = ({ icon: Icon, title, subtitle, right }: { icon: React.ElementType; title: string; subtitle?: string; right?: React.ReactNode }) => (
+  const SectionHeader = ({ icon: Icon, title, subtitle, right, error }: { icon: React.ElementType; title: string; subtitle?: string; right?: React.ReactNode; error?: any }) => (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-lg bg-muted/70 flex items-center justify-center shrink-0">
-          <Icon className="w-3.5 h-3.5 text-primary" />
+          <Icon className={cn("w-3.5 h-3.5", error ? "text-red-500 animate-pulse" : "text-primary")} />
         </div>
         <div>
-          <h2 className="text-xs font-black uppercase tracking-widest leading-none text-foreground">{title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-black uppercase tracking-widest leading-none text-foreground">{title}</h2>
+            {error && (
+              <span className="text-[8px] font-bold text-red-500 bg-red-500/10 border border-red-500/20 px-1 rounded flex items-center gap-1">
+                <AlertTriangle className="w-2 h-2" />
+                Error
+              </span>
+            )}
+          </div>
           {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
       </div>
@@ -446,6 +455,7 @@ export default function AdminDashboard() {
             <SectionHeader
               icon={Brain}
               title="AI Providers"
+              error={aiError || modelsError}
               subtitle={
                 aiHealth
                   ? `${healthyCount}/${totalProviders} online${aiHealth.queueSize ? ` · ${aiHealth.queueSize} queued` : ""}${modelsData?.cached ? " · cached" : ""}`
@@ -572,6 +582,7 @@ export default function AdminDashboard() {
             <SectionHeader
               icon={BarChart3}
               title="Signal Overview"
+              error={statsError || visitorStatsError}
               subtitle={statsData ? `${statsData.last24h?.toLocaleString()} signals in the last 24 hours` : "Loading..."}
             />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -617,6 +628,7 @@ export default function AdminDashboard() {
               <SectionHeader
                 icon={Cpu}
                 title="AI Usage by Provider"
+                error={providerStatsError}
                 subtitle="Total signals processed per AI provider (all time)"
               />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -640,6 +652,7 @@ export default function AdminDashboard() {
               <SectionHeader
                 icon={Activity}
                 title="Background Workers"
+                error={metricsError}
                 subtitle="Live processing queues and cache performance"
               />
 
