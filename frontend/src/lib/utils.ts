@@ -30,10 +30,11 @@ export function getProviderLabel(provider: string | null): string {
   const labels: Record<string, string> = {
     'groq': 'Groq',
     'openrouter': 'OpenRouter',
-    'local': 'Local AI',
-    'pico_mac': 'Pico Mac',
-    'pico_fallback': 'Pico Fallback',
-    'mac_local': 'Mac Local',
+    'local': 'Local LLM',
+    'pico_router': 'Local LLM',
+    'pico_mac': 'Local LLM',
+    'pico_fallback': 'Local LLM',
+    'mac_local': 'Local LLM',
     'failed': 'Failed',
   };
   return labels[provider] || provider;
