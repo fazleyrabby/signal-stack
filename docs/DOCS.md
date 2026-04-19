@@ -82,7 +82,7 @@ SignalStack implements a highly resilient, tiered AI pipeline using the **PicoCl
 
 ### Component Breakdown
 - **PicoClaw Service** (`192.168.0.213:9000`): Flask-based routing layer in LXC.
-- **Mac Local LLM** (`192.168.0.150:8081`): llama-server running Qwen 2.5 Coder 7B (Instruct).
+- **Mac Local LLM** (`100.84.207.28:8081`): llama-server on Mac M1 Pro, reachable via Tailscale (stable IP regardless of local network).
 - **Circuit Breaker**: NestJS implements a `3-failure / 60-second` cooldown for the PicoClaw endpoint to prevent blocking queue workers.
 
 ### Management

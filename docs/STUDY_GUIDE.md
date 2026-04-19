@@ -34,6 +34,8 @@
 25. [Section 30: Company Radar — Tech Filter for Saved Companies](#section-30-company-radar--tech-filter-for-saved-companies-april-2026)
 26. [Section 31: Deploy Script Rollback Fix](#section-31-deploy-script-rollback-fix-april-2026)
 27. [Section 32: SignalCard UI Fix — Source Badge Overlap](#section-32-signalcard-ui-fix--source-badge-overlap-april-2026)
+28. [Section 46: PicoClaw Tailscale Setup & LXC TUN Device Configuration](#section-46-picoclaw-tailscale-setup--lxc-tun-device-configuration-april-19-2026)
+29. [Section 47: Translation Fix — Signals Without aiSummary](#section-47-translation-fix--signals-without-aisummary-april-19-2026)
 
 ---
 
@@ -3998,3 +4000,111 @@ const textLower = text.toLowerCase(); // computed once
 ```
 
 Net effect: eliminates N×M regex constructions per feed cycle where N = signals, M = entity count.
+
+---
+
+## Section 46: PicoClaw Tailscale Setup & LXC TUN Device Configuration (April 19, 2026)
+
+### Problem
+
+PicoClaw LXC (`192.168.0.213`) could not reach Mac llama.cpp after Mac's local IP changed from the `192.168.0.x` subnet to `10.220.x.x` (different WiFi network). mDNS (`.local` hostnames) only resolves within the same LAN segment — cross-subnet routing fails.
+
+### Solution: Tailscale on PicoClaw LXC
+
+**Step 1 — Enable TUN device on the LXC from Proxmox host**
+
+LXC containers cannot use TUN by default (no `/dev/net/tun`). Tailscale requires it. Fix from Proxmox host:
+
+```bash
+ssh root@192.168.0.222   # Proxmox host (Tailscale: 100.76.187.14, device: thinkbox)
+
+# Find the LXC container ID
+pct list
+# picoclaw = CTID 102
+
+# Add TUN device access
+echo "lxc.cgroup2.devices.allow = c 10:200 rwm" >> /etc/pve/lxc/102.conf
+echo "lxc.mount.entry = /dev/net/tun dev/net/tun none bind,create=file" >> /etc/pve/lxc/102.conf
+
+# Reboot the LXC
+pct reboot 102
+```
+
+**Step 2 — Install and authenticate Tailscale on PicoClaw**
+
+```bash
+ssh rabbi@192.168.0.213   # password: pass1234
+
+# Tailscale was already installed — just needed the TUN device
+sudo systemctl start tailscaled
+sudo tailscale up
+# → Outputs auth URL: https://login.tailscale.com/a/...
+# Open URL in browser and approve
+```
+
+PicoClaw Tailscale IP: `100.124.129.108`
+
+**Step 3 — Update MAC_URL in PicoClaw**
+
+```python
+# /opt/picoclaw/app.py — changed from mDNS to Tailscale IP
+MAC_URL = os.getenv('MAC_URL', 'http://100.84.207.28:8081')
+```
+
+**Step 4 — Fix health check timeout**
+
+The `mac_alive()` function had a 0.3s timeout — too short for Tailscale tunnel latency. Increased to 3.0s:
+
+```python
+def mac_alive():
+    status = r.get('mac_status')
+    if status is not None:
+        return status == 'healthy'
+    try:
+        with httpx.Client(timeout=3.0) as client:  # was 0.3
+            resp = client.get(f'{MAC_URL}/health')
+            ...
+    r.set('mac_status', 'offline', ex=10)  # was ex=60 — shorter TTL prevents stale offline cache
+```
+
+**Important:** Offline status is only cached for 10 seconds (not 60). The longer TTL caused `mac_alive()` to return cached `offline` even after the connection was restored — because Redis returned the stale value and skipped the live check entirely.
+
+### Tailscale Network
+
+| Device | Tailscale IP | Role |
+|---|---|---|
+| Mac (`homelab`) | `100.84.207.28` | llama.cpp server |
+| PicoClaw LXC (`picoclaw`) | `100.124.129.108` | AI router |
+| Proxmox host (`thinkbox`) | `100.76.187.14` | Hypervisor |
+
+---
+
+## Section 47: Translation Fix — Signals Without aiSummary (April 19, 2026)
+
+### Problem
+
+Some signals in the Bengali feed showed English content. These were signals where `aiSummary` was `null` (not yet AI-processed). The `localizeSignal()` function bailed early:
+
+```typescript
+// Before — WRONG
+if (lang === 'en' || !signal.aiSummary) return signal;
+```
+
+When `aiSummary` is null, the signal is returned as-is. The frontend renders `signal.aiSummary || signal.summary`, so the raw English `summary` field appeared in the localized feed.
+
+### Fix
+
+```typescript
+// After — CORRECT
+const textToTranslate = signal.aiSummary || signal.summary;
+if (lang === 'en' || !textToTranslate) return signal;
+
+// Pass the actual text to translate (not hardcoded aiSummary)
+const translationPromise = isHighPower
+  ? this.aiService.translate(signal.title, textToTranslate, lang)
+  : this.aiService.translateLowPower(signal.title, textToTranslate, lang);
+```
+
+Now signals without an AI summary still get translated using the raw `summary` field. On first view → skeleton loader (translationPending=true), background job translates and caches. On refresh → Bengali.
+
+**File:** `backend/src/signals/signals.service.ts` — `localizeSignal()`

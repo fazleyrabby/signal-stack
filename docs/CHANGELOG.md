@@ -342,3 +342,31 @@ All notable changes to SignalStack will be documented in this file.
 - Section 43: Company Radar v2 — Google Places & Mapbox Integration
 - Section 44: Dual-Tier Translation Quality System
 - Section 45: Scoring Engine Optimization
+
+---
+
+## [2026-04-19] — PicoClaw Tailscale Routing, Translation Fix & Admin Tab Redesign
+
+### Fixed
+- **PicoClaw → Mac routing via Tailscale**: mDNS (`Rabbis-MacBook-Pro.local`) stopped resolving because Mac moved to a different subnet (`10.220.x.x`) from VPS/PicoClaw (`192.168.0.x`). Fixed by:
+  1. Enabling TUN device on PicoClaw LXC from Proxmox host (`192.168.0.222`, CTID 102) — added `lxc.cgroup2.devices.allow` + `lxc.mount.entry` to `/etc/pve/lxc/102.conf`
+  2. Installing and authenticating Tailscale on PicoClaw LXC (`100.124.129.108`)
+  3. Updating `MAC_URL` default in `/opt/picoclaw/app.py` from mDNS hostname → Tailscale IP `100.84.207.28`
+  4. Increasing `mac_alive()` health check timeout from `0.3s` → `3.0s` (Tailscale adds LAN latency)
+  5. Reducing offline Redis cache TTL from `60s` → `10s` (prevents stale offline blocking translation)
+- **Translation skipping signals without aiSummary**: `localizeSignal()` in `signals.service.ts` bailed early when `signal.aiSummary` was null, showing raw English `summary` field in localized feed. Fixed: now uses `signal.aiSummary || signal.summary` as text to translate.
+- **Admin tab design inconsistency**: Signals and jobs pages had tabs cramped inside flex rows with action buttons, looking boxy. Fixed: tabs now use full-width underline style with `border-b-2 border-transparent data-[state=active]:border-primary` matching the companies page pattern.
+- **Bulk select build error on sources page**: `allIds` was referenced before `sortedSources` was defined. Fixed by reordering declarations.
+
+### Added
+- **Bulk select on Admin Signals page**: Checkbox column, select all toggle, bulk delete bar (shows when items selected, parallel DELETE requests).
+- **Bulk select on Admin Sources page**: Same pattern as signals — select all, per-row toggle, bulk delete with confirmation.
+- **Tab icons on Jobs page**: `Activity` icon on Live Feed tab, `SlidersHorizontal` on Discord Filters tab.
+
+### Infrastructure
+- **Tailscale on PicoClaw LXC** (`100.124.129.108`): PicoClaw can now reach Mac regardless of Mac's local network. Tailscale IP `100.84.207.28` is stable — no more IP-change breakage.
+- **Proxmox host identified**: `192.168.0.222` (web UI at `:8006`), Tailscale IP `100.76.187.14` (device name `thinkbox`).
+
+### Study Guide
+- Section 46: PicoClaw Tailscale Setup & LXC TUN Device Configuration
+- Section 47: Translation Fix — Signals Without aiSummary
