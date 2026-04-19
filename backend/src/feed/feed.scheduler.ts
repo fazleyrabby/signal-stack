@@ -8,7 +8,7 @@ import { RedisService } from '../ai/redis.service';
 import { logEvent } from '../common/logger';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
-import { bookmarks, signals } from '../database/schema';
+import { bookmarks, signals, sources } from '../database/schema';
 
 @Injectable()
 export class FeedScheduler implements OnModuleInit {
