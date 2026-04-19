@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq, desc, asc, sql, and, gte, SQL, or, ilike, isNotNull } from 'drizzle-orm';
-import { signals, categories, Signal, NewSignal } from '../database/schema';
+import { eq, desc, asc, sql, and, gte, SQL, or, ilike, isNotNull, notInArray } from 'drizzle-orm';
+import { signals, categories, sources, Signal, NewSignal } from '../database/schema';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 
@@ -54,6 +54,7 @@ export class SignalsRepository {
     minScore?: number;
     hasTranslation?: boolean;
     translationLang?: string;
+    excludeJobSources?: boolean;
   }): Promise<{ data: Signal[]; total: number }> {
     const {
       page,
@@ -69,6 +70,7 @@ export class SignalsRepository {
       minScore,
       hasTranslation,
       translationLang,
+      excludeJobSources = false,
     } = params;
     const offset = (page - 1) * limit;
 
@@ -110,6 +112,16 @@ export class SignalsRepository {
     }
     if (translationLang) {
       conditions.push(sql`translations ? ${translationLang}`);
+    }
+    if (excludeJobSources) {
+      const jobSources = await this.db
+        .select({ name: sources.name })
+        .from(sources)
+        .where(eq(sources.type, 'job'));
+      const jobSourceNames = jobSources.map((s) => s.name);
+      if (jobSourceNames.length > 0) {
+        conditions.push(notInArray(signals.source, jobSourceNames));
+      }
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

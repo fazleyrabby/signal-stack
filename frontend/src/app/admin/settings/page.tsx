@@ -522,14 +522,6 @@ export default function SettingsPage() {
                          </span>
                        )}
                     </div>
-                    {aiHealth?.tokenUsage?.macLocal && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Usage Today:</span>
-                        <span className="text-[10px] font-mono font-bold text-primary">
-                          {aiHealth.tokenUsage.macLocal.today.toLocaleString()} tokens
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
                 <Switch checked={macLocalConfig?.enabled ?? false} onCheckedChange={(val) => handleSaveMacLocal(val)} disabled={isSavingMac} />

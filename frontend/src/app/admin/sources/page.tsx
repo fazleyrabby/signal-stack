@@ -11,9 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Edit2, Plus, Rss, Loader2, Activity, CheckCircle2, XCircle } from "lucide-react";
+import { Trash2, Edit2, Plus, Rss, Loader2, Activity, CheckCircle2, XCircle, Square, CheckSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useResizableColumns } from "@/hooks/useResizableColumns";
+import { cn } from "@/lib/utils";
 import { ResizeHandle } from "@/components/ui/resize-handle";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -38,9 +39,26 @@ export default function SourcesAdmin() {
   const [checkingHealth, setCheckingHealth] = useState<string | null>(null);
   const [healthResults, setHealthResults] = useState<Record<string, any>>({});
   const { widths: colWidths, startResize } = useResizableColumns([280, 110, 90, 120, 100]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [sort, setSort] = useState("name");
   const [order, setOrder] = useState<"asc" | "desc">("asc");
   function handleSort(col: string) { const n = toggleSort({ sort, order }, col); setSort(n.sort); setOrder(n.order); }
+
+  const allIds = sortedSources.map(s => s.id);
+  const allSelected = allIds.length > 0 && allIds.every(id => selectedIds.has(id));
+  const someSelected = selectedIds.size > 0;
+  function toggleSelectAll() { if (allSelected) setSelectedIds(new Set()); else setSelectedIds(new Set(allIds)); }
+  function toggleSelect(id: string) { setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
+  async function handleBulkDelete() {
+    if (!confirm(`Delete ${selectedIds.size} selected sources?`)) return;
+    setIsBulkDeleting(true);
+    try {
+      await Promise.all([...selectedIds].map(id => fetch(`${API_BASE}/api/admin/sources/${id}`, { method: "DELETE", credentials: "include" })));
+      setSelectedIds(new Set());
+      mutate(`${API_BASE}/api/admin/sources`);
+    } finally { setIsBulkDeleting(false); }
+  }
 
   const sortedSources = [...(sources ?? [])].sort((a: any, b: any) => {
     const av = a[sort] ?? ""; const bv = b[sort] ?? "";
@@ -136,11 +154,28 @@ export default function SourcesAdmin() {
         </Dialog>
       </div>
 
+      {/* Bulk action bar */}
+      {someSelected && (
+        <div className="flex items-center gap-3 px-6 py-2 bg-primary/5 border-b border-primary/20 shrink-0">
+          <span className="text-xs font-bold text-primary">{selectedIds.size} selected</span>
+          <Button size="sm" variant="outline" className="h-6 px-2.5 text-[10px] gap-1 text-red-400 border-red-400/30 hover:bg-red-500/10" onClick={handleBulkDelete} disabled={isBulkDeleting}>
+            {isBulkDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+            Delete selected
+          </Button>
+          <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-muted-foreground hover:text-foreground ml-auto">Clear</button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <Table className="min-w-max table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
+              <TableHead className="h-8 px-3 w-8">
+                <button onClick={toggleSelectAll} className="flex items-center justify-center text-muted-foreground hover:text-foreground">
+                  {allSelected ? <CheckSquare className="w-3.5 h-3.5 text-primary" /> : <Square className="w-3.5 h-3.5" />}
+                </button>
+              </TableHead>
               <SortableHead label="Source" column="name" sort={sort} order={order} onSort={handleSort} className="relative h-8 px-3 text-[10px] font-bold uppercase tracking-wider overflow-visible" style={{ width: colWidths[0] }}>
                 <ResizeHandle onMouseDown={(e) => startResize(0, e)} />
               </SortableHead>
@@ -158,10 +193,15 @@ export default function SourcesAdmin() {
           </TableHeader>
           <TableBody>
             {isLoading && (
-              <TableRow><TableCell colSpan={5} className="text-center py-16 text-muted-foreground/50"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-16 text-muted-foreground/50"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></TableCell></TableRow>
             )}
             {sortedSources.map((source) => (
-              <TableRow key={source.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
+              <TableRow key={source.id} className={cn("border-b border-border/30 hover:bg-muted/20 transition-colors group", selectedIds.has(source.id) && "bg-primary/5")}>
+                <TableCell className="px-3 py-2 w-8">
+                  <button onClick={() => toggleSelect(source.id)} className="flex items-center justify-center text-muted-foreground hover:text-foreground">
+                    {selectedIds.has(source.id) ? <CheckSquare className="w-3.5 h-3.5 text-primary" /> : <Square className="w-3.5 h-3.5" />}
+                  </button>
+                </TableCell>
                 <TableCell className="px-4 py-2">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-semibold truncate max-w-[160px] block" title={source.name}>{source.name}</span>

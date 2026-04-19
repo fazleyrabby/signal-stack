@@ -180,9 +180,7 @@ export class AIService {
           provider = 'pico_mac';
           fallbackUsed = true;
         } else if (picoResult.provider === 'fallback' && !summary) {
-          summary = typeof picoResult.result === 'string' ? picoResult.result : JSON.stringify(picoResult.result);
-          provider = 'pico_fallback';
-          fallbackUsed = true;
+          // fallback result from PicoClaw is not usable content — skip it
         }
       }
     }

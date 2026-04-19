@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity, ChevronDown, Eye, EyeOff, FileDown, Download, FileText } from "lucide-react";
+import { Trash2, Edit2, Loader2, Languages, Search, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Activity, ChevronDown, Eye, EyeOff, FileDown, Download, FileText, Square, CheckSquare } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { cn, getProviderLabel } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,6 +72,29 @@ export default function SignalsAdmin() {
   const [bulkLang, setBulkLang] = useState("bn");
   const [translatingId, setTranslatingId] = useState<string | null>(null);
   const { widths: colWidths, startResize } = useResizableColumns([260, 90, 90, 90, 70, 110, 90]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const allIds = signalsData?.data.map(s => s.id) ?? [];
+  const allSelected = allIds.length > 0 && allIds.every(id => selectedIds.has(id));
+  const someSelected = selectedIds.size > 0;
+
+  function toggleSelectAll() {
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(allIds));
+  }
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+  async function handleBulkDelete() {
+    if (!confirm(`Delete ${selectedIds.size} selected signals?`)) return;
+    setIsBulkDeleting(true);
+    try {
+      await Promise.all([...selectedIds].map(id => fetch(`${API_BASE}/api/admin/signals/${id}`, { method: "DELETE", credentials: "include" })));
+      setSelectedIds(new Set());
+      mutate((key) => typeof key === 'string' && key.startsWith(`${API_BASE}/api/admin/signals`));
+    } finally { setIsBulkDeleting(false); }
+  }
 
   async function handleMarkRead(id: string, isRead: boolean) {
     await fetch(`${API_BASE}/api/admin/signals/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ isRead }) });
@@ -235,11 +258,28 @@ export default function SignalsAdmin() {
         </Select>
       </div>
 
+      {/* Bulk action bar */}
+      {someSelected && (
+        <div className="flex items-center gap-3 px-6 py-2 bg-primary/5 border-b border-primary/20 shrink-0">
+          <span className="text-xs font-bold text-primary">{selectedIds.size} selected</span>
+          <Button size="sm" variant="outline" className="h-6 px-2.5 text-[10px] gap-1 text-red-400 border-red-400/30 hover:bg-red-500/10" onClick={handleBulkDelete} disabled={isBulkDeleting}>
+            {isBulkDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+            Delete selected
+          </Button>
+          <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-muted-foreground hover:text-foreground ml-auto">Clear</button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <Table className="min-w-max table-fixed">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/40 bg-muted/30">
+              <TableHead className="h-8 px-3 w-8">
+                <button onClick={toggleSelectAll} className="flex items-center justify-center text-muted-foreground hover:text-foreground">
+                  {allSelected ? <CheckSquare className="w-3.5 h-3.5 text-primary" /> : <Square className="w-3.5 h-3.5" />}
+                </button>
+              </TableHead>
               <SortableHead label="Signal" column="title" sort={sort} order={order as "asc"|"desc"} onSort={(col) => { const n = toggleSort({sort, order: order as "asc"|"desc"}, col); setSort(n.sort); setOrder(n.order); setPage(1); }} width={colWidths[0]}><ResizeHandle onMouseDown={(e) => startResize(0, e)} /></SortableHead>
               <SortableHead label="Score" column="score" sort={sort} order={order as "asc"|"desc"} onSort={(col) => { const n = toggleSort({sort, order: order as "asc"|"desc"}, col); setSort(n.sort); setOrder(n.order); setPage(1); }} width={colWidths[1]}><ResizeHandle onMouseDown={(e) => startResize(1, e)} /></SortableHead>
               <SortableHead label="Category" column="aiCategory" sort={sort} order={order as "asc"|"desc"} onSort={(col) => { const n = toggleSort({sort, order: order as "asc"|"desc"}, col); setSort(n.sort); setOrder(n.order); setPage(1); }} width={colWidths[2]}><ResizeHandle onMouseDown={(e) => startResize(2, e)} /></SortableHead>
@@ -252,17 +292,22 @@ export default function SignalsAdmin() {
           <TableBody>
             {signalsLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-16 text-muted-foreground/50">
+                <TableCell colSpan={8} className="text-center py-16 text-muted-foreground/50">
                   <Loader2 className="w-4 h-4 animate-spin mx-auto" />
                 </TableCell>
               </TableRow>
             ) : signalsData?.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-16 text-xs text-muted-foreground/50 italic">No signals match current filters.</TableCell>
+                <TableCell colSpan={8} className="text-center py-16 text-xs text-muted-foreground/50 italic">No signals match current filters.</TableCell>
               </TableRow>
             ) : (
               signalsData?.data.map((signal) => (
-                <TableRow key={signal.id} className={cn("border-b border-border/30 hover:bg-muted/20 transition-colors group", !signal.isRead && "bg-primary/[0.03]")}>
+                <TableRow key={signal.id} className={cn("border-b border-border/30 hover:bg-muted/20 transition-colors group", !signal.isRead && "bg-primary/[0.03]", selectedIds.has(signal.id) && "bg-primary/5")}>
+                  <TableCell className="px-3 py-2 w-8">
+                    <button onClick={() => toggleSelect(signal.id)} className="flex items-center justify-center text-muted-foreground hover:text-foreground">
+                      {selectedIds.has(signal.id) ? <CheckSquare className="w-3.5 h-3.5 text-primary" /> : <Square className="w-3.5 h-3.5" />}
+                    </button>
+                  </TableCell>
                   <TableCell className="px-4 py-2">
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5">

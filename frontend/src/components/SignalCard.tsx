@@ -110,16 +110,29 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
               </button>
             </div>
 
-            {/* Title - Bigger text */}
-            <h2 className={cn(
-              "font-semibold leading-snug text-foreground/90 group-hover:text-foreground transition-colors",
-              isCompact ? "text-[14px] sm:text-[16px] line-clamp-2" : "text-[13px] sm:text-[15px] line-clamp-2"
-            )}>
-              {signal.title}
-            </h2>
+            {/* Title */}
+            {signal.translationPending ? (
+              <div className="space-y-1.5">
+                <div className="h-4 bg-muted/50 rounded animate-pulse w-full" />
+                <div className="h-4 bg-muted/50 rounded animate-pulse w-3/4" />
+              </div>
+            ) : (
+              <h2 className={cn(
+                "font-semibold leading-snug text-foreground/90 group-hover:text-foreground transition-colors",
+                isCompact ? "text-[14px] sm:text-[16px] line-clamp-2" : "text-[13px] sm:text-[15px] line-clamp-2"
+              )}>
+                {signal.title}
+              </h2>
+            )}
 
-            {/* Summary - More content in list view */}
-            {(signal.aiSummary || signal.summary) && (
+            {/* Summary */}
+            {signal.translationPending ? (
+              <div className="space-y-1">
+                <div className="h-3 bg-muted/40 rounded animate-pulse w-full" />
+                <div className="h-3 bg-muted/40 rounded animate-pulse w-5/6" />
+                <div className="h-3 bg-muted/40 rounded animate-pulse w-2/3" />
+              </div>
+            ) : (signal.aiSummary || signal.summary) && (
               <p className={cn(
                 "text-muted-foreground/70 leading-relaxed",
                 isCompact ? "text-[12px] sm:text-[14px] line-clamp-2 sm:line-clamp-4" : "text-[11px] sm:text-[13px] line-clamp-2 sm:line-clamp-3"

@@ -462,13 +462,13 @@ export default function AdminDashboard() {
               }
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* Local */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              {/* VPS Local — Qwen */}
               <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <StatusDot status={aiHealth?.local?.status || "unhealthy"} />
-                    <span className="text-sm font-bold">Local · Qwen</span>
+                    <span className="text-sm font-bold">VPS · Qwen</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[9px] font-black uppercase text-muted-foreground">
@@ -477,12 +477,32 @@ export default function AdminDashboard() {
                     <Switch checked={aiHealth?.localEnabled ?? false} onCheckedChange={handleLocalAIToggle} className="scale-75 origin-right" />
                   </div>
                 </div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-indigo-400/70 border border-indigo-400/20 bg-indigo-500/5 px-1.5 py-0.5 rounded w-fit">VPS Container</p>
                 {aiHealth?.local?.model && (
                   <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.local.model}</p>
                 )}
                 {aiHealth?.local?.latency !== undefined && (
                   <p className="text-[10px] text-muted-foreground">{aiHealth.local.latency}ms latency</p>
                 )}
+              </div>
+
+              {/* Mac M1 Local — PicoClaw */}
+              <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={aiHealth?.macLocal?.status || "unhealthy"} />
+                    <span className="text-sm font-bold">Mac M1 · Local</span>
+                  </div>
+                  <StatusLabel status={aiHealth?.macLocal?.status || "unhealthy"} />
+                </div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-orange-400/70 border border-orange-400/20 bg-orange-500/5 px-1.5 py-0.5 rounded w-fit">Mac · PicoClaw</p>
+                {aiHealth?.macLocal?.model && (
+                  <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.macLocal.model}</p>
+                )}
+                {aiHealth?.macLocal?.latency !== undefined && (
+                  <p className="text-[10px] text-muted-foreground">{aiHealth.macLocal.latency}ms latency</p>
+                )}
+                {(() => { const t = aiHealth?.tokenUsage?.macLocal?.today?.total ?? 0; return t > 0 ? <p className="text-[10px] text-orange-400">{t.toLocaleString()} tokens today</p> : null; })()}
               </div>
 
               {/* Groq */}
@@ -526,11 +546,13 @@ export default function AdminDashboard() {
               <Lightbulb className="w-3 h-3 text-yellow-500 shrink-0 mt-0.5" />
               <p className="text-muted-foreground">
                 <span className="font-semibold text-foreground">Recommended: </span>
-                <span className="text-emerald-500 dark:text-emerald-400">Local (Qwen2.5-0.5B)</span>
-                {" · "}
                 <span className="text-blue-400">Groq (llama-3.1-8b-instant)</span>
                 {" · "}
+                <span className="text-orange-400">Mac M1 via PicoClaw (free)</span>
+                {" · "}
                 <span className="text-blue-400">OpenRouter (gemma-4-26b-a4b-it:free)</span>
+                {" · "}
+                <span className="text-emerald-500 dark:text-emerald-400">VPS Local (Qwen2.5-0.5B)</span>
               </p>
             </div>
           </section>

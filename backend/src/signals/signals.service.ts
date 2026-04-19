@@ -125,6 +125,7 @@ export class SignalsService {
       search: params.search,
       sort: params.sort,
       order,
+      excludeJobSources: true,
     });
 
     const lang = params.lang || 'en';
@@ -209,7 +210,7 @@ export class SignalsService {
       scoreToPriority(signal.score || 5),
     );
 
-    return signal; // Return English fallback
+    return { ...signal, translationPending: true }; // Return English with pending flag
   }
 
   async getStats() {
