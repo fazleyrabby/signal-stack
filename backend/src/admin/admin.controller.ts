@@ -64,10 +64,10 @@ export class AdminController {
       translation: config.translationPipeline,
       providerHealth: {
         mac_local: health.macLocal,
+        pico_router: health.picoClaw,
         groq: health.groq,
         openrouter: health.openrouter,
         local: health.local,
-        pico_router: health.picoClaw,
       },
     };
   }

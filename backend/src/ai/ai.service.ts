@@ -71,11 +71,18 @@ export class AIService {
         if (this.isCooldown(providerId)) continue;
 
         try {
-          if (providerId === 'mac_local' || providerId === 'pico_router') {
-            // PicoClaw/Mac — direct structured response (no prompt needed)
+          if (providerId === 'mac_local') {
+            // Direct Mac local inference
             const picoResult = await this.picoClaw.translate(title, summary, targetLang);
             if (picoResult && !('error' in picoResult)) {
               logEvent('info', 'ai_translation_completed', { targetLang, source: providerId });
+              return { title: picoResult.title, aiSummary: picoResult.aiSummary };
+            }
+          } else if (providerId === 'pico_router') {
+            // Local AI Router (LXC Proxy)
+            const picoResult = await this.picoClaw.translate(title, summary, targetLang);
+            if (picoResult && !('error' in picoResult)) {
+              logEvent('info', 'ai_translation_completed', { targetLang, source: 'pico_router' });
               return { title: picoResult.title, aiSummary: picoResult.aiSummary };
             }
           } else if (providerId === 'groq') {
@@ -202,6 +209,7 @@ export class AIService {
             }
           }
         } else if (providerId === 'pico_router') {
+          // Dedicated Local AI Router (LXC Proxy)
           const picoResult = await this.picoClaw.process(trimmedContent, score);
           if (picoResult?.result && picoResult.provider === 'mac') {
             const picoSummary = typeof picoResult.result === 'string'
@@ -209,7 +217,7 @@ export class AIService {
               : JSON.stringify(picoResult.result);
             if (!this.isLowQuality(picoSummary)) {
               summary = picoSummary;
-              provider = 'pico_mac';
+              provider = 'pico_router';
             }
           }
         } else if (providerId === 'groq') {

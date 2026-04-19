@@ -54,6 +54,15 @@ interface ProviderMeta {
 
 const PROVIDERS: ProviderMeta[] = [
   {
+    id: 'pico_router',
+    name: 'Local AI Router',
+    subtitle: 'LXC Proxy — intelligent routing',
+    icon: <Router className="w-4 h-4" />,
+    type: 'local',
+    color: 'teal',
+    usedIn: ['summarization', 'translation'],
+  },
+  {
     id: 'mac_local',
     name: 'Mac M1 llama.cpp',
     subtitle: 'Local inference via Tailscale',
@@ -88,15 +97,6 @@ const PROVIDERS: ProviderMeta[] = [
     type: 'local',
     color: 'orange',
     usedIn: ['summarization', 'translation'],
-  },
-  {
-    id: 'pico_router',
-    name: 'PicoClaw Router',
-    subtitle: 'LXC proxy → Mac llama.cpp',
-    icon: <Router className="w-4 h-4" />,
-    type: 'local',
-    color: 'teal',
-    usedIn: ['translation'],
   },
 ];
 
@@ -410,7 +410,7 @@ export default function PipelinePage() {
               </div>
               <PipelineEditor
                 label="Translation Pipeline"
-                description="Used when serving the localized feed (Bengali, Spanish, etc.). PicoClaw Router proxies to Mac llama.cpp."
+                description="Used when serving the localized feed (Bengali, Spanish, etc.). Local AI Router acts as the primary intelligent proxy."
                 items={translation}
                 onChange={setTranslation}
                 availableProviders={PROVIDERS.filter(p => p.usedIn.includes('translation')).map(p => p.id)}

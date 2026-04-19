@@ -603,7 +603,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex items-center gap-2 border-l border-border/20 pl-4">
                 <StatusDot status={aiHealth?.picoClaw?.status || 'unknown'} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">PicoClaw</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">AI Router</span>
               </div>
               <div className="flex items-center gap-2 border-l border-border/20 pl-4">
                 <StatusDot status={aiHealth?.macLocal?.status || 'disabled'} />
