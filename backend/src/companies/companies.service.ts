@@ -9,11 +9,11 @@ const OVERPASS_MIRRORS = [
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
 ];
 const GOOGLE_PLACES_URL = 'https://places.googleapis.com/v1/places:searchNearby';
-const MAPBOX_SEARCH_URL = 'https://api.mapbox.com/search/searchbox/v1/forward';
+const MAPBOX_SEARCH_URL = 'https://api.mapbox.com/search/searchbox/v1';
 const CACHE_TTL = 3600; // 1 hour
 
 // Non-tech names to explicitly exclude (embassies, hospitals, schools, banks, etc.)
-const NON_TECH_EXCLUDE = /\b(bank|banks|banking|finance|financial|insurance|leasing|hospital|clinic|pharmacy|pharma|restaurant|hotel|real estate|realty|property|construction|garments|textile|apparel|food|beverage|grocery|supermarket|retail|trade|import|export|transport|shipping|airline|travel|tourism|newspaper|school|college|university|ngo|foundation|charity|government|ministry|embassy|consulate|diplomatic|church|mosque|temple|police|fire station)\b/i;
+const NON_TECH_EXCLUDE = /\b(bank|banks|banking|finance|financial|insurance|leasing|hospital|clinic|pharmacy|pharma|restaurant|hotel|real estate|realty|property|construction|garments|textile|apparel|clothing|fashion|food|beverage|grocery|supermarket|retail|trade|import|export|transport|shipping|courier|airline|travel|tourism|newspaper|media|printing|school|college|university|madrasa|ngo|foundation|charity|government|ministry|embassy|consulate|diplomatic|church|mosque|temple|police|fire station|law firm|advocate|chamber of commerce|chamber|trading|enterprise|industries|mills|group of companies|agro|agri|poultry|fisheries|ceramics|cement|steel|iron|paint|furniture|decoration|hardware|stationery|tailoring|beauty|salon|spa|diagnostic|laboratory|pathology|dental|eye care|optical|flour|rice|oil|fuel|gas|petroleum|power|energy|solar|water|sanitation|security|guard|cleaning|laundry|packaging|printing|press|publisher|tv|radio|telecom operator)\b/i;
 
 // OSM office type tags that are definitely not tech
 const NON_TECH_OFFICE_TAGS = new Set(['diplomatic', 'government', 'educational_institution', 'association', 'ngo', 'religion', 'lawyer', 'accountant', 'notary', 'financial', 'insurance', 'estate_agent']);
@@ -175,22 +175,37 @@ export class CompaniesService {
     const lngDelta = radius / (111000 * Math.cos(lat * Math.PI / 180));
     const bbox = `${(lng - lngDelta).toFixed(6)},${(lat - latDelta).toFixed(6)},${(lng + lngDelta).toFixed(6)},${(lat + latDelta).toFixed(6)}`;
 
-    const queries = ['tech company', 'software company', 'IT company', 'startup'];
+    const categories = ['office', 'telecommunications', 'coworking_space', 'computer_and_electronics_store'];
     const seen = new Set<string>();
     const allResults: NearbyCompany[] = [];
 
-    for (const q of queries) {
-      const url = `${MAPBOX_SEARCH_URL}?q=${encodeURIComponent(q)}&proximity=${lng},${lat}&bbox=${bbox}&access_token=${apiKey}&limit=10`;
+    for (const category of categories) {
+      // Try with bbox first, fallback to no bbox if 0 results
+      let url = `${MAPBOX_SEARCH_URL}/category/${encodeURIComponent(category)}?proximity=${lng},${lat}&bbox=${bbox}&limit=25&access_token=${apiKey}`;
+      let data: any;
+      let res: any;
+
       try {
-        const res = await fetch(url);
+        res = await fetch(url);
         if (!res.ok) {
           const errBody = await res.json().catch(() => ({}));
-          this.logger.error(`Mapbox HTTP ${res.status} for query "${q}": ${JSON.stringify(errBody)}`);
+          this.logger.error(`Mapbox HTTP ${res.status} for category "${category}": ${JSON.stringify(errBody)}`);
           continue;
         }
 
-        const data = await res.json();
-        this.logger.log(`Mapbox query "${q}" found ${data.features?.length || 0} features near ${lng},${lat}`);
+        data = await res.json();
+
+        // Fallback: if no results with bbox, try without bbox (for sparse areas)
+        if (!data.features?.length) {
+          url = `${MAPBOX_SEARCH_URL}/category/${encodeURIComponent(category)}?proximity=${lng},${lat}&limit=25&access_token=${apiKey}`;
+          this.logger.log(`Mapbox category "${category}" had 0 results with bbox, retrying without bbox`);
+          res = await fetch(url);
+          if (res.ok) {
+            data = await res.json();
+          }
+        }
+
+        this.logger.log(`Mapbox category "${category}" found ${data.features?.length || 0} features near ${lng},${lat}`);
 
         for (const f of (data.features || [])) {
           const id = f.properties?.mapbox_id || f.id;
@@ -217,7 +232,7 @@ export class CompaniesService {
           });
         }
       } catch (err) {
-        this.logger.error(`Mapbox fetch failed for query "${q}": ${err}`);
+        this.logger.error(`Mapbox fetch failed for category "${category}": ${err}`);
       }
     }
 
@@ -469,10 +484,11 @@ function isTechByOsm(company: NearbyCompany): boolean {
     if (TECH_OFFICE_TAGS.has(tag.toLowerCase())) return true;
   }
 
-  // Keep anything else that has an office tag with a name but no non-tech signal.
-  // OSM coverage in South Asia is sparse — most tech companies only have office=yes
-  // with no further categorisation. Showing them is better than showing nothing.
-  return true;
+  // No explicit tech tag — fall back to name-based heuristic.
+  // OSM in South Asia is sparsely tagged; most tech companies only have office=yes.
+  // Require at least a tech keyword in the name before passing through.
+  const TECH_NAME_SIGNAL = /\b(tech|technology|technologies|software|digital|it\b|ict|cyber|data|cloud|ai\b|ml\b|web|app|dev|code|system|systems|solutions|network|networks|infra|infrastructure|telecom|telecommunications|erp|saas|fintech|edtech|healthtech|startup|innovation|lab|labs)\b/i;
+  return TECH_NAME_SIGNAL.test(company.name);
 }
 
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
