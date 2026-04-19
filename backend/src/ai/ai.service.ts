@@ -11,7 +11,7 @@ import type { DrizzleDB } from '../database/database.module';
 import { signals } from '../database/schema';
 import { eq } from 'drizzle-orm';
 import { logEvent } from '../common/logger';
-import { SettingsService } from './settings.service';
+import { SettingsService, ProviderId, DEFAULT_SUMMARIZATION_PIPELINE, DEFAULT_TRANSLATION_PIPELINE } from './settings.service';
 
 @Injectable()
 export class AIService {
@@ -42,6 +42,15 @@ export class AIService {
     return genericPhrases.some((phrase) => lower.includes(phrase));
   }
 
+  private async getPipelineOrder(type: 'summarization' | 'translation'): Promise<ProviderId[]> {
+    try {
+      const config = await this.settingsService.getModelConfig();
+      return type === 'summarization' ? config.summarizationPipeline : config.translationPipeline;
+    } catch {
+      return type === 'summarization' ? DEFAULT_SUMMARIZATION_PIPELINE : DEFAULT_TRANSLATION_PIPELINE;
+    }
+  }
+
   async translate(
     title: string,
     summary: string,
@@ -49,50 +58,56 @@ export class AIService {
     modelOverride?: string,
   ): Promise<{ title: string; aiSummary: string } | null> {
     const prompt = `Translate to ${targetLang}. Return ONLY a JSON object: {"title": "localized title", "aiSummary": "localized summary"}\n\nTitle: ${title}\nSummary: ${summary}`;
-    const systemPrompt = "You are a professional translator. Output only valid JSON.";
+    const systemPrompt = 'You are a professional translator. Output only valid JSON.';
+    const pipeline = await this.getPipelineOrder('translation');
 
-    let response: string | null = null;
+    const parseResult = (response: string, fallbackTitle: string, fallbackSummary: string) => {
+      const parsed = JSON.parse(response.replace(/```json|```/g, '').trim());
+      return { title: parsed.title || fallbackTitle, aiSummary: parsed.aiSummary || fallbackSummary };
+    };
 
     try {
-      // 1. Try Groq (fast & cheap)
-      if (!this.isCooldown('groq')) {
-        const res = await this.groq.complete(prompt, systemPrompt, modelOverride);
-        if (res) response = res;
-      }
+      for (const providerId of pipeline) {
+        if (this.isCooldown(providerId)) continue;
 
-      // 2. PicoClaw (Mac local) — free, no cloud cost
-      if (!response) {
-        const picoResult = await this.picoClaw.translate(title, summary, targetLang);
-        if (picoResult && !('error' in picoResult)) {
-          logEvent('info', 'ai_translation_completed', { targetLang, source: 'pico_mac' });
-          return { title: picoResult.title, aiSummary: picoResult.aiSummary };
+        try {
+          if (providerId === 'mac_local' || providerId === 'pico_router') {
+            // PicoClaw/Mac — direct structured response (no prompt needed)
+            const picoResult = await this.picoClaw.translate(title, summary, targetLang);
+            if (picoResult && !('error' in picoResult)) {
+              logEvent('info', 'ai_translation_completed', { targetLang, source: providerId });
+              return { title: picoResult.title, aiSummary: picoResult.aiSummary };
+            }
+          } else if (providerId === 'groq') {
+            const res = await this.groq.complete(prompt, systemPrompt, modelOverride);
+            if (res) {
+              logEvent('info', 'ai_translation_completed', { targetLang, source: 'groq' });
+              return parseResult(res, title, summary);
+            }
+            if (this.groq.lastError === 429) this.setCooldown('groq', 60000);
+          } else if (providerId === 'openrouter') {
+            const res = await this.openRouter.complete(prompt, systemPrompt, modelOverride);
+            if (res) {
+              logEvent('info', 'ai_translation_completed', { targetLang, source: 'openrouter' });
+              return parseResult(res, title, summary);
+            }
+            if (this.openRouter.lastError === 429) this.setCooldown('openrouter', 60000);
+          } else if (providerId === 'local') {
+            if (await this.local.isEnabled()) {
+              const res = await this.local.summarize('Translation Request', prompt);
+              if (res) {
+                logEvent('info', 'ai_translation_completed', { targetLang, source: 'local' });
+                return parseResult(res, title, summary);
+              }
+            }
+          }
+        } catch {
+          // Provider failed — continue to next
         }
       }
 
-      // 3. Fallback to OpenRouter
-      if (!response && !this.isCooldown('openrouter')) {
-        const res = await this.openRouter.complete(prompt, systemPrompt, modelOverride);
-        if (res) response = res;
-      }
-
-      // 4. Last resort — Local AI
-      if (!response && await this.local.isEnabled() && !this.isCooldown('local')) {
-        response = await this.local.summarize('Translation Request', prompt);
-      }
-
-      if (!response) return null;
-
-      const parsed = JSON.parse(response.replace(/```json|```/g, '').trim());
-
-      logEvent('info', 'ai_translation_completed', {
-        targetLang,
-        source: response ? 'external' : 'local'
-      });
-
-      return {
-        title: parsed.title || title,
-        aiSummary: parsed.aiSummary || summary
-      };
+      logEvent('error', 'ai_translation_failed', { targetLang, reason: 'all_providers_exhausted' });
+      return null;
     } catch (e) {
       logEvent('error', 'ai_translation_failed', { error: e.message });
       return null;
@@ -155,72 +170,79 @@ export class AIService {
     const textContent = (content && content.trim().length > 0) ? content : title;
     const trimmedContent = this.trimContent(textContent);
     let summary: string | null = null;
-    let fallbackUsed = false;
     let provider = 'none';
 
-    const localAiEnabled = await this.local.isEnabled();
+    const pipeline = await this.getPipelineOrder('summarization');
 
-    // Step 1: Try Groq (fast & cheap)
-    if (!this.isCooldown('groq')) {
-      summary = await this.groq.summarize(title, trimmedContent);
-      if (summary) {
-        provider = 'groq';
-        fallbackUsed = false;
-      } else if (this.groq.lastError === 429) {
-        this.setCooldown('groq', 60000);
-      }
-    }
+    for (const providerId of pipeline) {
+      if (summary && !this.isLowQuality(summary)) break; // Good summary — stop
+      if (this.isCooldown(providerId)) continue;
 
-    // Step 2: PicoClaw (Optional decision layer)
-    if (!summary || score >= 7 || this.isLowQuality(summary)) {
-      const picoResult = await this.picoClaw.process(trimmedContent, score);
-      if (picoResult && picoResult.result) {
-        if (picoResult.provider === 'mac') {
-          summary = typeof picoResult.result === 'string' ? picoResult.result : JSON.stringify(picoResult.result);
-          provider = 'pico_mac';
-          fallbackUsed = true;
-        } else if (picoResult.provider === 'fallback' && !summary) {
-          // fallback result from PicoClaw is not usable content — skip it
+      try {
+        if (providerId === 'mac_local') {
+          // Try direct Mac local first
+          if (await this.macLocal.isAvailable()) {
+            const macSummary = await this.macLocal.summarize(title, trimmedContent);
+            if (macSummary && !this.isLowQuality(macSummary)) {
+              summary = macSummary;
+              provider = 'mac_local';
+            }
+          }
+          // Also try PicoClaw router (proxies to Mac)
+          if (!summary || this.isLowQuality(summary)) {
+            const picoResult = await this.picoClaw.process(trimmedContent, score);
+            if (picoResult?.result && picoResult.provider === 'mac') {
+              const picoSummary = typeof picoResult.result === 'string'
+                ? picoResult.result
+                : JSON.stringify(picoResult.result);
+              if (!this.isLowQuality(picoSummary)) {
+                summary = picoSummary;
+                provider = 'pico_mac';
+              }
+            }
+          }
+        } else if (providerId === 'pico_router') {
+          const picoResult = await this.picoClaw.process(trimmedContent, score);
+          if (picoResult?.result && picoResult.provider === 'mac') {
+            const picoSummary = typeof picoResult.result === 'string'
+              ? picoResult.result
+              : JSON.stringify(picoResult.result);
+            if (!this.isLowQuality(picoSummary)) {
+              summary = picoSummary;
+              provider = 'pico_mac';
+            }
+          }
+        } else if (providerId === 'groq') {
+          const groqSummary = await this.groq.summarize(title, trimmedContent);
+          if (groqSummary) {
+            summary = groqSummary;
+            provider = 'groq';
+          } else if (this.groq.lastError === 429) {
+            this.setCooldown('groq', 60000);
+          }
+        } else if (providerId === 'openrouter') {
+          logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'openrouter' });
+          const orSummary = await this.openRouter.summarize(title, trimmedContent);
+          if (orSummary) {
+            summary = orSummary;
+            provider = 'openrouter';
+          } else if (this.openRouter.lastError === 429) {
+            this.setCooldown('openrouter', 60000);
+          }
+        } else if (providerId === 'local') {
+          if (await this.local.isEnabled()) {
+            logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'local' });
+            let localRetries = 0;
+            while (!summary && localRetries < 2) {
+              try { summary = await this.local.summarize(title, trimmedContent); } catch { summary = null; }
+              localRetries++;
+            }
+            if (summary) provider = 'local';
+          }
         }
+      } catch {
+        // Provider threw — continue to next
       }
-    }
-
-    // Step 3: Mac Local (Direct Integration)
-    if ((!summary || score >= 7 || this.isLowQuality(summary)) && await this.macLocal.isAvailable()) {
-      const macSummary = await this.macLocal.summarize(title, trimmedContent);
-      if (macSummary) {
-        summary = macSummary;
-        provider = 'mac_local';
-        fallbackUsed = true;
-      }
-    }
-
-    // Step 4: Fallback to OpenRouter (if still no summary)
-    if (!summary && !this.isCooldown('openrouter')) {
-      logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'openrouter' });
-      fallbackUsed = true;
-      summary = await this.openRouter.summarize(title, trimmedContent);
-      if (summary) {
-        provider = 'openrouter';
-      } else if (this.openRouter.lastError === 429) {
-        this.setCooldown('openrouter', 60000);
-      }
-    }
-
-    // Step 5: Last resort — Local AI (only if enabled and not on cooldown)
-    if (!summary && localAiEnabled && !this.isCooldown('local')) {
-      logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'local' });
-      fallbackUsed = true;
-      let localRetries = 0;
-      while (!summary && localRetries < 2) {
-        try {
-          summary = await this.local.summarize(title, trimmedContent);
-        } catch {
-          summary = null;
-        }
-        localRetries++;
-      }
-      if (summary) provider = 'local';
     }
 
     if (summary && provider !== 'none') {
@@ -241,7 +263,7 @@ export class AIService {
       logEvent('info', 'ai_processing_success', {
         signalId: id,
         provider,
-        fallbackUsed,
+        fallbackUsed: provider !== 'groq',
       });
     } else {
       await this.db
@@ -315,10 +337,9 @@ export class AIService {
       this.redisService.getTokenUsage('mac_local', false),
     ]);
 
-    const pipeline = ['groq', 'pico_router'];
-    if (macLocalEnabled) pipeline.push('mac_local');
-    pipeline.push('openrouter');
-    if (localEnabled) pipeline.push('local');
+    const config = await this.settingsService.getModelConfig();
+    const summarizationPipeline = config.summarizationPipeline;
+    const translationPipeline = config.translationPipeline;
 
     return {
       local: localEnabled ? { ...local, model: 'Qwen2.5-0.5B' } : local,
@@ -328,7 +349,9 @@ export class AIService {
       openrouter: { ...openrouter, model: this.openRouter.modelName },
       localEnabled,
       macLocalEnabled,
-      pipeline: pipeline.join(' → '),
+      pipeline: summarizationPipeline.join(' → '),
+      summarizationPipeline,
+      translationPipeline,
       tokenUsage: {
         groq: { today: groqToday.total, allTime: groqAllTime.total },
         openrouter: { today: openrouterToday.total, allTime: openrouterAllTime.total },

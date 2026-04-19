@@ -20,6 +20,7 @@ import {
   Briefcase,
   Layers,
   Building2,
+  GitBranch,
 } from "lucide-react";
 import { logoutAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ const navItems = [
   { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
   { name: 'Companies', href: '/admin/companies', icon: Building2 },
   { name: 'Logs', href: '/admin/logs', icon: Database },
+  { name: 'AI Pipeline', href: '/admin/pipeline', icon: GitBranch },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 

@@ -4,6 +4,11 @@ import type { DrizzleDB } from '../database/database.module';
 import { settings } from '../database/schema';
 import { eq } from 'drizzle-orm';
 
+export type ProviderId = 'mac_local' | 'groq' | 'openrouter' | 'local' | 'pico_router';
+
+export const DEFAULT_SUMMARIZATION_PIPELINE: ProviderId[] = ['mac_local', 'groq', 'openrouter', 'local'];
+export const DEFAULT_TRANSLATION_PIPELINE: ProviderId[] = ['mac_local', 'groq', 'openrouter', 'local'];
+
 export interface ModelConfig {
   groqModel: string;
   openrouterModel: string;
@@ -53,6 +58,8 @@ export class SettingsService {
     macLocalEnabled: boolean;
     macLocalEndpoint: string | null;
     macLocalTimeout: number;
+    summarizationPipeline: ProviderId[];
+    translationPipeline: ProviderId[];
   }> {
     const groqModel = await this.getSetting('groq_model');
     const openrouterModel = await this.getSetting('openrouter_model');
@@ -67,6 +74,13 @@ export class SettingsService {
     const macLocalEnabled = await this.getSetting('mac_local_enabled');
     const macLocalEndpoint = await this.getSetting('mac_local_endpoint');
     const macLocalTimeout = await this.getSetting('mac_local_timeout');
+    const summarizationPipelineRaw = await this.getSetting('summarization_pipeline');
+    const translationPipelineRaw = await this.getSetting('translation_pipeline');
+
+    const parsePipeline = (raw: string | null, def: ProviderId[]): ProviderId[] => {
+      if (!raw) return def;
+      try { return JSON.parse(raw); } catch { return def; }
+    };
 
     return {
       groqModel: groqModel || 'llama-3.3-70b-versatile',
@@ -82,6 +96,8 @@ export class SettingsService {
       macLocalEnabled: macLocalEnabled === 'true',
       macLocalEndpoint: macLocalEndpoint,
       macLocalTimeout: macLocalTimeout ? parseInt(macLocalTimeout, 10) : 3000,
+      summarizationPipeline: parsePipeline(summarizationPipelineRaw, DEFAULT_SUMMARIZATION_PIPELINE),
+      translationPipeline: parsePipeline(translationPipelineRaw, DEFAULT_TRANSLATION_PIPELINE),
     };
   }
 

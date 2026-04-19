@@ -505,7 +505,6 @@ export default function AdminDashboard() {
                 {aiHealth?.macLocal?.latency !== undefined && (
                   <p className="text-[10px] text-muted-foreground">{aiHealth.macLocal.latency}ms latency</p>
                 )}
-                {(() => { const t = aiHealth?.tokenUsage?.macLocal?.today?.total ?? 0; return t > 0 ? <p className="text-[10px] text-orange-400">{t.toLocaleString()} tokens today</p> : null; })()}
               </div>
 
               {/* Groq */}
@@ -520,7 +519,6 @@ export default function AdminDashboard() {
                 {aiHealth?.groq?.model && (
                   <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.groq.model}</p>
                 )}
-                {(() => { const t = aiHealth?.tokenUsage?.groq?.today?.total ?? 0; return t > 0 ? <p className="text-[10px] text-blue-400">{t.toLocaleString()} tokens today</p> : null; })()}
                 {modelsData?.groq && (
                   <SearchableModelSelect models={modelsData.groq} value={modelsData.selected.groqModel || ""} onValueChange={(v) => handleModelChange("groq", v)} disabled={isUpdatingModel} />
                 )}
@@ -538,26 +536,27 @@ export default function AdminDashboard() {
                 {aiHealth?.openrouter?.model && (
                   <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.openrouter.model}</p>
                 )}
-                {(() => { const t = aiHealth?.tokenUsage?.openrouter?.today?.total ?? 0; return t > 0 ? <p className="text-[10px] text-blue-400">{t.toLocaleString()} tokens today</p> : null; })()}
                 {modelsData?.openrouter && (
                   <SearchableModelSelect models={modelsData.openrouter} value={modelsData.selected.openrouterModel || ""} onValueChange={(v) => handleModelChange("openrouter", v)} disabled={isUpdatingModel} />
                 )}
               </div>
             </div>
 
-            <div className="flex items-start gap-2 text-[10px] bg-muted/40 px-3 py-2 rounded-lg border border-border/30">
-              <Lightbulb className="w-3 h-3 text-yellow-500 shrink-0 mt-0.5" />
-              <p className="text-muted-foreground">
-                <span className="font-semibold text-foreground">Recommended: </span>
-                <span className="text-blue-400">Groq (llama-3.1-8b-instant)</span>
-                {" · "}
-                <span className="text-orange-400">Mac M1 via PicoClaw (free)</span>
-                {" · "}
-                <span className="text-blue-400">OpenRouter (gemma-4-26b-a4b-it:free)</span>
-                {" · "}
-                <span className="text-emerald-500 dark:text-emerald-400">VPS Local (Qwen2.5-0.5B)</span>
-              </p>
-            </div>
+            {/* Active pipeline display */}
+            {aiHealth?.pipeline && (
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border/20 bg-card/20">
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
+                  <span className="font-bold uppercase tracking-wider">Active Pipeline:</span>
+                  <span className="font-mono text-primary/80">{aiHealth.pipeline}</span>
+                </div>
+                <Link href="/admin/pipeline">
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground">
+                    Edit
+                  </Button>
+                </Link>
+              </div>
+            )}
           </section>
 
           {/* ── Signal Intelligence ───────────────────────── */}

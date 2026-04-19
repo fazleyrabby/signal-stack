@@ -54,6 +54,31 @@ export class AdminController {
     return { ...health, queueSize: this.aiQueue.queueSize };
   }
 
+  // --- AI Pipeline ---
+  @Get('ai/pipeline')
+  async getPipeline() {
+    const config = await this.settingsService.getModelConfig();
+    const health = await this.aiService.getHealth();
+    return {
+      summarization: config.summarizationPipeline,
+      translation: config.translationPipeline,
+      providerHealth: {
+        mac_local: health.macLocal,
+        groq: health.groq,
+        openrouter: health.openrouter,
+        local: health.local,
+        pico_router: health.picoClaw,
+      },
+    };
+  }
+
+  @Put('ai/pipeline')
+  async setPipeline(@Body() body: { summarization: string[]; translation: string[] }) {
+    await this.settingsService.setSetting('summarization_pipeline', JSON.stringify(body.summarization));
+    await this.settingsService.setSetting('translation_pipeline', JSON.stringify(body.translation));
+    return { ok: true };
+  }
+
   // --- Mac Local ---
   @Get('ai/mac-local/config')
   async getMacLocalConfig() {
