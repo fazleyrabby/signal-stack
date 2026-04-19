@@ -85,6 +85,7 @@ services:
     volumes:
       - backups:/app/backups
       - ./geoip:/geoip:ro
+      - applogs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -142,3 +143,4 @@ volumes:
   models:
   backups:
   geoip:
+  applogs:
