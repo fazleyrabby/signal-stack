@@ -145,7 +145,8 @@ export class SignalsService {
   }
 
   private async localizeSignal(signal: any, lang: string): Promise<any> {
-    if (lang === 'en' || !signal.aiSummary) return signal;
+    const textToTranslate = signal.aiSummary || signal.summary;
+    if (lang === 'en' || !textToTranslate) return signal;
 
     const translations = (signal.translations || {}) as Record<string, TranslationEntry>;
     const existing = translations[lang];
@@ -164,8 +165,8 @@ export class SignalsService {
     // Soft-block: try to translate within timeout
     let settled = false;
     const translationPromise = isHighPower
-      ? this.aiService.translate(signal.title, signal.aiSummary, lang)
-      : this.aiService.translateLowPower(signal.title, signal.aiSummary, lang);
+      ? this.aiService.translate(signal.title, textToTranslate, lang)
+      : this.aiService.translateLowPower(signal.title, textToTranslate, lang);
 
     const timeoutPromise = new Promise<null>((resolve) =>
       setTimeout(() => resolve(null), SOFT_BLOCK_TIMEOUT_MS),
