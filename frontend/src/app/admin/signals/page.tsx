@@ -152,44 +152,40 @@ export default function SignalsAdmin() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <Tabs defaultValue="feed" className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-1 border-b border-border/40 bg-card/30 shrink-0">
-          <TabsList className="h-9 bg-transparent border-none gap-4">
-            <TabsTrigger value="feed" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 h-9 text-xs font-bold gap-2">
-              <Activity className="w-3.5 h-3.5" /> Live Feed
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 h-9 text-xs font-bold gap-2 data-[state=active]:bg-transparent">
-              <FileText className="w-3.5 h-3.5" /> Export Reports
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">
-              {signalsData?.meta.total.toLocaleString() ?? "…"} rows
-            </span>
-            <div className="h-4 w-px bg-border/40" />
-            <div className="flex items-center gap-2">
+        {/* Tab nav */}
+        <div className="shrink-0 border-b border-border/40 bg-card/30">
+          <div className="flex items-center justify-between px-6">
+            <TabsList className="h-9 bg-transparent p-0 gap-0 border-0">
+              <TabsTrigger value="feed" className="h-9 px-4 text-xs font-bold rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary gap-1.5">
+                <Activity className="w-3.5 h-3.5" />Live Feed
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="h-9 px-4 text-xs font-bold rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary gap-1.5">
+                <FileText className="w-3.5 h-3.5" />Export Reports
+              </TabsTrigger>
+            </TabsList>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">
+                {signalsData?.meta.total.toLocaleString() ?? "…"} rows
+              </span>
               <Button size="sm" variant="outline" className="h-7 px-3 text-xs gap-1.5" onClick={handleMarkAllRead}>
                 <Eye className="w-3 h-3" />Mark All Read
               </Button>
+              <form onSubmit={handleBulkTranslate} className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hidden sm:block">Bulk</span>
+                <Select value={bulkLang} onValueChange={(val) => { if (typeof val === 'string') setBulkLang(val); }}>
+                  <SelectTrigger className="w-[80px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bn">Bengali</SelectItem>
+                    <SelectItem value="es">Spanish</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button type="submit" size="sm" className="h-7 gap-1.5 px-3 text-xs" disabled={isBulkTranslating}>
+                  {isBulkTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
+                  Translate
+                </Button>
+              </form>
             </div>
-            <form onSubmit={handleBulkTranslate} className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hidden sm:block">Bulk Queue</span>
-              <Select value={bulkLang} onValueChange={(val) => { if (typeof val === 'string') setBulkLang(val); }}>
-                <SelectTrigger className="w-[80px] h-7 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bn">Bengali</SelectItem>
-                  <SelectItem value="es">Spanish</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button type="submit" size="sm" className="h-7 gap-1.5 px-3 text-xs" disabled={isBulkTranslating}>
-                {isBulkTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
-                Execute
-              </Button>
-            </form>
           </div>
         </div>
 

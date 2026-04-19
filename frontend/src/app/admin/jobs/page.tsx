@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components
 import { SortableHead, toggleSort } from "@/components/ui/sortable-head";
 import {
   Briefcase, Search, RefreshCw, ExternalLink, MapPin, Building2,
-  Settings2, CheckCircle2, XCircle, Clock, Loader2, Check, ChevronLeft, ChevronRight
+  Settings2, CheckCircle2, XCircle, Clock, Loader2, Check, ChevronLeft, ChevronRight,
+  Activity, SlidersHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useResizableColumns } from "@/hooks/useResizableColumns";
@@ -85,16 +86,14 @@ export default function JobsAdmin() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-6 border-b border-border/40 bg-muted/10 shrink-0">
-          <TabsList className="h-9 bg-transparent p-0 gap-0 border-0">
-            <TabsTrigger value="feed" className="h-9 px-4 text-xs font-bold rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary">
-              Live Feed
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="h-9 px-4 text-xs font-bold rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary">
-              Discord Filters
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="shrink-0 w-full justify-start rounded-none border-b border-border/40 bg-transparent h-9 px-6 gap-0">
+          <TabsTrigger value="feed" className="h-9 px-4 text-xs font-bold rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary gap-1.5">
+            <Activity className="w-3.5 h-3.5" />Live Feed
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="h-9 px-4 text-xs font-bold rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary gap-1.5">
+            <SlidersHorizontal className="w-3.5 h-3.5" />Discord Filters
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent value="feed" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
           {/* Search bar */}

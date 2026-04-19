@@ -45,6 +45,11 @@ export default function SourcesAdmin() {
   const [order, setOrder] = useState<"asc" | "desc">("asc");
   function handleSort(col: string) { const n = toggleSort({ sort, order }, col); setSort(n.sort); setOrder(n.order); }
 
+  const sortedSources = [...(sources ?? [])].sort((a: any, b: any) => {
+    const av = a[sort] ?? ""; const bv = b[sort] ?? "";
+    return order === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
+
   const allIds = sortedSources.map(s => s.id);
   const allSelected = allIds.length > 0 && allIds.every(id => selectedIds.has(id));
   const someSelected = selectedIds.size > 0;
@@ -59,11 +64,6 @@ export default function SourcesAdmin() {
       mutate(`${API_BASE}/api/admin/sources`);
     } finally { setIsBulkDeleting(false); }
   }
-
-  const sortedSources = [...(sources ?? [])].sort((a: any, b: any) => {
-    const av = a[sort] ?? ""; const bv = b[sort] ?? "";
-    return order === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
-  });
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
