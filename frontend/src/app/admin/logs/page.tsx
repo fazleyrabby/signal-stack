@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, RefreshCw, Terminal, AlertTriangle, Info, AlertCircle } from "lucide-react";
+import { Loader2, RefreshCw, Terminal, AlertTriangle, Info, AlertCircle, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -44,13 +44,18 @@ export default function AdminLogs() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "info" | "warn" | "error">("all");
+  const [search, setSearch] = useState("");
+  const [days, setDays] = useState("30");
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
-  async function fetchLogs(isRefreshing = false) {
+  async function fetchLogs(isRefreshing = false, q = search, d = days) {
     if (isRefreshing) setRefreshing(true);
     else setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/logs?limit=300`, { credentials: "include" });
+      const params = new URLSearchParams({ limit: "500", days: d });
+      if (q) params.set("search", q);
+      const res = await fetch(`${API_BASE}/api/admin/logs?${params}`, { credentials: "include" });
       if (res.status === 401) { router.replace("/admin-login"); return; }
       const data = await res.json();
       setLogs(data.logs || []);
@@ -64,6 +69,17 @@ export default function AdminLogs() {
   }
 
   useEffect(() => { fetchLogs(); }, []);
+
+  function handleSearch(val: string) {
+    setSearch(val);
+    if (searchDebounce.current) clearTimeout(searchDebounce.current);
+    searchDebounce.current = setTimeout(() => fetchLogs(false, val, days), 400);
+  }
+
+  function handleDays(val: string) {
+    setDays(val);
+    fetchLogs(false, search, val);
+  }
 
   const filtered = filter === "all" ? logs : logs.filter((l) => l.level === filter);
   const counts = { info: logs.filter(l => l.level === "info").length, warn: logs.filter(l => l.level === "warn").length, error: logs.filter(l => l.level === "error").length };
@@ -84,6 +100,34 @@ export default function AdminLogs() {
           <span className="text-[10px] text-muted-foreground font-mono border border-border/40 px-1.5 py-0.5 rounded">{total} total</span>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/40" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search logs…"
+              className="h-6 pl-6 pr-6 text-[10px] font-mono bg-muted/20 border border-border/40 rounded outline-none focus:border-primary/50 w-44"
+            />
+            {search && (
+              <button onClick={() => handleSearch("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+          {/* Days selector */}
+          <select
+            value={days}
+            onChange={(e) => handleDays(e.target.value)}
+            className="h-6 px-1.5 text-[10px] font-mono bg-muted/20 border border-border/40 rounded outline-none focus:border-primary/50"
+          >
+            <option value="1">1d</option>
+            <option value="7">7d</option>
+            <option value="14">14d</option>
+            <option value="30">30d</option>
+          </select>
+          {/* Level filters */}
           {(["all", "info", "warn", "error"] as const).map((lvl) => (
             <button
               key={lvl}
