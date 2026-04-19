@@ -71,7 +71,11 @@ docker compose up -d llama
 LOCAL_AI_ENABLED=true
 ```
 
-The AI pipeline uses fallback: `Local (llama.cpp) → Groq → OpenRouter` with auto-retry (3x exponential backoff) for failed signals.
+**Summarization chain:** `Groq → OpenRouter → Local llama.cpp` (auto-retry with 60s cooldown on 429)
+
+**Translation chain (localized feed):** `Groq → PicoClaw/Mac llama.cpp → OpenRouter → Local llama.cpp`
+
+PicoClaw is a lightweight LXC router (`192.168.0.213:9000`) that forwards translation requests to Mac llama.cpp via Tailscale (`100.84.207.28:8081`), providing free local inference without cloud quota.
 
 In production (`docker-compose.prod.yml`), llama is constrained to `0.5 CPU` and `1GB RAM` to prevent idle CPU starvation on small VPS instances.
 
@@ -83,9 +87,14 @@ The admin panel at `/admin` provides:
 - **Model Selection** — searchable dropdowns to switch Groq/OpenRouter models on the fly
 - **Signal Stats** — total signals, severity breakdown, category counts, AI processing metrics
 - **AI Retry** — re-queue failed AI signals with one click
-- **Source Management** — CRUD for RSS feed sources
+- **Source Management** — CRUD for RSS feed sources with bulk select and health checks
 - **Category Management** — manage intelligence categories
+- **Jobs Feed** — remote/tech job listings from RSS with Discord filter config
+- **Company Radar** — find local IT companies via OpenStreetMap + career page auto-detection
+- **Logs** — live log viewer via `signalstack-logs` container
+- **Settings** — API keys (Groq/OpenRouter), Discord webhooks, dark/light mode toggle
 - **Database Backup** — manual and automated daily backups
+- **Worker Dashboard** — per-signal AI processing stats with read/unread state tracking
 
 ## 🔖 Bookmarks
 
@@ -100,6 +109,7 @@ Save signals for later review. Bookmarks are persisted in the database and synce
 
 The main dashboard features:
 
+- **Localized feed** — Bengali (and other language) translation via AI; signals without an AI summary fall back to translating the raw content so no English leaks into localized views
 - **Triple-column layout** — Geopolitics, Technology, and Artificial Intelligence streams side by side (tabbed on mobile, persisted)
 - **Visibility controls** — Toggle any of the three streams on/off to customize your view, with state persisted locally
 - **Mobile bottom nav** — fixed Feed / Trends / Saved / Admin tabs with safe-area padding

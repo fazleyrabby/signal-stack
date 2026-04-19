@@ -27,321 +27,34 @@
 18. [Common Commands Reference](#18-common-commands-reference)
 19. [Performance & Scaling](#19-performance-scaling)
 20. [Troubleshooting Guide](#20-troubleshooting-guide)
-21. [Section 26: Admin Auth Session & Token Expiry](#section-26--admin-auth-session--token-expiry)
-22. [Section 27: AI Daily Limit & Signal Backlog](#section-27--ai-daily-limit--signal-backlog)
-23. [Section 28: OSM Nearby Query Improvements](#section-28--osm-nearby-query-improvements)
-24. [Section 29: Directory Crawler Fixes — e-CAB & GitHub Source](#section-29-directory-crawler-fixes--e-cab--github-source-april-2026)
-25. [Section 30: Company Radar — Tech Filter for Saved Companies](#section-30-company-radar--tech-filter-for-saved-companies-april-2026)
-26. [Section 31: Deploy Script Rollback Fix](#section-31-deploy-script-rollback-fix-april-2026)
-27. [Section 32: SignalCard UI Fix — Source Badge Overlap](#section-32-signalcard-ui-fix--source-badge-overlap-april-2026)
-28. [Section 46: PicoClaw Tailscale Setup & LXC TUN Device Configuration](#section-46-picoclaw-tailscale-setup--lxc-tun-device-configuration-april-19-2026)
-29. [Section 47: Translation Fix — Signals Without aiSummary](#section-47-translation-fix--signals-without-aisummary-april-19-2026)
-
----
-
-## 2026 Admin UX & Company Radar Update (April 17, 2026) <a name="admin-ux-2026"></a>
-
-This update covers four major additions: admin UI polish, the Job Signal Extension, a new Company Radar tool, and table UX improvements.
-
-### 1. Job Signal Extension (Full)
-
-The jobs system fetches remote/tech job listings from free RSS feeds and surfaces them in a dedicated admin table.
-
-**Architecture:**
-- `backend/src/jobs/` — `JobsModule`, `JobsService`, `JobsFeedService`, `JobsRepository`, `JobsScheduler`
-- `jobs` table: `id, sourceId, source, title, company, location, remote, jobType, salaryRange, experienceLevel, description, url, hash, tags, publishedAt, createdAt`
-- Sources stored in the shared `sources` table with `type = 'job'` (vs `'signal'` for news)
-- `JobsRepository.getActiveSources()` filters `WHERE type = 'job' AND isActive = true`
-- Scheduler: fetch every 30 min, cleanup daily at 2 AM (14-day retention)
-- Deduplication: SHA-256 hash of `title + url`
-
-**Free RSS Job Sources (seeded):**
-| Source | URL |
-|--------|-----|
-| We Work Remotely | `https://weworkremotely.com/remote-jobs.rss` |
-| Remotive | `https://remotive.com/remote-jobs/feed` |
-| Arbeitnow | `https://www.arbeitnow.com/feed` |
-| Jobicy | `https://jobicy.com/?feed=job_feed` |
-
-**Discord matching filters** (stored in `settings` table as JSON):
-- `keywords` — ANY match triggers alert
-- `excludeKeywords` — ANY match discards
-- `locations` — location filter
-- `remote` — null/true/false preference
-- `strictGlobalRemote` — discard country-locked "remote" jobs (US Only, EST required, etc.)
-
-**Admin endpoint:** `GET /api/admin/jobs` — paginated, searchable, admin-only (no public endpoint).
-
-**Key file:** `backend/src/jobs/jobs-feed.service.ts` — RSS parsing with `rss-parser`, HTML stripping, 10s timeout per source, p-limit 5 concurrency.
-
----
-
-### 2. Admin UI: Drizzle Studio Style Overhaul
-
-All admin pages were redesigned to match Drizzle Studio's compact analytical layout.
-
-**Design Patterns:**
-- **Top bar**: `h-8` sticky bar with icon + title + row count badge (`font-mono border px-1.5 py-0.5 rounded`) + action buttons
-- **Filter toolbar**: inline `h-7` selects, no card wrapper, `bg-muted/10` background
-- **Table rows**: `py-2` cell padding, `border-border/30` row dividers, `hover:bg-muted/20` hover
-- **Text hierarchy**: `text-xs` content → `text-[10px]` meta → `text-[9px]` badges
-- **Full-height layout**: `flex flex-col h-full overflow-hidden` on page + `flex-1 overflow-auto` on table wrapper = viewport-filling scrollable table
-
-**Layout fix in `admin/layout.tsx`:**
-```tsx
-// Before: overflow-y-auto (broke full-height tables)
-// After:
-<main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-  {children}
-</main>
-```
-
-**Pages updated:**
-- `frontend/src/app/admin/signals/page.tsx` — signals table + per-row translate button + bulk translate
-- `frontend/src/app/admin/sources/page.tsx` — sources with health check, active toggle
-- `frontend/src/app/admin/categories/page.tsx`
-- `frontend/src/app/admin/jobs/page.tsx` — tabbed: Live Feed + Discord Filters
-- `frontend/src/app/admin/page.tsx` — dashboard cleanup, moved config to Settings
-
----
-
-### 3. Settings Page
-
-Separated config from the dashboard into `/admin/settings`.
-
-**Sections:**
-1. **Appearance** — dark/light `Switch` toggle
-2. **AI API Keys** — Groq + OpenRouter: masked display, source badge (`db`/`env`/`none`), status dot, password input + Save with spinner, "✓ Saved" feedback
-3. **Discord Webhooks** — signals + jobs URL inputs, Test button per field (Zap icon), inline success/error feedback, Save button
-
-**Key file:** `frontend/src/app/admin/settings/page.tsx`
-
----
-
-### 4. Per-Row Translation Button
-
-The signals table translate action was broken (SelectTrigger showed double chevron, no loading state).
-
-**Fix — custom `TranslateButton` component** (`frontend/src/app/admin/signals/page.tsx`):
-```tsx
-function TranslateButton({ signalId, isTranslating, onTranslate }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  // mousedown outside-click closes dropdown
-  // shows Loader2 spinner when isTranslating
-  // custom dropdown: Bengali / Spanish / English
-}
-```
-
-`translatingId` state tracks which row is currently being processed — only that row shows the spinner.
-
-**Why SelectTrigger was broken:** shadcn `SelectTrigger` always injects a `ChevronDown` SVG as last child. The fix `[&>svg:last-child]:hidden` was a workaround; the final solution replaces Select entirely with a custom component.
-
----
-
-### 5. Company Radar Feature
-
-A new admin tool to discover IT/tech companies near any location and auto-detect career pages.
-
-**How it works:**
-1. User types a city name → geocoded via **Nominatim** (free OpenStreetMap API, no key needed)
-2. Or clicks "My Location" → `navigator.geolocation.getCurrentPosition()`
-3. Selects radius: 5 / 10 / 20 / 50 km
-4. Backend queries **Overpass API** (OpenStreetMap) for `office=company|tech|it|software` nodes near those coordinates
-5. For each company with a website, sends HEAD requests to `/careers`, `/jobs`, `/work-with-us`, `/join-us` (4s timeout, p-limit 5)
-6. Results cached in Redis: key `companies:nearby:{lat}:{lng}:{radius}`, TTL 1 hour
-7. User clicks **Save** to persist a specific company to the `companies` DB table
-
-**New DB table:**
-```ts
-companies: {
-  id, name, website, careerUrl, careerPageFound,
-  city, country, lat, lng, osmId, tags, savedAt, createdAt
-}
-```
-
-**Backend module:** `backend/src/companies/` — controller, service, repository, module
-- `GET /api/admin/companies/nearby?lat=X&lng=Y&radius=10000`
-- `POST /api/admin/companies/save`
-- `GET /api/admin/companies/saved`
-- `DELETE /api/admin/companies/:id`
-
-**Frontend:** `frontend/src/app/admin/companies/page.tsx`
-- Two tabs: "Nearby Search" (card grid) + "Saved" (table)
-- Cards show: name, city, tags badge, website link, career page status (✓/✗), Save button
-- Error handling: only redirects to login on HTTP 401 (not 500s from missing table, etc.)
-
-**Key constraint:** OSM company data quality varies by city — major tech hubs (Berlin, London, SF) have better coverage than smaller cities.
-
----
-
-### 6. Resizable Table Columns
-
-All 5 admin data tables now support drag-to-resize columns.
-
-**Implementation (no external library):**
-
-```ts
-// frontend/src/hooks/useResizableColumns.ts
-function useResizableColumns(initialWidths: number[]) {
-  const [widths, setWidths] = useState(initialWidths);
-
-  const startResize = (colIndex, e) => {
-    const startX = e.clientX;
-    const startWidth = widths[colIndex];
-    // attach mousemove + mouseup to document
-    // delta = e.clientX - startX → update widths[colIndex]
-    // minimum width: 40px
-    // set cursor: col-resize + userSelect: none during drag
-    // cleanup on mouseup
-  };
-
-  return { widths, startResize };
-}
-```
-
-```tsx
-// frontend/src/components/ui/resize-handle.tsx
-// Thin div on right edge of each <th>
-// cursor: col-resize on hover, highlights with primary color
-<div onMouseDown={onMouseDown} className="absolute right-0 top-0 h-full w-2 cursor-col-resize ...">
-  <div className="w-px h-4 bg-border/50 group-hover/handle:bg-primary/60" />
-</div>
-```
-
-**Tables use `table-fixed` layout** — widths are strictly respected, not suggested.
-
-**Applied to:** Signals, Jobs, Sources, Categories, Companies (saved tab)
-
----
-
-### 7. Deploy Script
-
-`deploy.sh` added at project root:
-```bash
-#!/bin/bash
-set -e
-git pull origin main
-docker system prune -f   # ← prevents VPS disk filling up
-docker compose -f docker-compose.prod.yml up -d --build
-docker ps --format "table {{.Names}}\t{{.Status}}"
-```
-
-**Why `docker system prune -f`:** VPS disk hit 100% from accumulated build cache layers. This frees dangling images, stopped containers, and unused networks before every deploy (~22GB freed in first run).
-
----
-
-### 8. Admin Sidebar Navigation
-
-`frontend/src/components/AdminSidebar.tsx` nav items:
-```ts
-const navItems = [
-  { name: 'Dashboard',  href: '/admin',           icon: LayoutDashboard },
-  { name: 'Signals',    href: '/admin/signals',   icon: Activity },
-  { name: 'Categories', href: '/admin/categories',icon: Layers },
-  { name: 'Sources',    href: '/admin/sources',   icon: Rss },
-  { name: 'Jobs',       href: '/admin/jobs',      icon: Briefcase },
-  { name: 'Companies',  href: '/admin/companies', icon: Building2 },
-  { name: 'Logs',       href: '/admin/logs',      icon: Database },
-  { name: 'Settings',   href: '/admin/settings',  icon: Settings },
-];
-```
-
----
-
-### 9. NestJS DI Fix: Missing Exports in AIModule
-
-**Symptom:** Backend crashed on startup — `GroqProvider`/`OpenRouterProvider` injected in `AdminController` but not exported from `AIModule`.
-
-**Fix in `backend/src/ai/ai.module.ts`:**
-```ts
-exports: [
-  AIQueue, AIService, SettingsService, TranslationQueue,
-  MetricsService, RedisService,
-  GroqProvider,       // ← was missing
-  OpenRouterProvider, // ← was missing
-],
-```
-
-**Why this matters:** In NestJS, a provider must be in the `exports[]` array of its module to be injectable in any other module. Being in `providers[]` only makes it available _within_ that module.
-
----
-
-## 2026 Stability Update: Frontend & Dependencies (April 16, 2026) <a name="frontend-stability-2026"></a>
-
-This update resolves critical runtime and build-time issues that emerged during the migration to Next.js 16 and React 19.
-
-### 1. Hydration & SSR Integrity
-*   **The Issue**: Client-side state (like  settings) was being initialized in lazy initializers or root-level state definitions. This caused a mismatch between the server-rendered HTML and the initial client render, leading to "Hydration Mismatch" errors.
-*   **The Fix**: All state that depends on browser APIs (, ) is now initialized inside . This ensures the server always renders a consistent default state, and the client updates to the persisted state only after mounting.
-*   **Key File**: `frontend/src/app/[locale]/page.tsx`
-
-### 2. Next.js 16 ESM Configuration
-*   **The Issue**:  was incorrectly using TypeScript syntax (type imports/annotations). While Next.js 16 supports  configs, the project was using  which must be pure JavaScript.
-*   **The Fix**: Removed TypeScript-specific code from  to resolve .
-*   **Key File**: `frontend/next.config.mjs`
-
-### 3. Dependency Conflict Resolution
-*   **The Issue**:  and other legacy packages have peer dependency requirements for React 18 or older, which conflicted with the project's use of React 19 (required by Next.js 16).
-*   **The Fix**: Standardized on `npm install --legacy-peer-deps` to bypass strict version tree validation while maintaining architectural compatibility.
-
-### 4. Tooltip & UI Positioning
-*   **The Issue**: Tooltips were using  positioning within containers that had their own transform/scroll contexts, causing them to detach from the mouse cursor.
-*   **The Fix**: Switched to  positioning using viewport-relative  coordinates, with a guard to prevent tooltips from overflowing the screen edge.
-*   **Key File**: `frontend/src/components/geo-heatmap.tsx`
-
----
-
-
-## 14. 2026 AI Intelligence Update: Phase 6
-
-Integrated on April 14, 2026, this phase professionalizes the AI stream and geographic intelligence.
-
-### Premium Research-Grade Feeds (Phase 6b)
-*   **Labs**: Google DeepMind, OpenAI News, Anthropic.
-*   **Academic**: MIT AI News, Berkeley BAIR Blog, Stanford HAI.
-*   **Independent Research**: The Gradient, MarkTechPost, VentureBeat AI.
-*   **Legacy Enrichment**: Hugging Face Blog (FR), TLDR AI, Ben's Bites.
-
-### Geographic Intelligence Fix
-*   **Projection**: Switched to `geoEqualEarth` and stabilized with `world-atlas` TopoJSON to resolve distortion.
-*   **Data Mapping**: Implemented a robust `ID_TO_ISO` mapping layer to ensure backend ISO-A2 codes correctly highlight map regions.
-*   **End-to-End Filtering**: Fixed the signal feed logic to correctly handle `?country=XX` query parameters, enabling seamless "click-to-filter" from the map to the dashboard.
-*   **Smart Tab Hiding**: Columns that contain zero matching results for a specific country or search query are automatically hidden. This eliminates "empty results" noise and allows relevant content to fill the screen.
-*   **Visibility Force-Enable**: Clicking any region on the map now automatically enables all three categories (**Geopolitics**, **Tech**, **AI**) on the dashboard, ensuring a comprehensive view of that region's intelligence regardless of previous tab settings.
-
-
-### Terminal UI Upgrades
-*   **Triple-Column Grid**: Monitoring Geopolitics | Tech | AI simultaneously.
-*   **Global Footer**: Professional navigation integrated into **Trends** and **Admin** pages while preserving the minimal feed space.
-*   **Admin Layout**: Unified `AdminLayout` for consistent navigation across dashboard sub-pages.
-### Test Suite & Tooling (Phase 6d)
-*   **Production-Grade Testing**: Constructed a `backend/test/` directory adopting strict zero-regression architectures, with mock interfaces replacing actual DB connections ensuring reliable testing.
-*   **Developer Environments**: Injected `signalstack-drizzle-studio` into local `docker-compose.yml`, tightly sandboxed to `127.0.0.1:4983`. Assured complete omittance from `docker-compose.prod.yml` to prevent production surface exposure.
-
-### IP Resilience & Security (Phase 6c)
-*   **MaxMind Integration**: Implemented `GeoIPService` to leverage self-hosted GeoLite2-City databases. IP data is now enriched with Country, City, Latitude, Longitude, and Timezone.
-*   **Passive Bot Detection**: Integrated heuristics into the `VisitorsService` to automatically flag bots based on User-Agent patterns ("bot", "curl", "crawler") and anomalous request volume (>100 page views).
-*   **Performance Optimization**: MaxMind binary databases are loaded once into memory on startup (singleton) to ensure sub-millisecond lookups. Enrichment tasks occur asynchronously after the visitor is tracked to prevent any latency in the main request flow.
-*   **Infrastructure Security**: 
-    *   Added dedicated `geoip` service for automated map database updates.
-    *   Enforced **Read-Only** volume mounting for database binaries in the application container.
-    *   Updated `.gitignore` and security configurations to prevent sensitive license keys and binary files from reaching version control.
-
-### Test Suite Expansion (Phase 6e)
-*   **AI Pipeline Tests**: Created comprehensive test suite in `backend/test/ai/`:
-    *   `ai.service.spec.ts` — Tests fallback chain (local → groq → openrouter), local-only mode behavior, cooldown mechanism on 429 errors, high-load concurrent processing, provider timeout handling, health check endpoints, token tracking.
-    *   `ai.queue.spec.ts` — Tests job enqueue/dequeue with deduplication, rate limiting and daily quota enforcement, retry logic with exponential backoff, queue recovery on startup, burst load handling (100 concurrent jobs).
-*   **Signals E2E Tests**: Created `backend/test/signals/signals.e2e-spec.ts` to test:
-    *   Signal insertion with proper hash generation
-    *   Duplicate rejection (same hash should not insert twice)
-    *   Filtering by severity, source, category, date range
-    *   Search functionality across title/content
-    *   Pagination with metadata
-    *   Edge cases: empty content, very long content, special characters in URLs
-*   **Test Utilities**: Added `backend/test/utils/wait-for.ts` helper for async test timing.
-*   **Dependencies**: Installed missing `maxmind` and `@types/maxmind` packages for GeoIP testing.
-
+21. [Job Signal Extension](#21-job-signal-extension)
+22. [UI Light Mode Fixes](#22-ui-light-mode-fixes)
+23. [API Key & Webhook Management](#23-api-key-webhook-management)
+24. [Company Radar — Performance & Resource Hardening](#24-company-radar--performance-smart-detection--resource-hardening)
+25. [Section 25: Directory Crawler — Architecture & Extractors](#section-25--directory-crawler-architecture-safety--site-specific-extractors)
+26. [Section 26: Unit Testing — DirectoryCrawlerService](#section-26--unit-testing-directorycrawlerservice)
+27. [Section 27: Admin Auth Session & Token Expiry](#section-27--admin-auth-session--token-expiry)
+28. [Section 28: AI Daily Limit & Signal Backlog](#section-28--ai-daily-limit--signal-backlog)
+29. [Section 29: OSM Nearby Query Improvements](#section-29--osm-nearby-query-improvements)
+30. [Section 30: Directory Crawler Fixes — e-CAB & GitHub Source](#section-30-directory-crawler-fixes--e-cab--github-source-april-2026)
+31. [Section 31: Company Radar — Tech Filter for Saved Companies](#section-31-company-radar--tech-filter-for-saved-companies-april-2026)
+32. [Section 32: Deploy Script Rollback Fix](#section-32-deploy-script-rollback-fix-april-2026)
+33. [Section 33: SignalCard UI Fix — Source Badge Overlap](#section-33-signalcard-ui-fix--source-badge-overlap-april-2026)
+34. [Section 34: Sortable Column Headers — All Admin Tables](#section-34-sortable-column-headers--all-admin-tables-april-2026)
+35. [Section 35: Floating "Save All" Button — Company Radar](#section-35-floating-save-all-button--company-radar-april-2026)
+36. [Section 36: System Bottleneck & Performance Analysis](#section-36-system-bottleneck--performance-analysis-april-2026)
+37. [Section 37: Structured Logging System](#section-37-structured-logging-system-april-2026)
+38. [Section 38: Signal Read/Unread State](#section-38-signal-readunread-state-april-2026)
+39. [Section 39: Cross-Source Job Deduplication](#section-39-cross-source-job-deduplication-april-2026)
+40. [Section 40: Database Backup Procedure](#section-40-database-backup-procedure-april-2026)
+41. [Section 41: Mac Remote Optimization](#section-41-mac-remote-optimization-april-2026)
+42. [Section 42: Worker Intelligence Dashboard](#section-42-worker-intelligence-dashboard--what-it-means-april-2026)
+43. [Section 43: Mobile Viewport Optimization](#section-43-mobile-viewport-optimization-april-2026)
+44. [Section 44: Company Radar v2 — Google Places & Mapbox](#section-44-company-radar-v2--google-places--mapbox-integration-april-2026)
+45. [Section 45: Dual-Tier Translation Quality System](#section-45-dual-tier-translation-quality-system-april-2026)
+46. [Section 46: Scoring Engine Optimization](#section-46-scoring-engine-optimization-april-2026)
+47. [Section 47: PicoClaw Tailscale Setup & LXC TUN Device Configuration](#section-47-picoclaw-tailscale-setup--lxc-tun-device-configuration-april-19-2026)
+48. [Section 48: Translation Fix — Signals Without aiSummary](#section-48-translation-fix--signals-without-aisummary-april-19-2026)
 
 ---
 
@@ -842,15 +555,28 @@ Signal (score ≥ 7) ──▶ AI Queue ──▶ Rate Limiter ──▶ Groq �
                                      60s cooldown ──▶ Next provider
 ```
 
-### 6.2 AI Provider Order
+### 6.2 AI Provider Chains
 
-SignalStack always uses the same provider chain regardless of environment:
+SignalStack has **two separate AI chains** — one for summarization and one for translation.
+
+#### Summarization Chain (signal processing)
 
 | Priority | Provider | When Used |
 |---|---|---|
 | **1st** | Groq | Always tried first (fast & cheap) |
 | **2nd** | OpenRouter | Fallback if Groq fails or on cooldown |
-| **3rd (last resort)** | Local (llama.cpp) | Only if both cloud providers fail AND local is enabled |
+| **3rd (last resort)** | Local llama.cpp (VPS container) | Only if both cloud providers fail AND `LOCAL_AI_ENABLED=true` |
+
+#### Translation Chain (localized feed)
+
+| Priority | Provider | When Used |
+|---|---|---|
+| **1st** | Groq | Always tried first |
+| **2nd** | PicoClaw / Mac llama.cpp | Local router at `192.168.0.213:9000` → forwards to Mac Tailscale IP `100.84.207.28:8081` |
+| **3rd** | OpenRouter | Cloud fallback if local unavailable |
+| **4th (last resort)** | VPS llama.cpp | Local container at `signalstack-llama:8080` |
+
+PicoClaw is an LXC container (`192.168.0.213:9000`) that proxies translation requests to Mac llama.cpp via Tailscale (`100.84.207.28:8081`). This provides free local translation without consuming cloud API quota.
 
 **Environment Variables:**
 ```env
@@ -862,7 +588,7 @@ AI_MAX_WORKERS=2             # parallel workers
 AI_DAILY_LIMIT=150           # daily request limit
 ```
 
-**Provider Chain Logic:**
+**Provider Chain Logic (summarization):**
 
 1. **Step 1 — Groq**: Tried first. If 429 → 60s cooldown, try next.
 2. **Step 2 — OpenRouter**: Tried if Groq failed/on cooldown. If 429 → 60s cooldown.
@@ -2054,9 +1780,322 @@ Outputs a summary with pass/warn/fail counts. Exits with code 1 if any checks fa
 
 ---
 
-## 16. Key Concepts to Learn
 
-### 16.1 Dependency Injection (NestJS)
+---
+
+## 14. 2026 AI Intelligence Update: Phase 6
+
+Integrated on April 14, 2026, this phase professionalizes the AI stream and geographic intelligence.
+
+### Premium Research-Grade Feeds (Phase 6b)
+*   **Labs**: Google DeepMind, OpenAI News, Anthropic.
+*   **Academic**: MIT AI News, Berkeley BAIR Blog, Stanford HAI.
+*   **Independent Research**: The Gradient, MarkTechPost, VentureBeat AI.
+*   **Legacy Enrichment**: Hugging Face Blog (FR), TLDR AI, Ben's Bites.
+
+### Geographic Intelligence Fix
+*   **Projection**: Switched to `geoEqualEarth` and stabilized with `world-atlas` TopoJSON to resolve distortion.
+*   **Data Mapping**: Implemented a robust `ID_TO_ISO` mapping layer to ensure backend ISO-A2 codes correctly highlight map regions.
+*   **End-to-End Filtering**: Fixed the signal feed logic to correctly handle `?country=XX` query parameters, enabling seamless "click-to-filter" from the map to the dashboard.
+*   **Smart Tab Hiding**: Columns that contain zero matching results for a specific country or search query are automatically hidden. This eliminates "empty results" noise and allows relevant content to fill the screen.
+*   **Visibility Force-Enable**: Clicking any region on the map now automatically enables all three categories (**Geopolitics**, **Tech**, **AI**) on the dashboard, ensuring a comprehensive view of that region's intelligence regardless of previous tab settings.
+
+
+### Terminal UI Upgrades
+*   **Triple-Column Grid**: Monitoring Geopolitics | Tech | AI simultaneously.
+*   **Global Footer**: Professional navigation integrated into **Trends** and **Admin** pages while preserving the minimal feed space.
+*   **Admin Layout**: Unified `AdminLayout` for consistent navigation across dashboard sub-pages.
+### Test Suite & Tooling (Phase 6d)
+*   **Production-Grade Testing**: Constructed a `backend/test/` directory adopting strict zero-regression architectures, with mock interfaces replacing actual DB connections ensuring reliable testing.
+*   **Developer Environments**: Injected `signalstack-drizzle-studio` into local `docker-compose.yml`, tightly sandboxed to `127.0.0.1:4983`. Assured complete omittance from `docker-compose.prod.yml` to prevent production surface exposure.
+
+### IP Resilience & Security (Phase 6c)
+*   **MaxMind Integration**: Implemented `GeoIPService` to leverage self-hosted GeoLite2-City databases. IP data is now enriched with Country, City, Latitude, Longitude, and Timezone.
+*   **Passive Bot Detection**: Integrated heuristics into the `VisitorsService` to automatically flag bots based on User-Agent patterns ("bot", "curl", "crawler") and anomalous request volume (>100 page views).
+*   **Performance Optimization**: MaxMind binary databases are loaded once into memory on startup (singleton) to ensure sub-millisecond lookups. Enrichment tasks occur asynchronously after the visitor is tracked to prevent any latency in the main request flow.
+*   **Infrastructure Security**: 
+    *   Added dedicated `geoip` service for automated map database updates.
+    *   Enforced **Read-Only** volume mounting for database binaries in the application container.
+    *   Updated `.gitignore` and security configurations to prevent sensitive license keys and binary files from reaching version control.
+
+### Test Suite Expansion (Phase 6e)
+*   **AI Pipeline Tests**: Created comprehensive test suite in `backend/test/ai/`:
+    *   `ai.service.spec.ts` — Tests fallback chain (local → groq → openrouter), local-only mode behavior, cooldown mechanism on 429 errors, high-load concurrent processing, provider timeout handling, health check endpoints, token tracking.
+    *   `ai.queue.spec.ts` — Tests job enqueue/dequeue with deduplication, rate limiting and daily quota enforcement, retry logic with exponential backoff, queue recovery on startup, burst load handling (100 concurrent jobs).
+*   **Signals E2E Tests**: Created `backend/test/signals/signals.e2e-spec.ts` to test:
+    *   Signal insertion with proper hash generation
+    *   Duplicate rejection (same hash should not insert twice)
+    *   Filtering by severity, source, category, date range
+    *   Search functionality across title/content
+    *   Pagination with metadata
+    *   Edge cases: empty content, very long content, special characters in URLs
+*   **Test Utilities**: Added `backend/test/utils/wait-for.ts` helper for async test timing.
+*   **Dependencies**: Installed missing `maxmind` and `@types/maxmind` packages for GeoIP testing.
+
+
+---
+
+## 15. 2026 Stability Update: Frontend & Dependencies (April 16, 2026) <a name="frontend-stability-2026"></a>
+
+This update resolves critical runtime and build-time issues that emerged during the migration to Next.js 16 and React 19.
+
+### 1. Hydration & SSR Integrity
+*   **The Issue**: Client-side state (like  settings) was being initialized in lazy initializers or root-level state definitions. This caused a mismatch between the server-rendered HTML and the initial client render, leading to "Hydration Mismatch" errors.
+*   **The Fix**: All state that depends on browser APIs (, ) is now initialized inside . This ensures the server always renders a consistent default state, and the client updates to the persisted state only after mounting.
+*   **Key File**: `frontend/src/app/[locale]/page.tsx`
+
+### 2. Next.js 16 ESM Configuration
+*   **The Issue**:  was incorrectly using TypeScript syntax (type imports/annotations). While Next.js 16 supports  configs, the project was using  which must be pure JavaScript.
+*   **The Fix**: Removed TypeScript-specific code from  to resolve .
+*   **Key File**: `frontend/next.config.mjs`
+
+### 3. Dependency Conflict Resolution
+*   **The Issue**:  and other legacy packages have peer dependency requirements for React 18 or older, which conflicted with the project's use of React 19 (required by Next.js 16).
+*   **The Fix**: Standardized on `npm install --legacy-peer-deps` to bypass strict version tree validation while maintaining architectural compatibility.
+
+### 4. Tooltip & UI Positioning
+*   **The Issue**: Tooltips were using  positioning within containers that had their own transform/scroll contexts, causing them to detach from the mouse cursor.
+*   **The Fix**: Switched to  positioning using viewport-relative  coordinates, with a guard to prevent tooltips from overflowing the screen edge.
+*   **Key File**: `frontend/src/components/geo-heatmap.tsx`
+
+---
+
+---
+
+## 16. 2026 Admin UX & Company Radar Update (April 17, 2026) <a name="admin-ux-2026"></a>
+
+This update covers four major additions: admin UI polish, the Job Signal Extension, a new Company Radar tool, and table UX improvements.
+
+### 1. Job Signal Extension (Full)
+
+The jobs system fetches remote/tech job listings from free RSS feeds and surfaces them in a dedicated admin table.
+
+**Architecture:**
+- `backend/src/jobs/` — `JobsModule`, `JobsService`, `JobsFeedService`, `JobsRepository`, `JobsScheduler`
+- `jobs` table: `id, sourceId, source, title, company, location, remote, jobType, salaryRange, experienceLevel, description, url, hash, tags, publishedAt, createdAt`
+- Sources stored in the shared `sources` table with `type = 'job'` (vs `'signal'` for news)
+- `JobsRepository.getActiveSources()` filters `WHERE type = 'job' AND isActive = true`
+- Scheduler: fetch every 30 min, cleanup daily at 2 AM (14-day retention)
+- Deduplication: SHA-256 hash of `title + url`
+
+**Free RSS Job Sources (seeded):**
+| Source | URL |
+|--------|-----|
+| We Work Remotely | `https://weworkremotely.com/remote-jobs.rss` |
+| Remotive | `https://remotive.com/remote-jobs/feed` |
+| Arbeitnow | `https://www.arbeitnow.com/feed` |
+| Jobicy | `https://jobicy.com/?feed=job_feed` |
+
+**Discord matching filters** (stored in `settings` table as JSON):
+- `keywords` — ANY match triggers alert
+- `excludeKeywords` — ANY match discards
+- `locations` — location filter
+- `remote` — null/true/false preference
+- `strictGlobalRemote` — discard country-locked "remote" jobs (US Only, EST required, etc.)
+
+**Admin endpoint:** `GET /api/admin/jobs` — paginated, searchable, admin-only (no public endpoint).
+
+**Key file:** `backend/src/jobs/jobs-feed.service.ts` — RSS parsing with `rss-parser`, HTML stripping, 10s timeout per source, p-limit 5 concurrency.
+
+---
+
+### 2. Admin UI: Drizzle Studio Style Overhaul
+
+All admin pages were redesigned to match Drizzle Studio's compact analytical layout.
+
+**Design Patterns:**
+- **Top bar**: `h-8` sticky bar with icon + title + row count badge (`font-mono border px-1.5 py-0.5 rounded`) + action buttons
+- **Filter toolbar**: inline `h-7` selects, no card wrapper, `bg-muted/10` background
+- **Table rows**: `py-2` cell padding, `border-border/30` row dividers, `hover:bg-muted/20` hover
+- **Text hierarchy**: `text-xs` content → `text-[10px]` meta → `text-[9px]` badges
+- **Full-height layout**: `flex flex-col h-full overflow-hidden` on page + `flex-1 overflow-auto` on table wrapper = viewport-filling scrollable table
+
+**Layout fix in `admin/layout.tsx`:**
+```tsx
+// Before: overflow-y-auto (broke full-height tables)
+// After:
+<main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+  {children}
+</main>
+```
+
+**Pages updated:**
+- `frontend/src/app/admin/signals/page.tsx` — signals table + per-row translate button + bulk translate
+- `frontend/src/app/admin/sources/page.tsx` — sources with health check, active toggle
+- `frontend/src/app/admin/categories/page.tsx`
+- `frontend/src/app/admin/jobs/page.tsx` — tabbed: Live Feed + Discord Filters
+- `frontend/src/app/admin/page.tsx` — dashboard cleanup, moved config to Settings
+
+---
+
+### 3. Settings Page
+
+Separated config from the dashboard into `/admin/settings`.
+
+**Sections:**
+1. **Appearance** — dark/light `Switch` toggle
+2. **AI API Keys** — Groq + OpenRouter: masked display, source badge (`db`/`env`/`none`), status dot, password input + Save with spinner, "✓ Saved" feedback
+3. **Discord Webhooks** — signals + jobs URL inputs, Test button per field (Zap icon), inline success/error feedback, Save button
+
+**Key file:** `frontend/src/app/admin/settings/page.tsx`
+
+---
+
+### 4. Per-Row Translation Button
+
+The signals table translate action was broken (SelectTrigger showed double chevron, no loading state).
+
+**Fix — custom `TranslateButton` component** (`frontend/src/app/admin/signals/page.tsx`):
+```tsx
+function TranslateButton({ signalId, isTranslating, onTranslate }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  // mousedown outside-click closes dropdown
+  // shows Loader2 spinner when isTranslating
+  // custom dropdown: Bengali / Spanish / English
+}
+```
+
+`translatingId` state tracks which row is currently being processed — only that row shows the spinner.
+
+**Why SelectTrigger was broken:** shadcn `SelectTrigger` always injects a `ChevronDown` SVG as last child. The fix `[&>svg:last-child]:hidden` was a workaround; the final solution replaces Select entirely with a custom component.
+
+---
+
+### 5. Company Radar Feature
+
+A new admin tool to discover IT/tech companies near any location and auto-detect career pages.
+
+**How it works:**
+1. User types a city name → geocoded via **Nominatim** (free OpenStreetMap API, no key needed)
+2. Or clicks "My Location" → `navigator.geolocation.getCurrentPosition()`
+3. Selects radius: 5 / 10 / 20 / 50 km
+4. Backend queries **Overpass API** (OpenStreetMap) for `office=company|tech|it|software` nodes near those coordinates
+5. For each company with a website, sends HEAD requests to `/careers`, `/jobs`, `/work-with-us`, `/join-us` (4s timeout, p-limit 5)
+6. Results cached in Redis: key `companies:nearby:{lat}:{lng}:{radius}`, TTL 1 hour
+7. User clicks **Save** to persist a specific company to the `companies` DB table
+
+**New DB table:**
+```ts
+companies: {
+  id, name, website, careerUrl, careerPageFound,
+  city, country, lat, lng, osmId, tags, savedAt, createdAt
+}
+```
+
+**Backend module:** `backend/src/companies/` — controller, service, repository, module
+- `GET /api/admin/companies/nearby?lat=X&lng=Y&radius=10000`
+- `POST /api/admin/companies/save`
+- `GET /api/admin/companies/saved`
+- `DELETE /api/admin/companies/:id`
+
+**Frontend:** `frontend/src/app/admin/companies/page.tsx`
+- Two tabs: "Nearby Search" (card grid) + "Saved" (table)
+- Cards show: name, city, tags badge, website link, career page status (✓/✗), Save button
+- Error handling: only redirects to login on HTTP 401 (not 500s from missing table, etc.)
+
+**Key constraint:** OSM company data quality varies by city — major tech hubs (Berlin, London, SF) have better coverage than smaller cities.
+
+---
+
+### 6. Resizable Table Columns
+
+All 5 admin data tables now support drag-to-resize columns.
+
+**Implementation (no external library):**
+
+```ts
+// frontend/src/hooks/useResizableColumns.ts
+function useResizableColumns(initialWidths: number[]) {
+  const [widths, setWidths] = useState(initialWidths);
+
+  const startResize = (colIndex, e) => {
+    const startX = e.clientX;
+    const startWidth = widths[colIndex];
+    // attach mousemove + mouseup to document
+    // delta = e.clientX - startX → update widths[colIndex]
+    // minimum width: 40px
+    // set cursor: col-resize + userSelect: none during drag
+    // cleanup on mouseup
+  };
+
+  return { widths, startResize };
+}
+```
+
+```tsx
+// frontend/src/components/ui/resize-handle.tsx
+// Thin div on right edge of each <th>
+// cursor: col-resize on hover, highlights with primary color
+<div onMouseDown={onMouseDown} className="absolute right-0 top-0 h-full w-2 cursor-col-resize ...">
+  <div className="w-px h-4 bg-border/50 group-hover/handle:bg-primary/60" />
+</div>
+```
+
+**Tables use `table-fixed` layout** — widths are strictly respected, not suggested.
+
+**Applied to:** Signals, Jobs, Sources, Categories, Companies (saved tab)
+
+---
+
+### 7. Deploy Script
+
+`deploy.sh` added at project root:
+```bash
+#!/bin/bash
+set -e
+git pull origin main
+docker system prune -f   # ← prevents VPS disk filling up
+docker compose -f docker-compose.prod.yml up -d --build
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
+
+**Why `docker system prune -f`:** VPS disk hit 100% from accumulated build cache layers. This frees dangling images, stopped containers, and unused networks before every deploy (~22GB freed in first run).
+
+---
+
+### 8. Admin Sidebar Navigation
+
+`frontend/src/components/AdminSidebar.tsx` nav items:
+```ts
+const navItems = [
+  { name: 'Dashboard',  href: '/admin',           icon: LayoutDashboard },
+  { name: 'Signals',    href: '/admin/signals',   icon: Activity },
+  { name: 'Categories', href: '/admin/categories',icon: Layers },
+  { name: 'Sources',    href: '/admin/sources',   icon: Rss },
+  { name: 'Jobs',       href: '/admin/jobs',      icon: Briefcase },
+  { name: 'Companies',  href: '/admin/companies', icon: Building2 },
+  { name: 'Logs',       href: '/admin/logs',      icon: Database },
+  { name: 'Settings',   href: '/admin/settings',  icon: Settings },
+];
+```
+
+---
+
+### 9. NestJS DI Fix: Missing Exports in AIModule
+
+**Symptom:** Backend crashed on startup — `GroqProvider`/`OpenRouterProvider` injected in `AdminController` but not exported from `AIModule`.
+
+**Fix in `backend/src/ai/ai.module.ts`:**
+```ts
+exports: [
+  AIQueue, AIService, SettingsService, TranslationQueue,
+  MetricsService, RedisService,
+  GroqProvider,       // ← was missing
+  OpenRouterProvider, // ← was missing
+],
+```
+
+**Why this matters:** In NestJS, a provider must be in the `exports[]` array of its module to be injectable in any other module. Being in `providers[]` only makes it available _within_ that module.
+
+---
+
+
+---
+
+## 17. Key Concepts to Learn
+
+### 17.1 Dependency Injection (NestJS)
 
 Instead of `new Service()`, NestJS creates and injects instances:
 
@@ -2072,7 +2111,7 @@ export class SignalsController {
 }
 ```
 
-### 16.2 RxJS Streams
+### 17.2 RxJS Streams
 
 RxJS treats data as a **stream** you can transform:
 
@@ -2089,7 +2128,7 @@ jobs$.pipe(
 ).subscribe();
 ```
 
-### 16.3 SWR (Stale-While-Revalidate)
+### 17.3 SWR (Stale-While-Revalidate)
 
 SWR returns cached data immediately, then fetches fresh data in the background:
 
@@ -2100,7 +2139,7 @@ SWR returns cached data immediately, then fetches fresh data in the background:
 const { data, isLoading } = useSWR('/api/signals', fetcher);
 ```
 
-### 16.4 Intersection Observer (Infinite Scroll)
+### 17.4 Intersection Observer (Infinite Scroll)
 
 Detects when an element enters the viewport:
 
@@ -2116,7 +2155,7 @@ const observer = new IntersectionObserver(
 observer.observe(sentinelElement);
 ```
 
-### 16.5 CSS Custom Properties (Theming)
+### 17.5 CSS Custom Properties (Theming)
 
 CSS variables that change with a single attribute:
 
@@ -2134,7 +2173,7 @@ body {
 
 ---
 
-## 14.6 Native Fetch API (No External HTTP Client)
+### 14.6 Native Fetch API (No External HTTP Client)
 
 SignalStack uses Node.js 20's built-in `fetch` instead of axios or other HTTP libraries. This eliminates:
 - Supply chain vulnerabilities (axios was compromised in March 2026)
@@ -2163,7 +2202,7 @@ This pattern is used consistently across all HTTP calls: feed fetching, AI provi
 
 ---
 
-## 17. Common Commands Reference
+## 18. Common Commands Reference
 
 ### Local Development
 
@@ -2372,7 +2411,24 @@ docker compose -f docker-compose.prod.yml restart app
 3. **Test AI failover** — set `GROQ_API_KEY` to an invalid value and watch it fall back to OpenRouter
 4. **Add a feature** — try adding a new severity level or a new dashboard widget
 
-### 18.2 Production Performance Benchmarks (2-Core VPS)
+
+
+## 19. Performance & Scaling
+
+SignalStack is built to handle professional workloads. To verify this, the project includes a dedicated load testing suite using **k6**.
+
+### 19.1 Running the Load Test
+The test script is located at `scripts/loadtest.js`.
+
+```bash
+# Smoke test (against local dev)
+k6 run scripts/loadtest.js
+
+# Stress test (against your public domain)
+k6 run -e BASE_URL=https://your-domain.com -e SCENARIO=stress scripts/loadtest.js
+```
+
+### 19.2 Production Performance Benchmarks (2-Core VPS)
 
 The following metrics were captured during a live stress test on the production Proxmox VM:
 
@@ -2384,12 +2440,12 @@ The following metrics were captured during a live stress test on the production 
 | **p(95) Latency** | **789ms** | **11.93s** |
 | **Max Throughput** | ~400 MB / 5 min | **1.2 GB / 10 min** |
 
-### 18.3 Analysis of Results
+### 19.3 Analysis of Results
 - **Safe Zone (1–750 VUs)**: The system handles up to 750 concurrent users with sub-second latency and 100% reliability.
 - **The Breaking Point**: CPU saturation hits 100% at ~1,200 users. Beyond this, Cloudflare and Next.js start timing out (11s+ latency) as the Node.js event loop becomes blocked.
 - **Resource Usage**: Both the NestJS API and Next.js Frontend consume roughly equal CPU (~30% each) under heavy load. The database (PostgreSQL) remains highly efficient (<5% CPU) due to optimized indexing.
 
-### 18.4 Roadmap to 1,000,000 Users
+### 19.4 Roadmap to 1,000,000 Users
 To scale to 1M monthly active users (~5,000 concurrent peak), the following upgrades are recommended in order of impact:
 
 1.  **Edge Caching (Cloudflare)**:
@@ -2405,39 +2461,9 @@ To scale to 1M monthly active users (~5,000 concurrent peak), the following upgr
 
 ---
 
-## 18. Performance & Scaling
+## 20. Troubleshooting Guide
 
-SignalStack is built to handle professional workloads. To verify this, the project includes a dedicated load testing suite using **k6**.
-
-### 18.1 Running the Load Test
-The test script is located at `scripts/loadtest.js`.
-
-```bash
-# Smoke test (against local dev)
-k6 run scripts/loadtest.js
-
-# Stress test (against your public domain)
-k6 run -e BASE_URL=https://your-domain.com -e SCENARIO=stress scripts/loadtest.js
-```
-
-### 18.5 Performance Analysis (Local)
-Initial stress tests on a **2-core VPS** showed the following characteristics:
-- **Zero Failures**: The NestJS API remained 100% stable at 500 concurrent users.
-- **CPU Bottleneck**: The Next.js SSR (Server-Side Rendering) is the heaviest component, consuming ~45% CPU under load.
-- **Memory Stability**: Redis and PostgreSQL combined used less than 10% of available RAM.
-
-### 18.6 Scaling Strategy for 1M Users
-To move from 500 concurrent users to 1,000,000 monthly active users, follow this roadmap:
-
-1.  **Frontend Caching**: Use **Incremental Static Regeneration (ISR)** in Next.js or a CDN like Cloudflare to serve cached HTML. This removes the SSR load from your VPS.
-2.  **API Gateway**: Instead of proxying through Next.js (rewrites), use an **Nginx** or **Traefik** reverse proxy to route `/api` traffic directly to the backend.
-3.  **Database Scaling**: 
-
----
-
-## 19. Troubleshooting Guide
-
-### 19.1 Container Crash: FeedService Not Exported
+### 20.1 Container Crash: FeedService Not Exported
 
 **Symptom:** AdminSourcesController fails to initialize with dependency injection error
 
@@ -2461,7 +2487,7 @@ export class FeedModule {}
 
 **Prevention:** Always export services that are injected into other modules
 
-### 19.2 Disk Full: Container Cannot Write
+### 20.2 Disk Full: Container Cannot Write
 
 **Symptom:** PostgreSQL panic with error:
 ```
@@ -2484,7 +2510,7 @@ df -h /
 - Set up disk space alerts
 - Regular cleanup: `docker system prune`
 
-### 19.3 Module Dependency Graph
+### 20.3 Module Dependency Graph
 
 Understanding module dependencies is critical for debugging DI errors:
 
@@ -2509,7 +2535,7 @@ AppModule
 
 ---
 
-## 20. Job Signal Extension (April 2026) <a name="job-signal-extension"></a>
+## 21. Job Signal Extension (April 2026) <a name="job-signal-extension"></a>
 
 The Jobs module adds a parallel intelligence stream for job listings — private, preference-filtered, Discord-alerted. It reuses all existing patterns (RSS ingestion, hashing, Discord webhooks, settings storage) without touching the signals domain.
 
@@ -2594,7 +2620,7 @@ class JobPreferences {
 
 ---
 
-## 21. UI Light Mode Fixes (April 2026) <a name="light-mode-fixes"></a>
+## 22. UI Light Mode Fixes (April 2026) <a name="light-mode-fixes"></a>
 
 Several components used opacity-based color classes (`text-*-400`, `bg-*/10`) designed for dark backgrounds. These became invisible or "blobby" in light mode.
 
@@ -2621,7 +2647,7 @@ Admin pages were importing and rendering the public `<Header>` component despite
 
 ---
 
-## 22. API Key & Webhook Management (April 2026) <a name="api-key-management"></a>
+## 23. API Key & Webhook Management (April 2026) <a name="api-key-management"></a>
 
 AI API keys and Discord webhook URLs can now be configured through the admin dashboard without editing `.env` files. All values are stored in the `settings` table and applied in-memory immediately on save.
 
@@ -2662,7 +2688,7 @@ On `onModuleInit`, each provider reads its stored key from the DB and overwrites
 
 ---
 
-## 23. Company Radar — Performance, Smart Detection & Resource Hardening (April 17, 2026) <a name="company-radar-v2"></a>
+## 24. Company Radar — Performance, Smart Detection & Resource Hardening (April 17, 2026) <a name="company-radar-v2"></a>
 
 This update covers three rounds of improvements to the Company Radar feature: performance optimizations, smarter career page detection, and VPS resource safety.
 
@@ -2830,7 +2856,7 @@ while (pos < html.length) {
 
 ---
 
-## Section 24 — Directory Crawler: Architecture, Safety & Site-Specific Extractors
+## Section 25 — Directory Crawler: Architecture, Safety & Site-Specific Extractors
 
 ### 24.1 Overview
 
@@ -2937,7 +2963,7 @@ The manual Save gate is the strongest protection — nothing enters the DB witho
 
 ---
 
-## Section 25 — Unit Testing: DirectoryCrawlerService
+## Section 26 — Unit Testing: DirectoryCrawlerService
 
 ### 25.1 Test Coverage
 
@@ -2965,7 +2991,7 @@ The manual Save gate is the strongest protection — nothing enters the DB witho
 
 ---
 
-## Section 26 — Admin Auth Session & Token Expiry
+## Section 27 — Admin Auth Session & Token Expiry
 
 ### 26.1 The Problem
 
@@ -3011,7 +3037,7 @@ Both tokens are signed with `HS256` using `JWT_SECRET` env var. The refresh toke
 
 ---
 
-## Section 27 — AI Daily Limit & Signal Backlog
+## Section 28 — AI Daily Limit & Signal Backlog
 
 ### 27.1 Symptom
 
@@ -3063,7 +3089,7 @@ After deletion, `ai_processing_success` events resumed immediately with Groq as 
 
 ---
 
-## Section 28 — OSM Nearby Query Improvements
+## Section 29 — OSM Nearby Query Improvements
 
 ### 28.1 Original Problem
 
@@ -3112,7 +3138,7 @@ OSM coverage varies by country. Bangladesh has fewer office-tagged entries than 
 
 ---
 
-## Section 29: Directory Crawler Fixes — e-CAB & GitHub Source (April 2026)
+## Section 30: Directory Crawler Fixes — e-CAB & GitHub Source (April 2026)
 
 ### 29.1 What Broke
 
@@ -3186,7 +3212,7 @@ When a site returns an empty or tiny HTML page, check if it's a SPA:
 
 ---
 
-## Section 30: Company Radar — Tech Filter for Saved Companies (April 2026)
+## Section 31: Company Radar — Tech Filter for Saved Companies (April 2026)
 
 ### 30.1 Problem
 
@@ -3242,7 +3268,7 @@ const techFilter = sql`(
 
 ---
 
-## Section 31: Deploy Script Rollback Fix (April 2026)
+## Section 32: Deploy Script Rollback Fix (April 2026)
 
 ### 31.1 The Bug
 
@@ -3312,7 +3338,7 @@ docker compose -f docker-compose.prod.yml up -d --no-build
 
 ---
 
-## Section 32: SignalCard UI Fix — Source Badge Overlap (April 2026)
+## Section 33: SignalCard UI Fix — Source Badge Overlap (April 2026)
 
 ### 32.1 Problem
 
@@ -3342,7 +3368,7 @@ In compact mode (Job Intelligence Live Feed), the source badge, timestamp, and c
 
 ---
 
-## Section 33: Sortable Column Headers — All Admin Tables (April 2026)
+## Section 34: Sortable Column Headers — All Admin Tables (April 2026)
 
 ### 33.1 Shared Component: `SortableHead`
 
@@ -3406,7 +3432,7 @@ const orderFn = order === "asc" ? asc : desc;
 
 ---
 
-## Section 34: Floating "Save All" Button — Company Radar (April 2026)
+## Section 35: Floating "Save All" Button — Company Radar (April 2026)
 
 ### 34.1 Problem
 
@@ -3437,7 +3463,7 @@ Added a `fixed` floating button visible only on mobile (`md:hidden`) when unsave
 
 ---
 
-## Section 35: System Bottleneck & Performance Analysis (April 2026)
+## Section 36: System Bottleneck & Performance Analysis (April 2026)
 
 ### 35.1 Critical: `saveAllFiltered()` — Concurrent Request Bomb
 
@@ -3515,7 +3541,7 @@ grep -r "ThrottlerGuard\|@Throttle\|@SkipThrottle" backend/src/
 
 ---
 
-## Section 36: Structured Logging System (April 2026)
+## Section 37: Structured Logging System (April 2026)
 
 ### 36.1 Problem
 
@@ -3581,7 +3607,7 @@ Table columns: **Time / Level / Context / Event / Details**
 
 ---
 
-## Section 37: Signal Read/Unread State (April 2026)
+## Section 38: Signal Read/Unread State (April 2026)
 
 ### 37.1 Schema Change
 
@@ -3616,7 +3642,7 @@ async markAllSignalsRead(): Promise<number> {
 
 ---
 
-## Section 38: Cross-Source Job Deduplication (April 2026)
+## Section 39: Cross-Source Job Deduplication (April 2026)
 
 ### 38.1 Problem
 
@@ -3648,7 +3674,7 @@ New column: `jobs.content_hash varchar(64)` — nullable (older rows have null, 
 
 ---
 
-## Section 39: Database Backup Procedure (April 2026)
+## Section 40: Database Backup Procedure (April 2026)
 
 ### 39.1 Manual Backup to Mac
 
@@ -3681,7 +3707,7 @@ docker exec -i signalstack-db psql -U signal -d signalstack < ~/signalstack_2026
 
 ---
 
-## Section 40: Mac Remote Optimization (April 2026)
+## Section 41: Mac Remote Optimization (April 2026)
 
 ### 40.1 Setup (working remotely via Android + Terminus + Tailscale)
 
@@ -3728,7 +3754,7 @@ For true headless operation without SSH drops:
 
 ---
 
-## Section 41: Worker Intelligence Dashboard — What It Means (April 2026)
+## Section 42: Worker Intelligence Dashboard — What It Means (April 2026)
 
 The Admin dashboard has a **Worker Intelligence** section showing real-time metrics for the backend's async processing pipelines. This has nothing to do with job listings — it tracks internal AI workers.
 
@@ -3776,7 +3802,7 @@ All written by `TranslationQueue` and `AIQueue` services. Resets at midnight via
 
 ---
 
-## Section 42: Mobile Viewport Optimization (April 2026)
+## Section 43: Mobile Viewport Optimization (April 2026)
 
 ### 42.1 Problem
 
@@ -3852,7 +3878,7 @@ This project uses `sm` as the primary mobile/desktop breakpoint throughout the a
 
 ---
 
-## Section 43: Company Radar v2 — Google Places & Mapbox Integration (April 2026)
+## Section 44: Company Radar v2 — Google Places & Mapbox Integration (April 2026)
 
 ### 43.1 Architecture
 
@@ -3927,7 +3953,7 @@ Each health check method makes a minimal real API call and returns `{ status: 'h
 
 ---
 
-## Section 44: Dual-Tier Translation Quality System (April 2026)
+## Section 45: Dual-Tier Translation Quality System (April 2026)
 
 ### 44.1 Problem
 
@@ -3965,7 +3991,7 @@ Both configurable from Admin Settings page.
 
 ---
 
-## Section 45: Scoring Engine Optimization (April 2026)
+## Section 46: Scoring Engine Optimization (April 2026)
 
 ### 45.1 Problem
 
@@ -4003,7 +4029,7 @@ Net effect: eliminates N×M regex constructions per feed cycle where N = signals
 
 ---
 
-## Section 46: PicoClaw Tailscale Setup & LXC TUN Device Configuration (April 19, 2026)
+## Section 47: PicoClaw Tailscale Setup & LXC TUN Device Configuration (April 19, 2026)
 
 ### Problem
 
@@ -4079,7 +4105,7 @@ def mac_alive():
 
 ---
 
-## Section 47: Translation Fix — Signals Without aiSummary (April 19, 2026)
+## Section 48: Translation Fix — Signals Without aiSummary (April 19, 2026)
 
 ### Problem
 
