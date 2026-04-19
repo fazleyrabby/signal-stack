@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useParams } from "next/navigation";
 import {
   Sparkles,
   ChevronRight,
@@ -42,6 +43,8 @@ const getCategoryBorder = (cat: string) => {
 
 export function SignalCard({ signal, isCompact, className, isBookmarked, isBookmarking, onToggleBookmark }: SignalCardProps) {
   const t = useTranslations('Index');
+  const params = useParams();
+  const isBN = params?.locale === 'bn';
   const impact = getImpactColor(signal.score);
   
   const getRelativeTime = (dateStr: string | null) => {
@@ -119,7 +122,8 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
             ) : (
               <h2 className={cn(
                 "font-semibold leading-snug text-foreground/90 group-hover:text-foreground transition-colors",
-                isCompact ? "text-[14px] sm:text-[16px] line-clamp-2" : "text-[13px] sm:text-[15px] line-clamp-2"
+                isCompact ? "text-[14px] sm:text-[16px]" : "text-[13px] sm:text-[15px]",
+                isBN ? "overflow-hidden max-h-[3.2em]" : "line-clamp-2"
               )}>
                 {signal.title}
               </h2>
@@ -135,7 +139,8 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
             ) : (signal.aiSummary || signal.summary) && (
               <p className={cn(
                 "text-muted-foreground/70 leading-relaxed",
-                isCompact ? "text-[12px] sm:text-[14px] line-clamp-2 sm:line-clamp-4" : "text-[11px] sm:text-[13px] line-clamp-2 sm:line-clamp-3"
+                isCompact ? "text-[12px] sm:text-[14px]" : "text-[11px] sm:text-[13px]",
+                isBN ? "overflow-hidden max-h-[6em]" : (isCompact ? "line-clamp-2 sm:line-clamp-4" : "line-clamp-2 sm:line-clamp-3")
               )}>
                 {signal.aiSummary || signal.summary}
               </p>

@@ -505,6 +505,14 @@ export default function AdminDashboard() {
                 {aiHealth?.macLocal?.latency !== undefined && (
                   <p className="text-[10px] text-muted-foreground">{aiHealth.macLocal.latency}ms latency</p>
                 )}
+                {aiHealth?.tokenUsage?.macLocal && (
+                  <div className="pt-1.5 border-t border-border/10">
+                    <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                      <span>Today</span>
+                      <span>{aiHealth.tokenUsage.macLocal.today.total.toLocaleString()} tkn</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Groq */}
