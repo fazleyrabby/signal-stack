@@ -54,6 +54,22 @@ export default function SettingsPage() {
     document.documentElement.setAttribute("data-theme", val === "light" ? "light" : "");
   };
 
+  const { data: aiHealth, mutate: refreshAI, error: aiError } = useSWR<{
+    groq: { status: string; model: string };
+    openrouter: { status: string; model: string };
+    macLocal?: { status: string; model: string; latency?: number };
+    picoClaw?: { status: string; model: string };
+    pipeline: string;
+    tokenUsage: {
+      groq: { today: { total: number }; allTime: { total: number } };
+      openrouter: { today: { total: number }; allTime: { total: number } };
+      macLocal: { today: { total: number }; allTime: { total: number } };
+    };
+  }>(`${API_BASE}/api/admin/ai/health`, fetcher, { 
+    shouldRetryOnError: false,
+    refreshInterval: 10000 // Auto-refresh every 10s
+  });
+
   // API Keys
   const { data: apiKeysData, mutate: refreshApiKeys, error: keysError } = useSWR<{
     groq: { masked: string; source: string };
@@ -62,23 +78,11 @@ export default function SettingsPage() {
     mapbox: { masked: string; source: string };
   }>(`${API_BASE}/api/admin/keys`, fetcher, { shouldRetryOnError: false });
 
-  useEffect(() => { if (keysError) router.replace("/admin-login"); }, [keysError, router]);
-
-  const { data: aiHealth, mutate: refreshAI } = useSWR<{
-    groq: { status: string; model: string };
-    openrouter: { status: string; model: string };
-    macLocal?: { status: string; model: string; latency?: number };
-    picoClaw?: { status: string; model: string };
-    pipeline: string;
-    tokenUsage: {
-      groq: { today: number; allTime: number };
-      openrouter: { today: number; allTime: number };
-      macLocal: { today: number; allTime: number };
-    };
-  }>(`${API_BASE}/api/admin/ai/health`, fetcher, { 
-    shouldRetryOnError: false,
-    refreshInterval: 10000 // Auto-refresh every 10s
-  });
+  useEffect(() => { 
+    if (keysError?.message?.includes("Unauthorized") || aiError?.message?.includes("Unauthorized")) {
+      router.replace("/admin-login"); 
+    }
+  }, [keysError, aiError, router]);
 
   // Mac Local Config
   const { data: macLocalConfig, mutate: refreshMacLocal } = useSWR<{
@@ -607,12 +611,19 @@ export default function SettingsPage() {
               </div>
               <div className="flex items-center gap-2 border-l border-border/20 pl-4">
                 <StatusDot status={aiHealth?.macLocal?.status || 'disabled'} />
-                <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  Mac Local
-                  {aiHealth?.macLocal?.latency && (
-                    <span className="text-[8px] font-mono opacity-50">({aiHealth.macLocal.latency}ms)</span>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    Mac Local
+                    {aiHealth?.macLocal?.latency && (
+                      <span className="text-[8px] font-mono opacity-50">({aiHealth.macLocal.latency}ms)</span>
+                    )}
+                  </span>
+                  {aiHealth?.tokenUsage?.macLocal && (
+                    <span className="text-[8px] font-mono text-muted-foreground leading-none mt-0.5">
+                      {aiHealth.tokenUsage.macLocal?.today?.total?.toLocaleString() ?? 0} tkn
+                    </span>
                   )}
-                </span>
+                </div>
               </div>
             </div>
 

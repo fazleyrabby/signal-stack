@@ -519,7 +519,7 @@ export default function AdminDashboard() {
                   <div className="pt-1.5 border-t border-border/10">
                     <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">
                       <span>Today</span>
-                      <span>{aiHealth.tokenUsage.macLocal.today.total.toLocaleString()} tkn</span>
+                      <span>{aiHealth.tokenUsage.macLocal?.today?.total?.toLocaleString() ?? 0} tkn</span>
                     </div>
                   </div>
                 )}
@@ -537,6 +537,14 @@ export default function AdminDashboard() {
                 {aiHealth?.groq?.model && (
                   <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.groq.model}</p>
                 )}
+                {aiHealth?.tokenUsage?.groq && (
+                  <div className="pt-1.5 border-t border-border/10">
+                    <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                      <span>Today</span>
+                      <span>{aiHealth.tokenUsage.groq?.today?.total?.toLocaleString() ?? 0} tkn</span>
+                    </div>
+                  </div>
+                )}
                 {modelsData?.groq && (
                   <SearchableModelSelect models={modelsData.groq} value={modelsData.selected.groqModel || ""} onValueChange={(v) => handleModelChange("groq", v)} disabled={isUpdatingModel} />
                 )}
@@ -553,6 +561,14 @@ export default function AdminDashboard() {
                 </div>
                 {aiHealth?.openrouter?.model && (
                   <p className="text-[10px] text-muted-foreground font-mono truncate">{aiHealth.openrouter.model}</p>
+                )}
+                {aiHealth?.tokenUsage?.openrouter && (
+                  <div className="pt-1.5 border-t border-border/10">
+                    <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                      <span>Today</span>
+                      <span>{aiHealth.tokenUsage.openrouter?.today?.total?.toLocaleString() ?? 0} tkn</span>
+                    </div>
+                  </div>
                 )}
                 {modelsData?.openrouter && (
                   <SearchableModelSelect models={modelsData.openrouter} value={modelsData.selected.openrouterModel || ""} onValueChange={(v) => handleModelChange("openrouter", v)} disabled={isUpdatingModel} />
