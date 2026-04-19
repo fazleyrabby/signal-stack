@@ -38,6 +38,7 @@ type AIHealth = {
     openrouter: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
     macLocal?: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
   };
+  picoClaw?: ProviderHealth;
 };
 
 type LLMModel = {
