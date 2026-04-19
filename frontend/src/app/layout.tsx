@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { BottomNav } from "@/components/BottomNav";
 import { SearchProvider } from "@/context/SearchContext";
+import { LangHandler } from "@/components/LangHandler";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -44,6 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${hindSiliguri.variable} ${notoBengali.variable} antialiased`} suppressHydrationWarning>
+        <LangHandler />
         <ThemeProvider>
           <SearchProvider>
             <div className="pb-16 md:pb-0">{children}</div>
