@@ -674,22 +674,34 @@ export default function AdminDashboard() {
                 subtitle="Total signals processed per AI provider (all time)"
               />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {providerStats.map((stat) => {
-                  const cfg = {
-                    vpsLocal:      { label: "VPS Local",     accent: "bg-indigo-500/15 dark:bg-indigo-500/10",   icon: <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
-                    local:         { label: "VPS Local",     accent: "bg-indigo-500/15 dark:bg-indigo-500/10",   icon: <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
-                    groq:          { label: "Groq Cloud",    accent: "bg-blue-500/15 dark:bg-blue-500/10",         icon: <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /> },
-                    openrouter:    { label: "OpenRouter",    accent: "bg-violet-500/15 dark:bg-violet-500/10",   icon: <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" /> },
-                    picoLocal:     { label: "PicoLocal",     accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
-                    pico_router:   { label: "PicoLocal",     accent: "bg-teal-500/15 dark:bg-teal-500/10",     icon: <Bot className="w-4 h-4 text-teal-600 dark:text-teal-400" /> },
-                    pico_mac:      { label: "PicoLocal",     accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
-                    mac_local:     { label: "PicoLocal",     accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
-                    none:          { label: "None",          accent: "bg-zinc-500/15 dark:bg-zinc-500/10",         icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> },
-                  }[stat.provider] ?? { label: "PicoLocal",      accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> };
-                  return (
-                    <StatCard key={stat.provider} label={cfg.label} value={stat.count.toLocaleString()} icon={cfg.icon} accent={cfg.accent} />
-                  );
-                })}
+                {(() => {
+                  const aggregated = providerStats.reduce((acc, curr) => {
+                    let provider = curr.provider || 'none';
+                    if (['picoLocal', 'pico_router', 'pico_mac', 'mac_local'].includes(provider)) {
+                      provider = 'picoLocal';
+                    } else if (['local', 'vpsLocal'].includes(provider)) {
+                      provider = 'vpsLocal';
+                    }
+                    acc[provider] = (acc[provider] || 0) + curr.count;
+                    return acc;
+                  }, {} as Record<string, number>);
+
+                  return Object.entries(aggregated)
+                    .map(([provider, count]) => {
+                      const cfg = {
+                        vpsLocal:      { label: "VPS Local",     accent: "bg-indigo-500/15 dark:bg-indigo-500/10",   icon: <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
+                        groq:          { label: "Groq Cloud",    accent: "bg-blue-500/15 dark:bg-blue-500/10",         icon: <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /> },
+                        openrouter:    { label: "OpenRouter",    accent: "bg-violet-500/15 dark:bg-violet-500/10",   icon: <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" /> },
+                        picoLocal:     { label: "PicoLocal",     accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
+                        none:          { label: "None",          accent: "bg-zinc-500/15 dark:bg-zinc-500/10",         icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> },
+                      }[provider] ?? { label: provider, accent: "bg-zinc-500/15", icon: <Bot className="w-4 h-4" /> };
+
+                      return (
+                        <StatCard key={provider} label={cfg.label} value={count.toLocaleString()} icon={cfg.icon} accent={cfg.accent} />
+                      );
+                    })
+                    .sort((a, b) => (a.key === 'picoLocal' ? -1 : 1)); // Keep PicoLocal prominent
+                })()}
               </div>
             </section>
           )}
