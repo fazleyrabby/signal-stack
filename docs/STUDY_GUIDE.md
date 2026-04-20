@@ -4267,3 +4267,50 @@ curl -fsSL https://tailscale.com/install.sh | sh
 tailscale up  # authenticate with same account as Mac
 ```
 Then add `mac_local` before `pico_router` in the pipeline.
+
+---
+
+## Section 50: Docker Disk Management on VPS (April 20, 2026)
+
+### Problem
+
+VPS disk hit 100% mid-build (`write ... no space left on device`), killing the Docker frontend build.
+
+### Root Cause Analysis
+
+```
+/swap.img          3.9GB   Linux swap — fixed, not reclaimable
+/usr               3.5GB   OS + packages — fixed
+/home              1.8GB   App repo + data — fixed
+/snap              1.3GB   Snap packages — fixed
+/var               1.1GB   Logs, docker metadata — mostly fixed
+Docker images     ~10GB   Dangling <none> layers — RECLAIMABLE
+```
+
+Every `--no-cache` rebuild (several done today) leaves orphaned image layers tagged `<none>`. These accumulate fast — each frontend build is ~900MB, backend ~720MB.
+
+### Safe Cleanup Command
+
+```bash
+docker image prune -f   # removes only untagged/dangling images
+                        # does NOT touch: running containers, volumes, named images
+```
+
+Freed ~11GB. Disk went from 100% → 35% (13GB used, 24GB free).
+
+### What Each Prune Command Does
+
+| Command | Safe? | Removes |
+|---------|-------|---------|
+| `docker image prune -f` | ✅ Yes | Dangling `<none>` images only |
+| `docker container prune -f` | ✅ Yes | Stopped containers only |
+| `docker volume prune -f` | ⚠️ Dangerous | Unused volumes — **will delete DB if volume is unused** |
+| `docker system prune -af` | ❌ Never | Everything including running image layers |
+
+### Database Safety
+
+Postgres data lives in a named Docker volume attached to the running `signalstack-db` container. As long as the container is running (or the volume is referenced), `image prune` and `container prune` cannot touch it. Only `volume prune` is dangerous.
+
+### Recommendation
+
+Run `docker image prune -f` after every deploy cycle that uses `--no-cache`. Add to `deploy.sh` as a post-deploy cleanup step to prevent disk accumulation.
