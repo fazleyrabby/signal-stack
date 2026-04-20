@@ -36,6 +36,8 @@ type AIHealth = {
   tokenUsage?: {
     groq: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
     openrouter: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
+    vpsLocal?: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
+    picoLocal?: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
     macLocal?: { today: { prompt: number; completion: number; total: number }; allTime: { prompt: number; completion: number; total: number } };
   };
   picoClaw?: ProviderHealth;

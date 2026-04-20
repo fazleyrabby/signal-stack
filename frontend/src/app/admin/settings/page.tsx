@@ -58,12 +58,15 @@ export default function SettingsPage() {
     groq: { status: string; model: string };
     openrouter: { status: string; model: string };
     macLocal?: { status: string; model: string; latency?: number };
+    local?: { status: string; model: string; latency?: number };
     picoClaw?: { status: string; model: string };
     pipeline: string;
     tokenUsage: {
       groq: { today: { total: number }; allTime: { total: number } };
       openrouter: { today: { total: number }; allTime: { total: number } };
       macLocal: { today: { total: number }; allTime: { total: number } };
+      picoLocal?: { today: { total: number }; allTime: { total: number } };
+      vpsLocal?: { today: { total: number }; allTime: { total: number } };
     };
   }>(`${API_BASE}/api/admin/ai/health`, fetcher, { 
     shouldRetryOnError: false,
