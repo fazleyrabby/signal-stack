@@ -6,8 +6,8 @@ import { eq } from 'drizzle-orm';
 
 export type ProviderId = 'mac_local' | 'groq' | 'openrouter' | 'local' | 'pico_router';
 
-export const DEFAULT_SUMMARIZATION_PIPELINE: ProviderId[] = ['pico_router', 'mac_local', 'groq', 'openrouter', 'local'];
-export const DEFAULT_TRANSLATION_PIPELINE: ProviderId[] = ['pico_router', 'mac_local', 'groq', 'openrouter', 'local'];
+export const DEFAULT_SUMMARIZATION_PIPELINE: ProviderId[] = ['mac_local', 'groq', 'openrouter', 'local'];
+export const DEFAULT_TRANSLATION_PIPELINE: ProviderId[] = ['mac_local', 'groq', 'openrouter', 'local'];
 
 export interface ModelConfig {
   groqModel: string;

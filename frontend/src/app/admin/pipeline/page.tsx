@@ -50,17 +50,19 @@ interface ProviderMeta {
   type: 'local' | 'cloud';
   color: string;
   usedIn: ('summarization' | 'translation')[];
+  disabled?: boolean;
 }
 
 const PROVIDERS: ProviderMeta[] = [
   {
     id: 'pico_router',
     name: 'PicoClaw Router',
-    subtitle: 'LXC Orchestrator — intelligent local routing',
+    subtitle: 'Pure proxy to Mac — disabled (redundant with mac_local)',
     icon: <Router className="w-4 h-4" />,
     type: 'local',
     color: 'teal',
-    usedIn: ['summarization', 'translation'],
+    usedIn: [],
+    disabled: true,
   },
   {
     id: 'mac_local',
@@ -426,17 +428,17 @@ export default function PipelinePage() {
                   const health = providerHealth[p.id];
                   const colors = colorClasses[p.color as keyof typeof colorClasses];
                   return (
-                    <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/20 bg-card/20">
+                    <div key={p.id} className={cn('flex items-center gap-3 p-3 rounded-lg border border-border/20 bg-card/20', p.disabled && 'opacity-40')}>
                       <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', colors?.bg, colors?.text)}>
                         {p.icon}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p className="text-xs font-bold truncate">{p.name}</p>
-                          {health && <StatusIcon status={health.status} />}
+                          {p.disabled ? <span className="text-[9px] font-mono text-muted-foreground/60 uppercase">disabled</span> : health && <StatusIcon status={health.status} />}
                         </div>
                         <p className="text-[10px] text-muted-foreground truncate">{p.subtitle}</p>
-                        {health?.latency && (
+                        {!p.disabled && health?.latency && (
                           <p className="text-[9px] font-mono text-muted-foreground/60">{health.latency}ms</p>
                         )}
                       </div>
