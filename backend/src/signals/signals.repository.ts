@@ -253,7 +253,7 @@ export class SignalsRepository {
       let raw = (curr.provider || 'none').toLowerCase().replace(/[\s_-]/g, '');
       let provider = 'other';
 
-      if (raw.includes('picoclaw') || raw.includes('maclocal')) {
+      if (raw.includes('picoclaw') || raw.includes('maclocal') || raw === 'picomac' || raw === 'picorouter' || raw === 'picofallback') {
         provider = 'picoLocal';
       } else if (raw === 'local' || raw === 'vpslocal') {
         provider = 'vpsLocal';
