@@ -4194,3 +4194,76 @@ const translationPromise = isHighPower
 Now signals without an AI summary still get translated using the raw `summary` field. On first view → skeleton loader (translationPending=true), background job translates and caches. On refresh → Bengali.
 
 **File:** `backend/src/signals/signals.service.ts` — `localizeSignal()`
+
+---
+
+## Section 49: PicoClaw Network Topology & Pipeline Routing (April 20, 2026)
+
+### The Problem — mac_local Always Failing Silently
+
+`mac_local` provider was in the pipeline but never succeeding. No errors logged — it just skipped. Root cause: VPS has no Tailscale, so `100.84.207.28:8081` (Mac's Tailscale IP) is unreachable.
+
+```bash
+# From VPS:
+ping 100.84.207.28  # 100% packet loss
+```
+
+### Network Topology
+
+```
+Internet
+    │
+    ▼
+VPS (192.168.0.110) ──[LAN]──► PicoClaw Router LXC (192.168.0.213:9000)
+                                        │
+                                        │ proxies to
+                                        ▼
+                              Mac M1 LlamaCPP (100.84.207.28:8081)
+                              [reachable via LAN or Tailscale from LXC]
+```
+
+VPS and LXC are on the same `192.168.0.x` LAN. LXC can reach Mac. VPS cannot reach Mac directly (no Tailscale).
+
+### Discovery Method
+
+Probed Router's health endpoint:
+```bash
+curl http://192.168.0.213:9000/health
+# {"mac_alive":true,"mac_url":"http://100.84.207.28:8081","redis":true,"status":"ok"}
+```
+
+This revealed the Router is a thin HTTP proxy — it checks Mac liveness and forwards requests. It does NOT run its own model.
+
+### Key Insight: Router = Necessary Bridge, Not Redundant Proxy
+
+Initial assumption was Router was redundant (same as mac_local). Wrong. Router is the **only** path from VPS to Mac because:
+- VPS → Router: works (same LAN subnet)
+- Router → Mac: works (LAN or Tailscale from LXC)
+- VPS → Mac: fails (no Tailscale on VPS)
+
+### Correct Pipeline
+
+```
+pico_router → groq → openrouter → local (VPS Qwen)
+```
+
+`mac_local` removed — unreachable from VPS. `pico_router` is the Mac inference path.
+
+### Health Check Chain
+
+When `pico_router` is position 1:
+1. `isCooldown('pico_router')` → false → try it
+2. Router's `/health` returns `mac_alive: true` → forwards request to Mac
+3. Mac responds → success, logged as `pico_router`
+4. If Mac is off → Router returns error → cooldown applied → next provider (groq)
+
+60-second Redis cooldown prevents hammering a failed provider within the same window.
+
+### Future: Direct Mac Access
+
+To bypass the Router and use `mac_local` directly, install Tailscale on VPS:
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+tailscale up  # authenticate with same account as Mac
+```
+Then add `mac_local` before `pico_router` in the pipeline.

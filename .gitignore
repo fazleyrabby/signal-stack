@@ -68,6 +68,9 @@ backup/
 /CLAUDE.md
 
 
+# --- Local Test Scripts (may reference env vars, keep off git) ---
+scripts/test/test-endpoints.sh
+
 # --- Local AI Models ---
 models/
 !models/.gitkeep

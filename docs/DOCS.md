@@ -978,3 +978,85 @@ The Admin Radar (Nearby Search) now includes a debounced autocomplete system:
 - **Strict Source-Type Filtering**: `FeedScheduler` now validates the `type` column in the `sources` table. Any source marked as `type: 'job'` is strictly excluded from the news signal cycle to prevent cross-channel leaks.
 - **Automated Verification**: Introduced `jest` test suites for the Feed Scheduler and AI Pipeline, ensuring regression-free deployments.
 
+
+---
+
+### Update: April 20, 2026
+**AI Pipeline Routing Fix, Provider Aggregation & PicoClaw Architecture Clarification**
+
+#### 1. Provider Aggregation Bug Fix (Admin Dashboard)
+
+Admin `/admin` dashboard "AI Usage by Provider" was showing duplicate PicoClaw cards. Root cause: two separate bugs.
+
+**Backend (`signals.repository.ts`):** DB stores provider values as `pico_mac`, `pico_router`, `picofallback`. After normalization (`toLowerCase().replace(/[\s_-]/g, '')`) these become `picomac`, `picorouter`, `picofallback` — none of which matched the `includes('picoclaw')` check. Fixed by adding explicit matches:
+```ts
+if (raw.includes('picoclaw') || raw.includes('maclocal') || raw === 'picolocal'
+    || raw === 'picomac' || raw === 'picorouter' || raw === 'picofallback') {
+  provider = 'picoLocal';
+}
+```
+
+**Frontend (`admin/page.tsx`):** Same normalization bug — backend returns camelCase `picoLocal`, frontend lowercases to `picolocal`, which missed the label map key `picoLocal` (case-sensitive object lookup). Added `raw === 'picolocal'` to the condition.
+
+Result: dashboard now shows one "PicoClaw" card (128) and one "VPS Local" card (403) — correctly separated.
+
+#### 2. PicoClaw Router — Architecture Discovery
+
+Probed the LXC at `192.168.0.213:9000/health`:
+```json
+{"mac_alive":true,"mac_url":"http://100.84.207.28:8081","redis":true,"status":"ok"}
+```
+
+**Finding:** Router is a pure HTTP proxy — it forwards to Mac via Tailscale IP `100.84.207.28:8081`. It does NOT run its own model.
+
+**Critical finding:** VPS has no Tailscale installed — cannot reach `100.84.207.28` directly (100% packet loss). `mac_local` provider was silently failing on every request because the endpoint was unreachable.
+
+**Solution:** PicoClaw Router LXC sits on the LAN (`192.168.0.x`) and CAN reach the Mac. VPS reaches Router (LAN), Router reaches Mac (LAN). Router is therefore the necessary bridge:
+
+```
+VPS (192.168.0.110) → PicoClaw Router (192.168.0.213:9000) → Mac LlamaCPP (Tailscale 100.84.207.28:8081)
+```
+
+#### 3. AI Pipeline Order Updated
+
+New default pipeline (both summarization and translation):
+```
+pico_router → groq → openrouter → local
+```
+
+`mac_local` removed from pipeline — VPS cannot reach Mac directly. `pico_router` is the only path to M1 inference.
+
+Fallback chain behavior:
+- `pico_router` healthy + Mac alive → uses M1 LlamaCPP (free, local)
+- Router down or Mac off → Groq (free cloud tier)
+- Groq unavailable → OpenRouter (paid fallback)
+- All else fails → VPS Local Qwen (always running, guaranteed)
+
+#### 4. `mac_local` Provider Status
+
+Provider exists in code but is unreachable from VPS without Tailscale. Kept in codebase for future use (if Tailscale is added to VPS). Removed from pipeline defaults. `pico_router` covers Mac inference via LAN bridge.
+
+To re-enable direct Mac access: install Tailscale on VPS (`curl -fsSL https://tailscale.com/install.sh | sh && tailscale up`), then add `mac_local` back to pipeline before `pico_router`.
+
+#### 5. VPS Disk Cleanup
+
+VPS disk hit 100% (38GB full, 21.94GB in stale Docker images). Cleared with:
+```bash
+docker image prune -af && docker container prune -f
+```
+Freed ~21GB. Recommend scheduling periodic cleanup or adding a cron job.
+
+#### 6. Admin Endpoint Test Script
+
+`scripts/test/test-endpoints.sh` updated to authenticate with admin credentials before testing protected endpoints. Auth reads from env:
+```bash
+ADMIN_EMAIL=... ADMIN_PASSWORD=... ./scripts/test/test-endpoints.sh
+# or set in backend/.env — script auto-loads it
+```
+
+Script now:
+1. Logs in via `POST /api/auth/login`, stores cookie in temp jar
+2. Passes cookie to all admin endpoint tests
+3. Cleans up cookie jar on exit
+
+File removed from git tracking (added to `.gitignore`) — safe to store credentials in `backend/.env` without risk of committing them.
