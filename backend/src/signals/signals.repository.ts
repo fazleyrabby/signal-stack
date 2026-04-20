@@ -250,11 +250,21 @@ export class SignalsRepository {
       .orderBy(desc(sql`count(*)`));
 
     const aggregated = results.reduce((acc, curr) => {
-      let provider = curr.provider || 'none';
-      // Consolidate PicoClaw/Mac variants into one label
-      if (['pico_router', 'pico_mac', 'mac_local'].includes(provider)) {
+      let raw = (curr.provider || 'none').toLowerCase().replace(/[\s_-]/g, '');
+      let provider = 'other';
+
+      if (raw.includes('picoclaw') || raw.includes('maclocal')) {
         provider = 'picoLocal';
+      } else if (raw === 'local' || raw === 'vpslocal') {
+        provider = 'vpsLocal';
+      } else if (raw.includes('groq')) {
+        provider = 'groq';
+      } else if (raw.includes('openrouter')) {
+        provider = 'openrouter';
+      } else {
+        provider = raw;
       }
+
       acc[provider] = (acc[provider] || 0) + curr.count;
       return acc;
     }, {} as Record<string, number>);
