@@ -670,7 +670,7 @@ export default function AdminDashboard() {
             <section className="space-y-3">
               <SectionHeader
                 icon={Cpu}
-                title="AI Usage by Provider"
+                title="AI Usage by Provider (v2.0)"
                 error={providerStatsError}
                 subtitle="Total signals processed per AI provider (all time)"
               />
