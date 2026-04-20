@@ -19,7 +19,7 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV API_BACKEND_URL=${API_BACKEND_URL}
 
 # Build Next.js app
-RUN npm run build
+RUN rm -rf .next && npm run build
 
 # Production image
 FROM node:20-alpine
