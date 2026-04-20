@@ -6,19 +6,46 @@ const withNextIntl = createNextIntlPlugin('./src/i18n.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Next.js 16 moved turbopack config from experimental.turbo to top-level turbopack.
-  // next-intl's plugin sets the alias via experimental.turbo (now ignored), so we
-  // must manually add the alias here so next-intl can find its config at runtime.
+  // Fix for next-intl with Turbopack
   turbopack: {
     resolveAlias: {
       'next-intl/config': './src/i18n.ts',
     },
   },
+
+  // Proxy API to backend
   async rewrites() {
     return [
       {
         source: '/api/:path*',
         destination: `${API_BACKEND}/api/:path*`,
+      },
+    ];
+  },
+
+  // 🔥 Proper CDN caching (Cloudflare-compatible)
+  async headers() {
+    return [
+      // ✅ Cache all frontend pages
+      {
+        source: '/((?!api|_next|favicon.ico).*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=7200, stale-while-revalidate=86400',
+          },
+        ],
+      },
+
+      // ❌ Never cache API routes
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store',
+          },
+        ],
       },
     ];
   },

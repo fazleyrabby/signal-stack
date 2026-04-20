@@ -325,8 +325,12 @@ export class AIService {
       groqAllTime,
       openrouterToday,
       openrouterAllTime,
+      localToday,
+      localAllTime,
       macLocalToday,
       macLocalAllTime,
+      picoToday,
+      picoAllTime,
     ] = await Promise.all([
       localEnabled
         ? this.local.checkHealth()
@@ -341,8 +345,12 @@ export class AIService {
       this.redisService.getTokenUsage('groq', false),
       this.redisService.getTokenUsage('openrouter', true),
       this.redisService.getTokenUsage('openrouter', false),
+      this.redisService.getTokenUsage('local', true),
+      this.redisService.getTokenUsage('local', false),
       this.redisService.getTokenUsage('mac_local', true),
       this.redisService.getTokenUsage('mac_local', false),
+      this.redisService.getTokenUsage('picoclaw', true),
+      this.redisService.getTokenUsage('picoclaw', false),
     ]);
 
     const config = await this.settingsService.getModelConfig();
@@ -363,7 +371,11 @@ export class AIService {
       tokenUsage: {
         groq: { today: groqToday.total, allTime: groqAllTime.total },
         openrouter: { today: openrouterToday.total, allTime: openrouterAllTime.total },
-        macLocal: { today: macLocalToday.total, allTime: macLocalAllTime.total },
+        picoLocal: { 
+          today: macLocalToday.total + picoToday.total, 
+          allTime: macLocalAllTime.total + picoAllTime.total 
+        },
+        vpsLocal: { today: localToday.total, allTime: localAllTime.total },
       },
     };
   }

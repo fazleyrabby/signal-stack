@@ -598,6 +598,17 @@ export default function SettingsPage() {
             {/* Live Status Summary */}
             <div className="flex flex-wrap gap-6 px-4 py-2 bg-card/20 border border-border/20 rounded-lg mb-2">
               <div className="flex items-center gap-2">
+                <StatusDot status={aiHealth?.local?.status || 'disabled'} />
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">VPS Local</span>
+                  {aiHealth?.tokenUsage?.vpsLocal && (
+                    <span className="text-[8px] font-mono text-muted-foreground leading-none mt-0.5">
+                      {aiHealth.tokenUsage.vpsLocal?.today?.total?.toLocaleString() ?? 0} tkn
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 border-l border-border/20 pl-6">
                 <StatusDot status={aiHealth?.groq?.status || 'unknown'} />
                 <span className="text-[10px] font-bold uppercase tracking-wider">Groq Cloud</span>
               </div>
@@ -618,9 +629,9 @@ export default function SettingsPage() {
                       <span className="text-[8px] font-mono opacity-50">({aiHealth.macLocal.latency}ms)</span>
                     )}
                   </span>
-                  {aiHealth?.tokenUsage?.macLocal && (
+                  {aiHealth?.tokenUsage?.picoLocal && (
                     <span className="text-[8px] font-mono text-muted-foreground leading-none mt-0.5">
-                      {aiHealth.tokenUsage.macLocal?.today?.total?.toLocaleString() ?? 0} tkn
+                      {aiHealth.tokenUsage.picoLocal?.today?.total?.toLocaleString() ?? 0} tkn
                     </span>
                   )}
                 </div>

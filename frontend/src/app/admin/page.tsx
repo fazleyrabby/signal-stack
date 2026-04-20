@@ -513,6 +513,14 @@ export default function AdminDashboard() {
                 {aiHealth?.local?.latency !== undefined && (
                   <p className="text-[10px] text-muted-foreground">{aiHealth.local.latency}ms latency</p>
                 )}
+                {aiHealth?.tokenUsage?.vpsLocal && (
+                  <div className="pt-1.5 border-t border-border/10">
+                    <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                      <span>Today</span>
+                      <span>{aiHealth.tokenUsage.vpsLocal?.today?.total?.toLocaleString() ?? 0} tkn</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* PicoClaw Mac */}
@@ -531,11 +539,11 @@ export default function AdminDashboard() {
                 {aiHealth?.macLocal?.latency !== undefined && (
                   <p className="text-[10px] text-muted-foreground">{aiHealth.macLocal.latency}ms latency</p>
                 )}
-                {aiHealth?.tokenUsage?.macLocal && (
+                {aiHealth?.tokenUsage?.picoLocal && (
                   <div className="pt-1.5 border-t border-border/10">
                     <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">
                       <span>Today</span>
-                      <span>{aiHealth.tokenUsage.macLocal?.today?.total?.toLocaleString() ?? 0} tkn</span>
+                      <span>{aiHealth.tokenUsage.picoLocal?.today?.total?.toLocaleString() ?? 0} tkn</span>
                     </div>
                   </div>
                 )}
@@ -666,14 +674,16 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {providerStats.map((stat) => {
                   const cfg = {
+                    vpsLocal:      { label: "VPS Local",     accent: "bg-indigo-500/15 dark:bg-indigo-500/10",   icon: <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
                     local:         { label: "VPS Local",     accent: "bg-indigo-500/15 dark:bg-indigo-500/10",   icon: <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
                     groq:          { label: "Groq Cloud",    accent: "bg-blue-500/15 dark:bg-blue-500/10",         icon: <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /> },
                     openrouter:    { label: "OpenRouter",    accent: "bg-violet-500/15 dark:bg-violet-500/10",   icon: <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" /> },
-                    pico_router:   { label: "PicoClaw Router", accent: "bg-teal-500/15 dark:bg-teal-500/10",     icon: <Bot className="w-4 h-4 text-teal-600 dark:text-teal-400" /> },
-                    pico_mac:      { label: "PicoClaw Mac",    accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
-                    mac_local:     { label: "PicoClaw Mac",    accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
+                    picoLocal:     { label: "PicoLocal",     accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
+                    pico_router:   { label: "PicoLocal",     accent: "bg-teal-500/15 dark:bg-teal-500/10",     icon: <Bot className="w-4 h-4 text-teal-600 dark:text-teal-400" /> },
+                    pico_mac:      { label: "PicoLocal",     accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
+                    mac_local:     { label: "PicoLocal",     accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
                     none:          { label: "None",          accent: "bg-zinc-500/15 dark:bg-zinc-500/10",         icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> },
-                  }[stat.provider] ?? { label: "PicoClaw",      accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> };
+                  }[stat.provider] ?? { label: "PicoLocal",      accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> };
                   return (
                     <StatCard key={stat.provider} label={cfg.label} value={stat.count.toLocaleString()} icon={cfg.icon} accent={cfg.accent} />
                   );

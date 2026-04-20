@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { logEvent } from '../../common/logger';
 import { SettingsService } from '../settings.service';
+import { RedisService } from '../redis.service';
 
 @Injectable()
 export class LocalProvider {
@@ -15,6 +16,7 @@ export class LocalProvider {
   constructor(
     private readonly configService: ConfigService,
     private readonly settingsService: SettingsService,
+    private readonly redisService: RedisService,
   ) {
     this.baseUrl =
       this.configService.get<string>('LOCAL_AI_URL') || 'http://llama:8080';
@@ -60,6 +62,17 @@ export class LocalProvider {
       }
 
       const data = await response.json();
+
+      // Track token usage
+      const usage = data?.usage;
+      if (usage) {
+        await this.redisService.trackTokens(
+          'local',
+          usage.prompt_tokens || 0,
+          usage.completion_tokens || 0,
+        );
+      }
+
       const message = data?.choices?.[0]?.message;
       const result = (
         message?.content ||

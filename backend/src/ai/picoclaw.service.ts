@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { logEvent } from '../common/logger';
+import { RedisService } from './redis.service';
 
 @Injectable()
 export class PicoClawService {
@@ -12,7 +13,10 @@ export class PicoClawService {
   private readonly CIRCUIT_BREAKER_LIMIT = 3;
   private readonly CIRCUIT_BREAKER_RESET_MS = 60000;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
+  ) {
     this.baseUrl = this.configService.get<string>('PICOCLAW_URL', 'http://192.168.0.213:9000');
     this.timeout = this.configService.get<number>('PICOCLAW_TIMEOUT', 3000);
     this.enabled = this.configService.get<boolean>('PICOCLAW_ENABLED', true);
@@ -38,6 +42,16 @@ export class PicoClawService {
 
       const data = await response.json();
       if (data.error) throw new Error(data.error);
+
+      // Track token usage
+      const usage = data?.usage;
+      if (usage) {
+        await this.redisService.trackTokens(
+          'picoclaw',
+          usage.prompt_tokens || 0,
+          usage.completion_tokens || 0,
+        );
+      }
 
       this.failureCount = 0;
       logEvent('info', 'picoclaw_translate_success', { targetLang, provider: data.provider });
@@ -74,6 +88,17 @@ export class PicoClawService {
       }
 
       const data = await response.json();
+
+      // Track token usage
+      const usage = data?.usage;
+      if (usage) {
+        await this.redisService.trackTokens(
+          'picoclaw',
+          usage.prompt_tokens || 0,
+          usage.completion_tokens || 0,
+        );
+      }
+
       this.failureCount = 0; // Reset on success
       
       logEvent('info', 'picoclaw_success', { provider: data.provider });
