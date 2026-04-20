@@ -680,7 +680,7 @@ export default function AdminDashboard() {
                     const raw = (curr.provider || 'none').toLowerCase().replace(/[\s_-]/g, '');
                     let provider = 'other';
                     
-                    if (raw.includes('picoclaw') || raw.includes('maclocal')) {
+                    if (raw.includes('picoclaw') || raw.includes('maclocal') || raw === 'picolocal' || raw === 'picomac' || raw === 'picorouter' || raw === 'picofallback') {
                       provider = 'picoLocal';
                     } else if (raw === 'local' || raw === 'vpslocal') {
                       provider = 'vpsLocal';
