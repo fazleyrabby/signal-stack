@@ -11,12 +11,13 @@ import { useRouter } from "next/navigation";
 import type { SignalStats } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => {
   if (!r.ok) throw new Error("Unauthorized or server error");
   return r.json();
 });
 
+// Build v1.0.2 - Force aggregation refresh
 type ProviderHealth = {
   status: "healthy" | "unhealthy" | "no_api_key" | "disabled";
   latency?: number;
