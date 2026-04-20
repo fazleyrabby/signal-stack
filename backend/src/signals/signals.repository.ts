@@ -249,10 +249,20 @@ export class SignalsRepository {
       .groupBy(signals.aiProvider)
       .orderBy(desc(sql`count(*)`));
 
-    return results.map((r) => ({
-      provider: r.provider || 'none',
-      count: r.count,
-    }));
+    const aggregated = results.reduce((acc, curr) => {
+      let provider = curr.provider || 'none';
+      // Consolidate PicoClaw/Mac variants into one label
+      if (['pico_router', 'pico_mac', 'mac_local'].includes(provider)) {
+        provider = 'picoLocal';
+      }
+      acc[provider] = (acc[provider] || 0) + curr.count;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(aggregated).map(([provider, count]) => ({
+      provider,
+      count,
+    })).sort((a, b) => b.count - a.count);
   }
 
   async getTrends() {
@@ -297,6 +307,7 @@ export class SignalsRepository {
             processed: sql<number>`count(*) FILTER (WHERE signals.ai_processed = true)::int`,
             failed: sql<number>`count(*) FILTER (WHERE signals.ai_failed = true)::int`,
             local: sql<number>`count(*) FILTER (WHERE signals.ai_provider = 'local' AND signals.ai_processed = true)::int`,
+            picoLocal: sql<number>`count(*) FILTER (WHERE signals.ai_provider IN ('pico_router', 'pico_mac', 'mac_local') AND signals.ai_processed = true)::int`,
             groq: sql<number>`count(*) FILTER (WHERE signals.ai_provider = 'groq' AND signals.ai_processed = true)::int`,
             openrouter: sql<number>`count(*) FILTER (WHERE signals.ai_provider = 'openrouter' AND signals.ai_processed = true)::int`,
           })
@@ -337,6 +348,7 @@ export class SignalsRepository {
       failed: aiStatsResult[0]?.failed || 0,
       byProvider: {
         local: aiStatsResult[0]?.local || 0,
+        picoLocal: aiStatsResult[0]?.picoLocal || 0,
         groq: aiStatsResult[0]?.groq || 0,
         openrouter: aiStatsResult[0]?.openrouter || 0,
       },
