@@ -57,12 +57,11 @@ const PROVIDERS: ProviderMeta[] = [
   {
     id: 'pico_router',
     name: 'PicoClaw Router',
-    subtitle: 'Pure proxy to Mac — disabled (redundant with mac_local)',
+    subtitle: 'LXC on LAN — proxies to Mac LlamaCPP via local network',
     icon: <Router className="w-4 h-4" />,
     type: 'local',
     color: 'teal',
-    usedIn: [],
-    disabled: true,
+    usedIn: ['summarization', 'translation'],
   },
   {
     id: 'mac_local',
