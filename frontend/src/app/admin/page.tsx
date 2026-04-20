@@ -687,6 +687,11 @@ export default function AdminDashboard() {
                   }, {} as Record<string, number>);
 
                   return Object.entries(aggregated)
+                    .sort((a, b) => {
+                      if (a[0] === 'picoLocal') return -1;
+                      if (b[0] === 'picoLocal') return 1;
+                      return b[1] - a[1];
+                    })
                     .map(([provider, count]) => {
                       const cfg = {
                         vpsLocal:      { label: "VPS Local",     accent: "bg-indigo-500/15 dark:bg-indigo-500/10",   icon: <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
@@ -699,8 +704,7 @@ export default function AdminDashboard() {
                       return (
                         <StatCard key={provider} label={cfg.label} value={count.toLocaleString()} icon={cfg.icon} accent={cfg.accent} />
                       );
-                    })
-                    .sort((a, b) => (a.key === 'picoLocal' ? -1 : 1)); // Keep PicoLocal prominent
+                    });
                 })()}
               </div>
             </section>
