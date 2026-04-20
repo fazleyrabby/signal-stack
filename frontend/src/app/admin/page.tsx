@@ -676,12 +676,23 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {(() => {
                   const aggregated = providerStats.reduce((acc, curr) => {
-                    let provider = curr.provider || 'none';
-                    if (['picoLocal', 'pico_router', 'pico_mac', 'mac_local'].includes(provider)) {
+                    const raw = (curr.provider || 'none').toLowerCase().replace(/[\s_-]/g, '');
+                    let provider = 'other';
+                    
+                    if (raw.includes('picoclaw') || raw.includes('maclocal')) {
                       provider = 'picoLocal';
-                    } else if (['local', 'vpsLocal'].includes(provider)) {
+                    } else if (raw === 'local' || raw === 'vpslocal') {
                       provider = 'vpsLocal';
+                    } else if (raw.includes('groq')) {
+                      provider = 'groq';
+                    } else if (raw.includes('openrouter')) {
+                      provider = 'openrouter';
+                    } else if (raw === 'none') {
+                      provider = 'none';
+                    } else {
+                      provider = raw;
                     }
+
                     acc[provider] = (acc[provider] || 0) + curr.count;
                     return acc;
                   }, {} as Record<string, number>);
@@ -697,9 +708,9 @@ export default function AdminDashboard() {
                         vpsLocal:      { label: "VPS Local",     accent: "bg-indigo-500/15 dark:bg-indigo-500/10",   icon: <Bot className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> },
                         groq:          { label: "Groq Cloud",    accent: "bg-blue-500/15 dark:bg-blue-500/10",         icon: <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /> },
                         openrouter:    { label: "OpenRouter",    accent: "bg-violet-500/15 dark:bg-violet-500/10",   icon: <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" /> },
-                        picoLocal:     { label: "PicoLocal",     accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
+                        picoLocal:     { label: "PicoClaw",      accent: "bg-orange-500/15 dark:bg-orange-500/10", icon: <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" /> },
                         none:          { label: "None",          accent: "bg-zinc-500/15 dark:bg-zinc-500/10",         icon: <Bot className="w-4 h-4 text-zinc-600 dark:text-zinc-400" /> },
-                      }[provider] ?? { label: provider, accent: "bg-zinc-500/15", icon: <Bot className="w-4 h-4" /> };
+                      }[provider] ?? { label: provider.toUpperCase(), accent: "bg-zinc-500/15", icon: <Bot className="w-4 h-4" /> };
 
                       return (
                         <StatCard key={provider} label={cfg.label} value={count.toLocaleString()} icon={cfg.icon} accent={cfg.accent} />
