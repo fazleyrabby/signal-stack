@@ -369,13 +369,13 @@ export class AIService {
       summarizationPipeline,
       translationPipeline,
       tokenUsage: {
-        groq: { today: groqToday.total, allTime: groqAllTime.total },
-        openrouter: { today: openrouterToday.total, allTime: openrouterAllTime.total },
-        picoLocal: { 
-          today: macLocalToday.total + picoToday.total, 
-          allTime: macLocalAllTime.total + picoAllTime.total 
+        groq: { today: groqToday, allTime: groqAllTime },
+        openrouter: { today: openrouterToday, allTime: openrouterAllTime },
+        picoLocal: {
+          today: { prompt: macLocalToday.prompt + picoToday.prompt, completion: macLocalToday.completion + picoToday.completion, total: macLocalToday.total + picoToday.total },
+          allTime: { prompt: macLocalAllTime.prompt + picoAllTime.prompt, completion: macLocalAllTime.completion + picoAllTime.completion, total: macLocalAllTime.total + picoAllTime.total },
         },
-        vpsLocal: { today: localToday.total, allTime: localAllTime.total },
+        vpsLocal: { today: localToday, allTime: localAllTime },
       },
     };
   }
