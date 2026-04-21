@@ -198,7 +198,7 @@ export class AIService {
           // Also try PicoClaw router (proxies to Mac)
           if (!summary || this.isLowQuality(summary)) {
             const picoResult = await this.picoClaw.process(trimmedContent, score);
-            if (picoResult?.result && picoResult.provider === 'mac') {
+            if (picoResult?.result && (picoResult.provider === 'mac' || picoResult.provider === 'fallback')) {
               const picoSummary = typeof picoResult.result === 'string'
                 ? picoResult.result
                 : JSON.stringify(picoResult.result);
@@ -211,7 +211,7 @@ export class AIService {
         } else if (providerId === 'pico_router') {
           // Dedicated Local AI Router (LXC Proxy)
           const picoResult = await this.picoClaw.process(trimmedContent, score);
-          if (picoResult?.result && picoResult.provider === 'mac') {
+          if (picoResult?.result && (picoResult.provider === 'mac' || picoResult.provider === 'fallback')) {
             const picoSummary = typeof picoResult.result === 'string'
               ? picoResult.result
               : JSON.stringify(picoResult.result);
