@@ -206,12 +206,9 @@ export class AIService {
               let picoSummary = '';
               if (picoResult.provider === 'mac' && (picoResult.result as any).choices) {
                 picoSummary = (picoResult.result as any).choices[0]?.message?.content || '';
-              } else {
-                picoSummary = typeof picoResult.result === 'string'
-                  ? picoResult.result
-                  : JSON.stringify(picoResult.result);
-              }
+              } 
               
+              // If it's a real summary (not a fallback message), use it
               if (picoSummary && !this.isLowQuality(picoSummary)) {
                 summary = picoSummary;
                 provider = 'pico_mac';
@@ -225,10 +222,6 @@ export class AIService {
             let picoSummary = '';
             if (picoResult.provider === 'mac' && (picoResult.result as any).choices) {
               picoSummary = (picoResult.result as any).choices[0]?.message?.content || '';
-            } else {
-              picoSummary = typeof picoResult.result === 'string'
-                ? picoResult.result
-                : JSON.stringify(picoResult.result);
             }
 
             if (picoSummary && !this.isLowQuality(picoSummary)) {
