@@ -30,8 +30,16 @@ export class AIService {
     private readonly settingsService: SettingsService,
   ) {}
 
-  private isLowQuality(summary: string): boolean {
-    if (!summary || summary.length < 20) return true;
+  private isLowQuality(text: string): boolean {
+    if (!text || text.length < 20) return true;
+
+    // 1. Detect if the output is raw JSON (broken parsing)
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) return true;
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) return true;
+    if (text.includes('"choices":') || text.includes('"message":') || text.includes('"content":')) return true;
+
+    // 2. Comprehensive refusal/generic phrases
     const genericPhrases = [
       'provide the content',
       'no content provided',
@@ -39,10 +47,14 @@ export class AIService {
       'helpful assistant',
       'as an ai language model',
       "can't provide information",
+      "cannot provide information",
       'do not participate',
       'political issues',
+      'sensitive nature',
+      'inappropriate content',
+      'against safety policy',
     ];
-    const lower = summary.toLowerCase();
+    const lower = text.toLowerCase();
     return genericPhrases.some((phrase) => lower.includes(phrase));
   }
 
@@ -67,7 +79,15 @@ export class AIService {
 
     const parseResult = (response: string, fallbackTitle: string, fallbackSummary: string) => {
       const parsed = JSON.parse(response.replace(/```json|```/g, '').trim());
-      return { title: parsed.title || fallbackTitle, aiSummary: parsed.aiSummary || fallbackSummary };
+      const title = parsed.title || fallbackTitle;
+      const aiSummary = parsed.aiSummary || fallbackSummary;
+
+      // Validate translation quality
+      if (this.isLowQuality(aiSummary) || (title && title.length < 5)) {
+        return null;
+      }
+
+      return { title, aiSummary };
     };
 
     try {
@@ -79,6 +99,7 @@ export class AIService {
             // Direct Mac local inference
             const picoResult = await this.picoClaw.translate(title, summary, targetLang);
             if (picoResult && !('error' in picoResult)) {
+              if (this.isLowQuality(picoResult.aiSummary)) continue;
               logEvent('info', 'ai_translation_completed', { targetLang, source: providerId });
               return { title: picoResult.title, aiSummary: picoResult.aiSummary };
             }
@@ -86,29 +107,39 @@ export class AIService {
             // Local AI Router (LXC Proxy)
             const picoResult = await this.picoClaw.translate(title, summary, targetLang);
             if (picoResult && !('error' in picoResult)) {
+              if (this.isLowQuality(picoResult.aiSummary)) continue;
               logEvent('info', 'ai_translation_completed', { targetLang, source: 'pico_router' });
               return { title: picoResult.title, aiSummary: picoResult.aiSummary };
             }
           } else if (providerId === 'groq') {
             const res = await this.groq.complete(prompt, systemPrompt, modelOverride);
             if (res) {
-              logEvent('info', 'ai_translation_completed', { targetLang, source: 'groq' });
-              return parseResult(res, title, summary);
+              const result = parseResult(res, title, summary);
+              if (result) {
+                logEvent('info', 'ai_translation_completed', { targetLang, source: 'groq' });
+                return result;
+              }
             }
             if (this.groq.lastError === 429) this.setCooldown('groq', 60000);
           } else if (providerId === 'openrouter') {
             const res = await this.openRouter.complete(prompt, systemPrompt, modelOverride);
             if (res) {
-              logEvent('info', 'ai_translation_completed', { targetLang, source: 'openrouter' });
-              return parseResult(res, title, summary);
+              const result = parseResult(res, title, summary);
+              if (result) {
+                logEvent('info', 'ai_translation_completed', { targetLang, source: 'openrouter' });
+                return result;
+              }
             }
             if (this.openRouter.lastError === 429) this.setCooldown('openrouter', 60000);
           } else if (providerId === 'local') {
             if (await this.local.isEnabled()) {
               const res = await this.local.summarize('Translation Request', prompt);
               if (res) {
-                logEvent('info', 'ai_translation_completed', { targetLang, source: 'local' });
-                return parseResult(res, title, summary);
+                const result = parseResult(res, title, summary);
+                if (result) {
+                  logEvent('info', 'ai_translation_completed', { targetLang, source: 'local' });
+                  return result;
+                }
               }
             }
           }
@@ -231,7 +262,7 @@ export class AIService {
           }
         } else if (providerId === 'groq') {
           const groqSummary = await this.groq.summarize(title, trimmedContent);
-          if (groqSummary) {
+          if (groqSummary && !this.isLowQuality(groqSummary)) {
             summary = groqSummary;
             provider = 'groq';
           } else if (this.groq.lastError === 429) {
@@ -240,7 +271,7 @@ export class AIService {
         } else if (providerId === 'openrouter') {
           logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'openrouter' });
           const orSummary = await this.openRouter.summarize(title, trimmedContent);
-          if (orSummary) {
+          if (orSummary && !this.isLowQuality(orSummary)) {
             summary = orSummary;
             provider = 'openrouter';
           } else if (this.openRouter.lastError === 429) {
@@ -251,7 +282,14 @@ export class AIService {
             logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'local' });
             let localRetries = 0;
             while (!summary && localRetries < 2) {
-              try { summary = await this.local.summarize(title, trimmedContent); } catch { summary = null; }
+              try { 
+                const localSummary = await this.local.summarize(title, trimmedContent); 
+                if (localSummary && !this.isLowQuality(localSummary)) {
+                  summary = localSummary;
+                }
+              } catch { 
+                summary = null; 
+              }
               localRetries++;
             }
             if (summary) provider = 'local';
