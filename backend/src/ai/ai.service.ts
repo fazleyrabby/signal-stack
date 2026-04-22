@@ -37,6 +37,10 @@ export class AIService {
       'no content provided',
       'i am an ai',
       'helpful assistant',
+      'as an ai language model',
+      "can't provide information",
+      'do not participate',
+      'political issues',
     ];
     const lower = summary.toLowerCase();
     return genericPhrases.some((phrase) => lower.includes(phrase));
@@ -199,10 +203,16 @@ export class AIService {
           if (!summary || this.isLowQuality(summary)) {
             const picoResult = await this.picoClaw.process(trimmedContent, score);
             if (picoResult?.result && (picoResult.provider === 'mac' || picoResult.provider === 'fallback')) {
-              const picoSummary = typeof picoResult.result === 'string'
-                ? picoResult.result
-                : JSON.stringify(picoResult.result);
-              if (!this.isLowQuality(picoSummary)) {
+              let picoSummary = '';
+              if (picoResult.provider === 'mac' && (picoResult.result as any).choices) {
+                picoSummary = (picoResult.result as any).choices[0]?.message?.content || '';
+              } else {
+                picoSummary = typeof picoResult.result === 'string'
+                  ? picoResult.result
+                  : JSON.stringify(picoResult.result);
+              }
+              
+              if (picoSummary && !this.isLowQuality(picoSummary)) {
                 summary = picoSummary;
                 provider = 'pico_mac';
               }
@@ -212,10 +222,16 @@ export class AIService {
           // Dedicated Local AI Router (LXC Proxy)
           const picoResult = await this.picoClaw.process(trimmedContent, score);
           if (picoResult?.result && (picoResult.provider === 'mac' || picoResult.provider === 'fallback')) {
-            const picoSummary = typeof picoResult.result === 'string'
-              ? picoResult.result
-              : JSON.stringify(picoResult.result);
-            if (!this.isLowQuality(picoSummary)) {
+            let picoSummary = '';
+            if (picoResult.provider === 'mac' && (picoResult.result as any).choices) {
+              picoSummary = (picoResult.result as any).choices[0]?.message?.content || '';
+            } else {
+              picoSummary = typeof picoResult.result === 'string'
+                ? picoResult.result
+                : JSON.stringify(picoResult.result);
+            }
+
+            if (picoSummary && !this.isLowQuality(picoSummary)) {
               summary = picoSummary;
               provider = 'pico_router';
             }
