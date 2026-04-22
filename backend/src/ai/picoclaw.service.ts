@@ -89,8 +89,8 @@ export class PicoClawService {
 
       const data = await response.json();
 
-      // Track token usage — result.usage when Mac processed, top-level usage for translate
-      const usage = data?.result?.usage ?? data?.usage;
+      // Track token usage — check top level and nested result.usage
+      const usage = data?.usage ?? data?.result?.usage;
       if (usage) {
         await this.redisService.trackTokens(
           'picoclaw',
