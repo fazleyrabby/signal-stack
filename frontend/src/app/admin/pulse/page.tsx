@@ -269,14 +269,14 @@ export default function PulseAdmin() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl min-h-screen text-slate-100">
+    <div className="container mx-auto p-6 max-w-7xl min-h-screen text-foreground">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-6 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-frost-400 via-frost-200 to-snow-100 bg-clip-text text-transparent">
             SignalStack Pulse
           </h1>
-          <p className="text-slate-300 mt-1">
+          <p className="text-muted-foreground mt-1">
             Automated AI post drafting and social distribution management pipeline.
           </p>
         </div>
@@ -298,7 +298,7 @@ export default function PulseAdmin() {
               mutateSettings();
               mutateLogs();
             }}
-            className="flex items-center justify-center p-2 rounded-xl bg-card border border-border/40 hover:bg-slate-800 transition-colors text-slate-400 hover:text-slate-200"
+            className="flex items-center justify-center p-2 rounded-xl bg-card border border-border/40 hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
             title="Refresh Data"
           >
             <RefreshCw className="w-4 h-4" />
@@ -315,8 +315,8 @@ export default function PulseAdmin() {
             className={cn(
               "px-5 py-3 text-sm font-medium transition-all border-b-2 capitalize relative shrink-0",
               activeTab === tab
-                ? "border-frost-400 text-frost-300"
-                : "border-transparent text-slate-400 hover:text-slate-200 hover:border-border/40"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/40"
             )}
           >
             {tab === "overview" && <span className="flex items-center gap-2"><Activity className="w-4 h-4" /> Overview</span>}
@@ -329,8 +329,8 @@ export default function PulseAdmin() {
 
       {!isLoaded ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <RefreshCw className="w-8 h-8 animate-spin text-frost-400" />
-          <p className="text-slate-400 text-sm">Synchronizing Pulse engine...</p>
+          <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground text-sm">Synchronizing Pulse engine...</p>
         </div>
       ) : (
         <>
@@ -341,20 +341,20 @@ export default function PulseAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl flex items-center justify-between shadow-xl">
                   <div>
-                    <p className="text-slate-300 text-sm font-medium">Daily AI Draft Count</p>
-                    <h3 className="text-3xl font-bold mt-1 text-slate-100">
+                    <p className="text-muted-foreground text-sm font-medium">Daily AI Draft Count</p>
+                    <h3 className="text-3xl font-bold mt-1 text-foreground">
                       {logsData.filter(l => l.action === "generated" && new Date(l.createdAt).toDateString() === new Date().toDateString()).length}
-                      <span className="text-sm font-normal text-slate-400"> / {settingsForm.maxDraftsPerDay} max</span>
+                      <span className="text-sm font-normal text-muted-foreground"> / {settingsForm.maxDraftsPerDay} max</span>
                     </h3>
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-frost-500/10 flex items-center justify-center border border-frost-500/20 text-frost-400">
+                  <div className="w-12 h-12 rounded-xl bg-frost-500/10 flex items-center justify-center border border-frost-500/20 text-primary">
                     <Cpu className="w-5 h-5" />
                   </div>
                 </div>
 
                 <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl flex items-center justify-between shadow-xl">
                   <div>
-                    <p className="text-slate-300 text-sm font-medium">Pending Review</p>
+                    <p className="text-muted-foreground text-sm font-medium">Pending Review</p>
                     <h3 className="text-3xl font-bold mt-1 text-amber-400">
                       {draftsData?.drafts.filter(d => d.status === "generated").length || 0}
                     </h3>
@@ -366,10 +366,10 @@ export default function PulseAdmin() {
 
                 <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl flex items-center justify-between shadow-xl">
                   <div>
-                    <p className="text-slate-300 text-sm font-medium">X Daily Post Count</p>
+                    <p className="text-muted-foreground text-sm font-medium">X Daily Post Count</p>
                     <h3 className="text-3xl font-bold mt-1 text-emerald-400">
                       {logsData.filter(l => l.action === "published" && new Date(l.createdAt).toDateString() === new Date().toDateString()).length}
-                      <span className="text-sm font-normal text-slate-400"> / 17 limit</span>
+                      <span className="text-sm font-normal text-muted-foreground"> / 17 limit</span>
                     </h3>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400">
@@ -383,23 +383,23 @@ export default function PulseAdmin() {
                 {/* Integration Details */}
                 <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
                   <div>
-                    <h4 className="text-lg font-bold text-slate-200 mb-3 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-frost-400" /> Platform Integration Status
+                    <h4 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-primary" /> Platform Integration Status
                     </h4>
-                    <p className="text-sm text-slate-300 leading-relaxed mb-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                       Pulse automatically consumes technology signals that meet score thresholds and enqueues them for social updates.
                       Once generated, posts are placed in a review state where you can schedule or publish them.
                     </p>
-                    <div className="space-y-2 text-sm text-slate-300">
+                    <div className="space-y-2 text-sm text-muted-foreground">
                       <div className="flex justify-between py-1 border-b border-border/10">
                         <span>Auto-Draft Pipeline</span>
-                        <span className={settingsForm.autoDraftEnabled ? "text-emerald-400" : "text-slate-500"}>
+                        <span className={settingsForm.autoDraftEnabled ? "text-emerald-400" : "text-muted-foreground"}>
                           {settingsForm.autoDraftEnabled ? "Active" : "Disabled"}
                         </span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-border/10">
                         <span>Min Signal Score Threshold</span>
-                        <span className="text-frost-300 font-semibold">{settingsForm.minSignalScore}/10</span>
+                        <span className="text-primary font-semibold">{settingsForm.minSignalScore}/10</span>
                       </div>
                       <div className="flex justify-between py-1">
                         <span>X API Connection Status</span>
@@ -418,7 +418,7 @@ export default function PulseAdmin() {
                     </button>
                     <button
                       onClick={() => setActiveTab("settings")}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 transition-colors border border-border/40 rounded-xl text-sm font-medium text-slate-300"
+                      className="px-4 py-2 bg-muted hover:bg-accent transition-colors border border-border/40 rounded-xl text-sm font-medium text-muted-foreground"
                     >
                       Modify Parameters
                     </button>
@@ -428,27 +428,27 @@ export default function PulseAdmin() {
                 {/* Latest Logs summary */}
                 <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
                   <div>
-                    <h4 className="text-lg font-bold text-slate-200 mb-3 flex items-center gap-2">
-                      <Database className="w-4 h-4 text-frost-400" /> Recent Actions Feed
+                    <h4 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+                      <Database className="w-4 h-4 text-primary" /> Recent Actions Feed
                     </h4>
                     <div className="space-y-3 max-h-[220px] overflow-y-auto pr-2">
                       {logsData.length === 0 ? (
-                        <p className="text-slate-500 text-sm py-4 text-center">No action records found.</p>
+                        <p className="text-muted-foreground text-sm py-4 text-center">No action records found.</p>
                       ) : (
                         logsData.slice(0, 4).map((log) => (
                           <div key={log.id} className="flex gap-3 text-xs border-b border-border/10 pb-2">
                             <span className={cn(
                               "px-2 py-0.5 rounded-md font-mono shrink-0 h-fit uppercase text-[10px]",
                               log.action === "published" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-                              log.action === "generated" && "bg-frost-500/10 text-frost-400 border border-frost-500/20",
+                              log.action === "generated" && "bg-frost-500/10 text-primary border border-frost-500/20",
                               log.action === "failed" && "bg-red-500/10 text-red-400 border border-red-500/20",
                               log.action === "approved" && "bg-blue-500/10 text-blue-400 border border-blue-500/20",
                             )}>
                               {log.action}
                             </span>
                             <div className="flex-1">
-                              <p className="text-slate-300 font-medium">{log.detail}</p>
-                              <p className="text-slate-400 mt-0.5">{new Date(log.createdAt).toLocaleString()}</p>
+                              <p className="text-muted-foreground font-medium">{log.detail}</p>
+                              <p className="text-muted-foreground mt-0.5">{new Date(log.createdAt).toLocaleString()}</p>
                             </div>
                           </div>
                         ))
@@ -457,7 +457,7 @@ export default function PulseAdmin() {
                   </div>
                   <button
                     onClick={() => setActiveTab("logs")}
-                    className="mt-4 text-sm text-frost-400 hover:text-frost-300 font-medium flex items-center gap-1 self-start"
+                    className="mt-4 text-sm text-primary hover:text-primary font-medium flex items-center gap-1 self-start"
                   >
                     View All Logs <ArrowRight className="w-4 h-4" />
                   </button>
@@ -490,14 +490,14 @@ export default function PulseAdmin() {
                         "px-3.5 py-1.5 rounded-xl text-xs font-medium border transition-all",
                         draftStatus === filter.val
                           ? "bg-frost-600 border-frost-500 text-slate-900"
-                          : "bg-slate-900 border-border/40 hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                          : "bg-muted border-border/40 hover:bg-accent text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {filter.label}
                     </button>
                   ))}
                 </div>
-                <div className="text-xs text-slate-400 font-medium">
+                <div className="text-xs text-muted-foreground font-medium">
                   {draftsData ? `${draftsData.total} Drafts found` : "Loading..."}
                 </div>
               </div>
@@ -505,8 +505,8 @@ export default function PulseAdmin() {
               {/* Draft Grid */}
               {!draftsData || draftsData.drafts.length === 0 ? (
                 <div className="bg-card/20 border border-dashed border-border/40 py-20 rounded-2xl flex flex-col items-center justify-center gap-3">
-                  <Send className="w-10 h-10 text-slate-600" />
-                  <p className="text-slate-400 text-sm">No social drafts match this criteria.</p>
+                  <Send className="w-10 h-10 text-muted-foreground/50" />
+                  <p className="text-muted-foreground text-sm">No social drafts match this criteria.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -524,33 +524,33 @@ export default function PulseAdmin() {
                             draft.status === "scheduled" && "bg-blue-500/10 border-blue-500/30 text-blue-400",
                             draft.status === "published" && "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
                             draft.status === "failed" && "bg-red-500/10 border-red-500/30 text-red-400",
-                            draft.status === "rejected" && "bg-slate-700/10 border-slate-500/30 text-slate-400"
+                            draft.status === "rejected" && "bg-muted/30 border-border/40 text-muted-foreground"
                           )}>
                             {draft.status}
                           </span>
-                          <span className="text-[11px] text-slate-400 font-mono">
+                          <span className="text-[11px] text-muted-foreground font-mono">
                             {new Date(draft.createdAt).toLocaleDateString()}
                           </span>
                         </div>
 
                         {/* Post Text */}
-                        <p className="text-slate-200 text-sm font-medium leading-relaxed bg-slate-900/40 border border-border/10 p-3 rounded-xl mb-4 italic">
+                        <p className="text-foreground text-sm font-medium leading-relaxed bg-muted/40 border border-border/10 p-3 rounded-xl mb-4 italic">
                           "{draft.text}"
                         </p>
 
                         {/* Source Signal Context */}
                         {draft.signal && (
-                          <div className="bg-slate-900/60 p-3 rounded-xl border border-border/20 text-xs mb-4">
+                          <div className="bg-muted/60 p-3 rounded-xl border border-border/20 text-xs mb-4">
                             <div className="flex justify-between items-start gap-2 mb-1.5">
-                              <span className="font-semibold text-slate-300 line-clamp-1 flex-1">
+                              <span className="font-semibold text-muted-foreground line-clamp-1 flex-1">
                                 {draft.signal.title}
                               </span>
-                              <span className="bg-frost-500/15 text-frost-300 font-bold px-1.5 py-0.5 rounded text-[10px] shrink-0 border border-frost-500/20">
+                              <span className="bg-frost-500/15 text-primary font-bold px-1.5 py-0.5 rounded text-[10px] shrink-0 border border-frost-500/20">
                                 Score: {draft.signal.score}
                               </span>
                             </div>
                             {draft.signal.aiSummary && (
-                              <p className="text-slate-400 line-clamp-2 italic">{draft.signal.aiSummary}</p>
+                              <p className="text-muted-foreground line-clamp-2 italic">{draft.signal.aiSummary}</p>
                             )}
                           </div>
                         )}
@@ -575,7 +575,7 @@ export default function PulseAdmin() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => openEditModal(draft)}
-                            className="p-2 rounded-lg bg-slate-800 border border-border/40 hover:bg-slate-700 text-slate-300 hover:text-slate-100 transition-colors"
+                            className="p-2 rounded-lg bg-muted border border-border/40 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                             title="Edit Draft"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -621,17 +621,17 @@ export default function PulseAdmin() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="p-2 rounded-lg bg-card border border-border/40 hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-card transition-colors text-slate-400 hover:text-slate-200"
+                    className="p-2 rounded-lg bg-card border border-border/40 hover:bg-accent disabled:opacity-40 disabled:hover:bg-card transition-colors text-muted-foreground hover:text-foreground"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-sm font-medium text-slate-400">
+                  <span className="text-sm font-medium text-muted-foreground">
                     Page {currentPage} of {totalPages}
                   </span>
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg bg-card border border-border/40 hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-card transition-colors text-slate-400 hover:text-slate-200"
+                    className="p-2 rounded-lg bg-card border border-border/40 hover:bg-accent disabled:opacity-40 disabled:hover:bg-card transition-colors text-muted-foreground hover:text-foreground"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -644,14 +644,14 @@ export default function PulseAdmin() {
           {activeTab === "logs" && (
             <div className="bg-card/45 backdrop-blur-md border border-border/40 rounded-2xl p-6 shadow-xl space-y-4">
               <div>
-                <h4 className="text-lg font-bold text-slate-200 mb-1">Pulse Audit logs</h4>
-                <p className="text-sm text-slate-300">Chronological history of social publishing, errors, and approvals.</p>
+                <h4 className="text-lg font-bold text-foreground mb-1">Pulse Audit logs</h4>
+                <p className="text-sm text-muted-foreground">Chronological history of social publishing, errors, and approvals.</p>
               </div>
 
               <div className="border border-border/20 rounded-xl overflow-hidden">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                    <tr className="bg-slate-900 border-b border-border/40 text-slate-400 font-semibold text-xs uppercase">
+                    <tr className="bg-muted border-b border-border/40 text-muted-foreground font-semibold text-xs uppercase">
                       <th className="p-4">Action</th>
                       <th className="p-4">Detail</th>
                       <th className="p-4">Actor</th>
@@ -661,38 +661,38 @@ export default function PulseAdmin() {
                   <tbody className="divide-y divide-border/10">
                     {logsData.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="p-8 text-center text-slate-500">No logs found.</td>
+                        <td colSpan={4} className="p-8 text-center text-muted-foreground">No logs found.</td>
                       </tr>
                     ) : (
                       logsData.map((log) => (
-                        <tr key={log.id} className="hover:bg-slate-900/20 text-slate-300">
+                        <tr key={log.id} className="hover:bg-muted/20 text-foreground">
                           <td className="p-4 font-mono">
                             <span className={cn(
                               "px-2 py-0.5 rounded text-xs uppercase font-mono border",
                               log.action === "published" && "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
-                              log.action === "generated" && "bg-frost-500/10 border-frost-500/20 text-frost-400",
+                              log.action === "generated" && "bg-frost-500/10 border-frost-500/20 text-primary",
                               log.action === "failed" && "bg-red-500/10 border-red-500/20 text-red-400",
                               log.action === "approved" && "bg-blue-500/10 border-blue-500/20 text-blue-400",
-                              log.action === "rejected" && "bg-slate-700/10 border-slate-500/20 text-slate-400",
+                              log.action === "rejected" && "bg-muted/30 border-border/30 text-muted-foreground",
                             )}>
                               {log.action}
                             </span>
                           </td>
                           <td className="p-4 max-w-md">
-                            <p className="font-medium text-slate-200">{log.detail}</p>
+                            <p className="font-medium text-foreground">{log.detail}</p>
                             {log.xPostId && (
                               <a
                                 href={`https://x.com/i/web/status/${log.xPostId}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-xs text-frost-400 hover:underline flex items-center gap-0.5 mt-1"
+                                className="text-xs text-primary hover:underline flex items-center gap-0.5 mt-1"
                               >
                                 View Tweet <ExternalLink className="w-3 h-3" />
                               </a>
                             )}
                           </td>
-                          <td className="p-4 font-mono text-slate-300">{log.actorEmail || "system"}</td>
-                          <td className="p-4 text-slate-400">{new Date(log.createdAt).toLocaleString()}</td>
+                          <td className="p-4 font-mono text-muted-foreground">{log.actorEmail || "system"}</td>
+                          <td className="p-4 text-muted-foreground">{new Date(log.createdAt).toLocaleString()}</td>
                         </tr>
                       ))
                     )}
@@ -709,31 +709,31 @@ export default function PulseAdmin() {
               <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
                 <form onSubmit={handleSaveSettings} className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-200 mb-1 flex items-center gap-2">
-                      <Settings className="w-5 h-5 text-frost-400" /> Pipeline Configuration
+                    <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-primary" /> Pipeline Configuration
                     </h3>
-                    <p className="text-sm text-slate-300">Configure parameters for automatic drafting.</p>
+                    <p className="text-sm text-muted-foreground">Configure parameters for automatic drafting.</p>
                   </div>
 
                   <div className="space-y-4">
                     {/* Auto-Draft Toggle */}
-                    <div className="flex items-center justify-between p-4 bg-slate-900/40 border border-border/10 rounded-xl">
+                    <div className="flex items-center justify-between p-4 bg-muted/40 border border-border/10 rounded-xl">
                       <div>
-                        <label className="text-sm font-semibold text-slate-200">Auto Draft Generation</label>
-                        <p className="text-xs text-slate-300 mt-0.5">Automatically trigger AI drafts for new summarized signals.</p>
+                        <label className="text-sm font-semibold text-foreground">Auto Draft Generation</label>
+                        <p className="text-xs text-muted-foreground mt-0.5">Automatically trigger AI drafts for new summarized signals.</p>
                       </div>
                       <input
                         type="checkbox"
                         checked={settingsForm.autoDraftEnabled}
                         onChange={(e) => setSettingsForm({ ...settingsForm, autoDraftEnabled: e.target.checked })}
-                        className="w-4 h-4 rounded text-frost-600 focus:ring-frost-500 border-slate-700 bg-slate-800"
+                        className="w-4 h-4 rounded text-frost-600 focus:ring-frost-500 border-border bg-input"
                       />
                     </div>
 
                     {/* Min Score Input */}
                     <div className="space-y-1">
-                      <label className="text-sm font-semibold text-slate-300">Minimum Signal Score</label>
-                      <p className="text-xs text-slate-400 mb-1.5">Only signals with this score or higher are automatically drafted.</p>
+                      <label className="text-sm font-semibold text-muted-foreground">Minimum Signal Score</label>
+                      <p className="text-xs text-muted-foreground mb-1.5">Only signals with this score or higher are automatically drafted.</p>
                       <input
                         type="number"
                         min="1"
@@ -741,21 +741,21 @@ export default function PulseAdmin() {
                         step="0.5"
                         value={settingsForm.minSignalScore}
                         onChange={(e) => setSettingsForm({ ...settingsForm, minSignalScore: parseFloat(e.target.value) || 7 })}
-                        className="w-full bg-slate-900 border border-border/40 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-frost-500 transition-colors"
+                        className="w-full bg-input border border-border/40 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-frost-500 transition-colors"
                       />
                     </div>
 
                     {/* Max Drafts Input */}
                     <div className="space-y-1">
-                      <label className="text-sm font-semibold text-slate-300">Max AI Drafts / 24h</label>
-                      <p className="text-xs text-slate-400 mb-1.5">Daily limit on automated AI draft generation to preserve tokens.</p>
+                      <label className="text-sm font-semibold text-muted-foreground">Max AI Drafts / 24h</label>
+                      <p className="text-xs text-muted-foreground mb-1.5">Daily limit on automated AI draft generation to preserve tokens.</p>
                       <input
                         type="number"
                         min="1"
                         max="200"
                         value={settingsForm.maxDraftsPerDay}
                         onChange={(e) => setSettingsForm({ ...settingsForm, maxDraftsPerDay: parseInt(e.target.value, 10) || 20 })}
-                        className="w-full bg-slate-900 border border-border/40 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-frost-500 transition-colors"
+                        className="w-full bg-input border border-border/40 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-frost-500 transition-colors"
                       />
                     </div>
                   </div>
@@ -785,75 +785,75 @@ export default function PulseAdmin() {
               <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
                 <form onSubmit={handleConnectAccount} className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-200 mb-1 flex items-center gap-2">
-                      <Send className="w-5 h-5 text-frost-400" /> Connect X / Twitter API
+                    <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
+                      <Send className="w-5 h-5 text-primary" /> Connect X / Twitter API
                     </h3>
-                    <p className="text-sm text-slate-300">Configure write credentials using an X Developer app.</p>
+                    <p className="text-sm text-muted-foreground">Configure write credentials using an X Developer app.</p>
                   </div>
 
                   <div className="space-y-4">
                     {/* X Handle */}
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account Handle</label>
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account Handle</label>
                       <input
                         type="text"
                         placeholder="@MyXAccount"
                         value={accountForm.handle}
                         onChange={(e) => setAccountForm({ ...accountForm, handle: e.target.value })}
                         required
-                        className="w-full bg-slate-900 border border-border/40 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-frost-500 transition-colors text-sm"
+                        className="w-full bg-input border border-border/40 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-frost-500 transition-colors text-sm"
                       />
                     </div>
 
                     {/* API Key */}
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">App API Key (Consumer Key)</label>
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">App API Key (Consumer Key)</label>
                       <input
                         type="password"
                         placeholder="••••••••••••••••"
                         value={accountForm.apiKey}
                         onChange={(e) => setAccountForm({ ...accountForm, apiKey: e.target.value })}
                         required
-                        className="w-full bg-slate-900 border border-border/40 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-frost-500 transition-colors text-sm"
+                        className="w-full bg-input border border-border/40 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-frost-500 transition-colors text-sm"
                       />
                     </div>
 
                     {/* API Secret */}
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">App API Secret Key</label>
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">App API Secret Key</label>
                       <input
                         type="password"
                         placeholder="••••••••••••••••"
                         value={accountForm.apiSecret}
                         onChange={(e) => setAccountForm({ ...accountForm, apiSecret: e.target.value })}
                         required
-                        className="w-full bg-slate-900 border border-border/40 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-frost-500 transition-colors text-sm"
+                        className="w-full bg-input border border-border/40 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-frost-500 transition-colors text-sm"
                       />
                     </div>
 
                     {/* Access Token */}
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">User Access Token</label>
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">User Access Token</label>
                       <input
                         type="password"
                         placeholder="••••••••••••••••"
                         value={accountForm.accessToken}
                         onChange={(e) => setAccountForm({ ...accountForm, accessToken: e.target.value })}
                         required
-                        className="w-full bg-slate-900 border border-border/40 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-frost-500 transition-colors text-sm"
+                        className="w-full bg-input border border-border/40 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-frost-500 transition-colors text-sm"
                       />
                     </div>
 
                     {/* Access Token Secret */}
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">User Access Token Secret</label>
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">User Access Token Secret</label>
                       <input
                         type="password"
                         placeholder="••••••••••••••••"
                         value={accountForm.accessTokenSecret}
                         onChange={(e) => setAccountForm({ ...accountForm, accessTokenSecret: e.target.value })}
                         required
-                        className="w-full bg-slate-900 border border-border/40 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-frost-500 transition-colors text-sm"
+                        className="w-full bg-input border border-border/40 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-frost-500 transition-colors text-sm"
                       />
                     </div>
                   </div>
@@ -875,10 +875,10 @@ export default function PulseAdmin() {
                   <button
                     type="submit"
                     disabled={isConnectingAccount}
-                    className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 transition-colors border border-border/40 font-semibold rounded-xl text-sm text-slate-200 flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-muted hover:bg-accent transition-colors border border-border/40 font-semibold rounded-xl text-sm text-foreground flex items-center justify-center gap-2"
                   >
                     {isConnectingAccount ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-slate-400" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
                     ) : (
                       "Verify & Save X Account"
                     )}
@@ -893,10 +893,10 @@ export default function PulseAdmin() {
       {/* 5. EDIT & SCHEDULE DRAFT MODAL */}
       {editingDraft && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-card border border-border/40 rounded-2xl w-full max-w-xl shadow-2xl p-6 relative flex flex-col gap-4 text-slate-200">
+          <div className="bg-card border border-border/40 rounded-2xl w-full max-w-xl shadow-2xl p-6 relative flex flex-col gap-4 text-card-foreground">
             <div>
-              <h3 className="text-xl font-bold text-slate-100">Review Social Update</h3>
-              <p className="text-xs text-slate-300 mt-1">
+              <h3 className="text-xl font-bold text-foreground">Review Social Update</h3>
+              <p className="text-xs text-muted-foreground mt-1">
                 Refine the generated post and schedule it or post immediately.
               </p>
             </div>
@@ -904,11 +904,11 @@ export default function PulseAdmin() {
             <div className="space-y-4">
               {/* Draft text Area */}
               <div className="space-y-1">
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <label className="font-semibold text-slate-300">Draft Content (Max 280 characters)</label>
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <label className="font-semibold text-muted-foreground">Draft Content (Max 280 characters)</label>
                   <span className={cn(
                     "font-mono font-bold",
-                    editedText.length > 280 ? "text-red-400" : "text-slate-400"
+                    editedText.length > 280 ? "text-red-400" : "text-muted-foreground"
                   )}>
                     {editedText.length} / 280
                   </span>
@@ -918,7 +918,7 @@ export default function PulseAdmin() {
                   value={editedText}
                   onChange={(e) => setEditedText(e.target.value)}
                   className={cn(
-                    "w-full bg-slate-900 border rounded-xl p-3 text-sm focus:outline-none focus:border-frost-500 transition-colors resize-none leading-relaxed",
+                    "w-full bg-input border rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-frost-500 transition-colors resize-none leading-relaxed",
                     editedText.length > 280 ? "border-red-500 focus:border-red-500" : "border-border/40"
                   )}
                 />
@@ -932,17 +932,17 @@ export default function PulseAdmin() {
 
               {/* Schedule time */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Schedule Post (Optional)
                 </label>
-                <p className="text-xs text-slate-400 mb-1">
+                <p className="text-xs text-muted-foreground mb-1">
                   Leave blank to queue as an approved draft or post manually.
                 </p>
                 <input
                   type="datetime-local"
                   value={editedSchedule}
                   onChange={(e) => setEditedSchedule(e.target.value)}
-                  className="w-full bg-slate-900 border border-border/40 rounded-xl px-4 py-2 text-slate-100 text-sm focus:outline-none focus:border-frost-500 transition-colors"
+                  className="w-full bg-input border border-border/40 rounded-xl px-4 py-2 text-foreground text-sm focus:outline-none focus:border-frost-500 transition-colors"
                 />
               </div>
             </div>
@@ -952,7 +952,7 @@ export default function PulseAdmin() {
               <button
                 onClick={() => setEditingDraft(null)}
                 disabled={isSavingDraft}
-                className="px-4 py-2 rounded-xl text-sm border border-border/40 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 rounded-xl text-sm border border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               >
                 Cancel
               </button>
@@ -962,7 +962,7 @@ export default function PulseAdmin() {
                 <button
                   onClick={handleSaveDraft}
                   disabled={isSavingDraft || editedText.length > 280}
-                  className="px-4 py-2 rounded-xl text-sm bg-slate-800 border border-border/40 hover:bg-slate-700 text-slate-200 transition-colors font-medium"
+                  className="px-4 py-2 rounded-xl text-sm bg-muted border border-border/40 hover:bg-accent text-foreground transition-colors font-medium"
                 >
                   Save Draft
                 </button>
