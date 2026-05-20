@@ -164,6 +164,8 @@ docker tag "${APP_IMAGE}:latest" "${APP_IMAGE}:latest" 2>/dev/null || true
 
 # 6. Fast-swap: stop old → start new
 info "Swapping containers (brief downtime ~3–5s)..."
+docker container prune -f 2>/dev/null || true  # clear stale stopped containers holding ports
+docker network prune -f   2>/dev/null || true  # clear phantom network endpoints
 docker compose -f "$COMPOSE_FILE" up -d --no-build --remove-orphans
 pass "Containers swapped"
 

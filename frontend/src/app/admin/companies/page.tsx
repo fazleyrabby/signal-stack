@@ -10,7 +10,7 @@ import { SortableHead, toggleSort } from "@/components/ui/sortable-head";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2, MapPin, Loader2, ExternalLink, CheckCircle2, XCircle,
-  Database, Search, Navigation, Trash2, BookmarkPlus, Globe, Play, Filter, X
+  Database, Search, Navigation, Trash2, BookmarkPlus, Globe, Play, Filter, X, Search as SearchIcon
 } from "lucide-react";
 import { useResizableColumns } from "@/hooks/useResizableColumns";
 import { ResizeHandle } from "@/components/ui/resize-handle";
@@ -157,6 +157,10 @@ export default function CompaniesAdmin() {
   const [radarSource, setRadarSource] = useState<'osm' | 'google' | 'mapbox'>('osm');
   const [geocoding, setGeocoding] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+
+  // Hiring check state
+  const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set());
+  const [checkResults, setCheckResults] = useState<Map<string, { found: boolean; url: string | null; message: string }>>(new Map());
 
   // OSM search results
   const [searching, setSearching] = useState(false);
@@ -385,6 +389,43 @@ export default function CompaniesAdmin() {
   async function deleteCompany(id: string) {
     if (!confirm("Remove this company?")) return;
     await fetch(`${API_BASE}/api/admin/companies/${id}`, { method: "DELETE", credentials: "include" });
+    mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
+  }
+
+  async function checkCompanyHiring(id: string, website: string | null) {
+    if (!website) return;
+    setCheckingIds((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/companies/check-hiring/${id}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const result = await res.json();
+      setCheckResults((prev) => new Map(prev).set(id, result));
+      mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
+    } finally {
+      setCheckingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
+  async function checkAllHiring() {
+    if (!savedData?.data) return;
+    const toCheck = savedData.data.filter((c) => c.website && !c.careerPageFound && !checkResults.has(c.id));
+    if (!toCheck.length) return;
+    const CHUNK = 5;
+    for (let i = 0; i < toCheck.length; i += CHUNK) {
+      const ids = toCheck.slice(i, i + CHUNK).map((c) => c.id);
+      await fetch(`${API_BASE}/api/admin/companies/check-hiring-bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ids }),
+      });
+    }
     mutate(`${API_BASE}/api/admin/companies/saved?${savedQuery}`);
   }
 
@@ -935,6 +976,10 @@ export default function CompaniesAdmin() {
                 clear
               </button>
             )}
+            <Button size="sm" variant="outline" className="h-7 px-3 text-[11px] gap-1.5 ml-auto" onClick={checkAllHiring} disabled={checkingIds.size > 0}>
+              {checkingIds.size > 0 ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+              Check All Hiring
+            </Button>
           </div>
 
           <div className="flex-1 overflow-auto">
@@ -1001,16 +1046,21 @@ export default function CompaniesAdmin() {
                     </TableCell>
                     <TableCell className="px-3 py-2">
                       {company.website ? (
-                        <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 truncate max-w-[130px]">
+                        <a href={company.website.startsWith('http') ? company.website : `https://${company.website}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary/70 hover:text-primary flex items-center gap-1 truncate max-w-[130px]">
                           <ExternalLink className="w-2.5 h-2.5 shrink-0" />
                           {company.website.replace(/^https?:\/\//, "")}
                         </a>
                       ) : <span className="text-[10px] text-muted-foreground/30">—</span>}
                     </TableCell>
                     <TableCell className="px-3 py-2 text-right">
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => deleteCompany(company.id)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                      {company.website && !company.careerPageFound ? (
+                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1" disabled={checkingIds.has(company.id)} onClick={() => checkCompanyHiring(company.id, company.website)}>
+                          {checkingIds.has(company.id) ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                          {checkingIds.has(company.id) ? "…" : "Check"}
+                        </Button>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/30">—</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

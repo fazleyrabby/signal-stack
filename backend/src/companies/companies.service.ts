@@ -483,6 +483,90 @@ out center;
     if (!url.startsWith('http')) return `https://${url}`;
     return url;
   }
+
+  async checkHiringPage(website: string, companyName: string): Promise<{ found: boolean; url: string | null; message: string }> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      // Try the main website first
+      let res = await fetch(website, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'SignalStack/1.0 (+https://signalstack.local)',
+          'Accept': 'text/html',
+        },
+        redirect: 'follow',
+      });
+      clearTimeout(timeoutId);
+
+      const html = await res.text();
+      const lowerHtml = html.toLowerCase();
+
+      // Search for hiring-related keywords
+      const hiringPatterns = [
+        /careers?\.(?:html?|php|asp|aspx|jsp)/i,
+        /jobs?\.(?:html?|php|asp|aspx|jsp)/i,
+        /join\s*(?:us|team)/i,
+        /we(?:'re| are)\s*(?:hiring|looking\s*for)/i,
+        /(?:hiring|open\s*positions|job\s*listings?)/i,
+        /careers?\/(?!legal|privacy|about)/,
+        /jobs\/(?!legal|privacy|about)/,
+      ];
+
+      // Common career page paths to try
+      const careerPaths = ['/careers', '/jobs', '/career', '/join-us', '/work-with-us', '/openings'];
+
+      // First check if current page has clear hiring indication
+      for (const pattern of hiringPatterns) {
+        if (pattern.test(html)) {
+          return { found: true, url: website, message: 'Hiring page detected on website' };
+        }
+      }
+
+      // Try common career subpaths
+      const baseUrl = website.replace(/\/+$/, '');
+      for (const path of careerPaths) {
+        try {
+          const checkUrl = baseUrl + path;
+          const c = new AbortController();
+          const t = setTimeout(() => c.abort(), 10000);
+          const r = await fetch(checkUrl, {
+            signal: c.signal,
+            headers: { 'User-Agent': 'SignalStack/1.0' },
+            redirect: 'follow',
+          });
+          clearTimeout(t);
+
+          if (r.ok || r.status === 301 || r.status === 302) {
+            const text = await r.text();
+            // Confirm it's a hiring page
+            if (/career|job|hiring|position|vacancy|opening/i.test(text)) {
+              return { found: true, url: checkUrl, message: 'Career page found at ' + path };
+            }
+          }
+        } catch {
+          // continue to next path
+        }
+      }
+
+      // Check for linkedIn, indeed, or other job boards
+      const linkedinMatch = html.match(/(?:linkedin\.com\/company\/[^\s"'<>]+)/i);
+      if (linkedinMatch) {
+        return { found: true, url: linkedinMatch[0], message: 'LinkedIn company page (likely hiring)' };
+      }
+
+      // Check for common job board links
+      if (/indeed\.com|glassdoor\.com|linkedin\.com\/jobs|bdjobs\.com|programmer|hotjobs\.yahoo/i.test(lowerHtml)) {
+        return { found: true, url: website, message: 'Job board presence detected' };
+      }
+
+      return { found: false, url: null, message: 'No clear hiring page found' };
+    } catch (err: any) {
+      this.logger.error(`checkHiringPage for ${website}: ${err.message}`);
+      return { found: false, url: null, message: 'Failed to check website: ' + err.message };
+    }
+  }
 }
 
 function isTechByOsm(company: NearbyCompany): boolean {

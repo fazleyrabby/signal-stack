@@ -4,6 +4,15 @@ All notable changes to SignalStack will be documented in this file.
 
 ---
 
+## [2026-05-06] — VPS Deploy Fix & CMS Env Vars
+
+### Fixed
+- **Port Already Allocated on Deploy**: `signalstack-llama` failed to bind `0.0.0.0:8080` because a stale stopped container from a previous failed deploy held the port in Docker's networking layer. `docker system prune --filter "until=24h"` skipped it (< 24h old).
+  - Fix: Added `docker container prune -f` + `docker network prune -f` to `scripts/deploy.sh` before the swap step — no time filter, clears all stopped containers regardless of age.
+- **CMS Missing Env Vars**: `apps/cms` on VPS was crashing twice on boot due to `SUPABASE_SERVICE_KEY`, `CLOUDINARY_*`, and `UMAMI_ID` missing from `ecosystem.config.cjs`. Server fell back to the publishable Supabase key, breaking write operations. Added all missing vars to the PM2 ecosystem config and reloaded.
+
+---
+
 ## [2026-04-19] — AI Router Consolidation, Location Auto-Suggest & Discord Routing Fix
 
 ### Added

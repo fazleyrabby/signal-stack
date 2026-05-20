@@ -107,4 +107,13 @@ export class CompaniesRepository {
   async delete(id: string): Promise<void> {
     await this.db.delete(companies).where(sql`${companies.id} = ${id}`);
   }
+
+  async findById(id: string): Promise<Company | null> {
+    const [row] = await this.db.select().from(companies).where(sql`${companies.id} = ${id}`).limit(1);
+    return row ?? null;
+  }
+
+  async update(id: string, data: Partial<Pick<Company, 'careerPageFound' | 'careerUrl'>>): Promise<void> {
+    await this.db.update(companies).set(data).where(sql`${companies.id} = ${id}`);
+  }
 }

@@ -164,6 +164,45 @@ export class CompaniesController {
     });
   }
 
+  @Post('check-hiring/:id')
+  async checkCompanyHiring(@Param('id') id: string) {
+    const company = await this.companiesRepository.findById(id);
+    if (!company) throw new BadRequestException('Company not found');
+    if (!company.website) return { id, status: 'no_website' };
+    const result = await this.companiesService.checkHiringPage(company.website, company.name);
+    if (result.found) {
+      await this.companiesRepository.update(id, {
+        careerPageFound: true,
+        careerUrl: result.url || company.website,
+      });
+    }
+    return { id, ...result };
+  }
+
+  @Post('check-hiring-bulk')
+  async checkHiringBulk(@Body('ids') ids: string[]) {
+    if (!ids?.length) throw new BadRequestException('No company IDs provided');
+    const results = await Promise.allSettled(
+      ids.map(async (id) => {
+        const company = await this.companiesRepository.findById(id);
+        if (!company) return { id, status: 'not_found' };
+        if (!company.website) return { id, name: company.name, status: 'no_website' };
+        const result = await this.companiesService.checkHiringPage(company.website, company.name);
+        if (result.found) {
+          await this.companiesRepository.update(id, {
+            careerPageFound: true,
+            careerUrl: result.url || company.website,
+          });
+        }
+        return { id, name: company.name, ...result };
+      })
+    );
+    return results.map((r, i) => {
+      if (r.status === 'fulfilled') return r.value;
+      return { id: ids[i], status: 'error', error: 'Unknown error' };
+    });
+  }
+
   @Delete(':id')
   async deleteCompany(@Param('id') id: string) {
     await this.companiesRepository.delete(id);

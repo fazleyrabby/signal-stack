@@ -49,6 +49,27 @@ If a deploy fails, the system auto-rolls back. To manually revert to the previou
 | **Prune Docker** | `docker system prune -f` (Done automatically during deploy) |
 | **Manual DB Backup** | `docker exec signalstack-app npm run backup` |
 
+### Known Issue: "Port Already Allocated" on Deploy
+
+**Symptom:**
+```
+Error: Bind for 0.0.0.0:8080 failed: port is already allocated
+```
+Deploy fails on `signalstack-llama` startup.
+
+**Root Cause:**  
+A previously failed deploy leaves a stale stopped container in Docker's networking layer. Even though the container is exited, its port binding persists. The deploy script's `docker system prune --filter "until=24h"` skips containers stopped less than 24h ago, so the ghost binding survives.
+
+**Fix (manual):**
+```bash
+docker container prune -f   # remove all stopped containers
+docker network prune -f     # clear phantom port bindings
+./scripts/deploy.sh         # redeploy
+```
+
+**Prevention:**  
+`scripts/deploy.sh` now runs both prune commands automatically before the swap step. This was added on 2026-05-06.
+
 ---
 
 ## 🛠️ 3. Critical Configurations

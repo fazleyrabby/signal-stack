@@ -29,29 +29,30 @@
 }
 
 :root {
-  /* Onyx (Industrial Slate) - Re-tuned for Clinical Depth (14% Baseline) */
-  --background: oklch(12% 0.01 240);
-  --foreground: oklch(98% 0 0);
-  --card: oklch(16% 0.01 240);
-  --card-foreground: oklch(98% 0 0);
-  --popover: oklch(16% 0.01 240);
-  --popover-foreground: oklch(98% 0 0);
-  --primary: oklch(75% 0.06 240);
-  --primary-foreground: oklch(12% 0.01 240);
-  --secondary: oklch(20% 0.01 240);
-  --secondary-foreground: oklch(98% 0 0);
-  --muted: oklch(25% 0.02 240);
-  --muted-foreground: oklch(60% 0 0);
-  --accent: oklch(25% 0.02 240);
-  --accent-foreground: oklch(98% 0 0);
-  --destructive: oklch(45% 0.15 25);
-  --destructive-foreground: oklch(98% 0 0);
-  --border: oklch(28% 0.01 240);
-  --input: oklch(28% 0.01 240);
-  --ring: oklch(65% 0.1 230);
+  /* Nord Theme (Polar Night & Frost) */
+  --background: #2E3440; /* nord0 */
+  --foreground: #ECEFF4; /* nord6 */
+  --card: #3B4252; /* nord1 */
+  --card-foreground: #E5E9F0; /* nord5 */
+  --popover: #3B4252; /* nord1 */
+  --popover-foreground: #E5E9F0; /* nord5 */
+  --primary: #88C0D0; /* nord8 (Frost) */
+  --primary-foreground: #2E3440; /* nord0 */
+  --secondary: #434C5E; /* nord2 */
+  --secondary-foreground: #ECEFF4; /* nord6 */
+  --muted: #434C5E; /* nord2 */
+  --muted-foreground: #9DB4C0; /* Muted Nord Blue-Grey */
+  --accent: #4C566A; /* nord3 */
+  --accent-foreground: #ECEFF4; /* nord6 */
+  --destructive: #BF616A; /* nord11 */
+  --destructive-foreground: #ECEFF4; /* nord6 */
+  --border: #4C566A; /* nord3 */
+  --input: #434C5E; /* nord2 */
+  --ring: #81A1C1; /* nord9 */
+  
   /* Custom Props */
-  --card-hover: oklch(20% 0.01 240);
-  --card-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  --card-hover: #4C566A; /* nord3 */
+  --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   --radius: 0.75rem;
 }
 
@@ -161,5 +162,22 @@
   }
   .mask-fade-left {
     mask-image: linear-gradient(to left, black 85%, transparent 100%);
+  }
+  .glass-card {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.005));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  }
+  [data-theme='light'] .glass-card {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.015), rgba(0, 0, 0, 0.005));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
+  }
+  .sidebar-active-glow {
+    box-shadow: 0 0 15px rgba(var(--primary), 0.15);
   }
 }

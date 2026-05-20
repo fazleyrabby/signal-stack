@@ -26,6 +26,8 @@ import {
 import { logoutAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
+import { Dialog, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/dialog";
+
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Signals', href: '/admin/signals', icon: Activity },
@@ -43,6 +45,7 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   // Persistence
   useEffect(() => {
@@ -114,9 +117,9 @@ export function AdminSidebar() {
                 href={item.href}
                 onClick={() => setIsMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all group",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all group relative overflow-hidden",
                   active 
-                    ? "bg-primary/10 text-primary shadow-sm" 
+                    ? "bg-primary/10 text-primary shadow-sm sidebar-active-glow border border-primary/20" 
                     : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                 )}
               >
@@ -150,12 +153,7 @@ export function AdminSidebar() {
               "w-full gap-3 h-10 px-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg",
               isCollapsed ? "justify-center" : "justify-start"
             )}
-            onClick={() => {
-              if (confirm("Terminate admin session?")) {
-                logoutAdmin();
-                window.location.href = '/admin-login';
-              }
-            }}
+            onClick={() => setIsLogoutDialogOpen(true)}
           >
             <LogOut className="w-5 h-5 shrink-0" />
             {!isCollapsed && <span className="font-bold">Logout</span>}
@@ -170,6 +168,37 @@ export function AdminSidebar() {
           </button>
         </div>
       </aside>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-2xl z-[100]">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5 text-red-500">
+              <LogOut className="w-5 h-5 shrink-0 animate-pulse" />
+              <h2 className="text-base font-black uppercase tracking-wider">Confirm Logout</h2>
+            </div>
+          </DialogHeader>
+          <div className="py-2 text-xs text-muted-foreground leading-relaxed">
+            Are you sure you want to terminate your secure admin session? You will need to sign in again to access the dashboard.
+          </div>
+          <DialogFooter className="pt-2 gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setIsLogoutDialogOpen(false)} className="rounded-lg">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="rounded-lg gap-1.5 shadow-lg shadow-red-500/10"
+              onClick={() => {
+                logoutAdmin();
+                window.location.href = '/admin-login';
+              }}
+            >
+              Sign Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
