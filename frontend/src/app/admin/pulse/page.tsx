@@ -276,7 +276,7 @@ export default function PulseAdmin() {
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-frost-400 via-frost-200 to-snow-100 bg-clip-text text-transparent">
             SignalStack Pulse
           </h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-slate-300 mt-1">
             Automated AI post drafting and social distribution management pipeline.
           </p>
         </div>
@@ -341,10 +341,10 @@ export default function PulseAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl flex items-center justify-between shadow-xl">
                   <div>
-                    <p className="text-slate-400 text-sm font-medium">Daily AI Draft Count</p>
+                    <p className="text-slate-300 text-sm font-medium">Daily AI Draft Count</p>
                     <h3 className="text-3xl font-bold mt-1 text-slate-100">
                       {logsData.filter(l => l.action === "generated" && new Date(l.createdAt).toDateString() === new Date().toDateString()).length}
-                      <span className="text-sm font-normal text-slate-500"> / {settingsForm.maxDraftsPerDay} max</span>
+                      <span className="text-sm font-normal text-slate-400"> / {settingsForm.maxDraftsPerDay} max</span>
                     </h3>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-frost-500/10 flex items-center justify-center border border-frost-500/20 text-frost-400">
@@ -354,7 +354,7 @@ export default function PulseAdmin() {
 
                 <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl flex items-center justify-between shadow-xl">
                   <div>
-                    <p className="text-slate-400 text-sm font-medium">Pending Review</p>
+                    <p className="text-slate-300 text-sm font-medium">Pending Review</p>
                     <h3 className="text-3xl font-bold mt-1 text-amber-400">
                       {draftsData?.drafts.filter(d => d.status === "generated").length || 0}
                     </h3>
@@ -366,10 +366,10 @@ export default function PulseAdmin() {
 
                 <div className="bg-card/40 backdrop-blur-md border border-border/40 p-6 rounded-2xl flex items-center justify-between shadow-xl">
                   <div>
-                    <p className="text-slate-400 text-sm font-medium">X Daily Post Count</p>
+                    <p className="text-slate-300 text-sm font-medium">X Daily Post Count</p>
                     <h3 className="text-3xl font-bold mt-1 text-emerald-400">
                       {logsData.filter(l => l.action === "published" && new Date(l.createdAt).toDateString() === new Date().toDateString()).length}
-                      <span className="text-sm font-normal text-slate-500"> / 17 limit</span>
+                      <span className="text-sm font-normal text-slate-400"> / 17 limit</span>
                     </h3>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400">
@@ -386,8 +386,8 @@ export default function PulseAdmin() {
                     <h4 className="text-lg font-bold text-slate-200 mb-3 flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-frost-400" /> Platform Integration Status
                     </h4>
-                    <p className="text-sm text-slate-400 leading-relaxed mb-4">
-                      Pulse automatically consumes technology signals that meet score thresholds and enqueues them for social updates. 
+                    <p className="text-sm text-slate-300 leading-relaxed mb-4">
+                      Pulse automatically consumes technology signals that meet score thresholds and enqueues them for social updates.
                       Once generated, posts are placed in a review state where you can schedule or publish them.
                     </p>
                     <div className="space-y-2 text-sm text-slate-300">
@@ -448,7 +448,7 @@ export default function PulseAdmin() {
                             </span>
                             <div className="flex-1">
                               <p className="text-slate-300 font-medium">{log.detail}</p>
-                              <p className="text-slate-500 mt-0.5">{new Date(log.createdAt).toLocaleString()}</p>
+                              <p className="text-slate-400 mt-0.5">{new Date(log.createdAt).toLocaleString()}</p>
                             </div>
                           </div>
                         ))
@@ -497,7 +497,7 @@ export default function PulseAdmin() {
                     </button>
                   ))}
                 </div>
-                <div className="text-xs text-slate-500 font-medium">
+                <div className="text-xs text-slate-400 font-medium">
                   {draftsData ? `${draftsData.total} Drafts found` : "Loading..."}
                 </div>
               </div>
@@ -528,7 +528,7 @@ export default function PulseAdmin() {
                           )}>
                             {draft.status}
                           </span>
-                          <span className="text-[11px] text-slate-500 font-mono">
+                          <span className="text-[11px] text-slate-400 font-mono">
                             {new Date(draft.createdAt).toLocaleDateString()}
                           </span>
                         </div>
@@ -645,7 +645,7 @@ export default function PulseAdmin() {
             <div className="bg-card/45 backdrop-blur-md border border-border/40 rounded-2xl p-6 shadow-xl space-y-4">
               <div>
                 <h4 className="text-lg font-bold text-slate-200 mb-1">Pulse Audit logs</h4>
-                <p className="text-sm text-slate-400">Chronological history of social publishing, errors, and approvals.</p>
+                <p className="text-sm text-slate-300">Chronological history of social publishing, errors, and approvals.</p>
               </div>
 
               <div className="border border-border/20 rounded-xl overflow-hidden">
@@ -691,8 +691,8 @@ export default function PulseAdmin() {
                               </a>
                             )}
                           </td>
-                          <td className="p-4 font-mono text-slate-400">{log.actorEmail || "system"}</td>
-                          <td className="p-4 text-slate-500">{new Date(log.createdAt).toLocaleString()}</td>
+                          <td className="p-4 font-mono text-slate-300">{log.actorEmail || "system"}</td>
+                          <td className="p-4 text-slate-400">{new Date(log.createdAt).toLocaleString()}</td>
                         </tr>
                       ))
                     )}
@@ -712,7 +712,7 @@ export default function PulseAdmin() {
                     <h3 className="text-lg font-bold text-slate-200 mb-1 flex items-center gap-2">
                       <Settings className="w-5 h-5 text-frost-400" /> Pipeline Configuration
                     </h3>
-                    <p className="text-sm text-slate-400">Configure parameters for automatic drafting.</p>
+                    <p className="text-sm text-slate-300">Configure parameters for automatic drafting.</p>
                   </div>
 
                   <div className="space-y-4">
@@ -720,7 +720,7 @@ export default function PulseAdmin() {
                     <div className="flex items-center justify-between p-4 bg-slate-900/40 border border-border/10 rounded-xl">
                       <div>
                         <label className="text-sm font-semibold text-slate-200">Auto Draft Generation</label>
-                        <p className="text-xs text-slate-400 mt-0.5">Automatically trigger AI drafts for new summarized signals.</p>
+                        <p className="text-xs text-slate-300 mt-0.5">Automatically trigger AI drafts for new summarized signals.</p>
                       </div>
                       <input
                         type="checkbox"
@@ -733,7 +733,7 @@ export default function PulseAdmin() {
                     {/* Min Score Input */}
                     <div className="space-y-1">
                       <label className="text-sm font-semibold text-slate-300">Minimum Signal Score</label>
-                      <p className="text-xs text-slate-500 mb-1.5">Only signals with this score or higher are automatically drafted.</p>
+                      <p className="text-xs text-slate-400 mb-1.5">Only signals with this score or higher are automatically drafted.</p>
                       <input
                         type="number"
                         min="1"
@@ -748,7 +748,7 @@ export default function PulseAdmin() {
                     {/* Max Drafts Input */}
                     <div className="space-y-1">
                       <label className="text-sm font-semibold text-slate-300">Max AI Drafts / 24h</label>
-                      <p className="text-xs text-slate-500 mb-1.5">Daily limit on automated AI draft generation to preserve tokens.</p>
+                      <p className="text-xs text-slate-400 mb-1.5">Daily limit on automated AI draft generation to preserve tokens.</p>
                       <input
                         type="number"
                         min="1"
@@ -788,7 +788,7 @@ export default function PulseAdmin() {
                     <h3 className="text-lg font-bold text-slate-200 mb-1 flex items-center gap-2">
                       <Send className="w-5 h-5 text-frost-400" /> Connect X / Twitter API
                     </h3>
-                    <p className="text-sm text-slate-400">Configure write credentials using an X Developer app.</p>
+                    <p className="text-sm text-slate-300">Configure write credentials using an X Developer app.</p>
                   </div>
 
                   <div className="space-y-4">
@@ -896,7 +896,7 @@ export default function PulseAdmin() {
           <div className="bg-card border border-border/40 rounded-2xl w-full max-w-xl shadow-2xl p-6 relative flex flex-col gap-4 text-slate-200">
             <div>
               <h3 className="text-xl font-bold text-slate-100">Review Social Update</h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-300 mt-1">
                 Refine the generated post and schedule it or post immediately.
               </p>
             </div>
@@ -935,7 +935,7 @@ export default function PulseAdmin() {
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Schedule Post (Optional)
                 </label>
-                <p className="text-xs text-slate-500 mb-1">
+                <p className="text-xs text-slate-400 mb-1">
                   Leave blank to queue as an approved draft or post manually.
                 </p>
                 <input

@@ -58,7 +58,7 @@ export default function AdminLayout({
       <div className="flex h-screen bg-background overflow-hidden">
         <AdminSidebar />
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
             {children}
           </div>
         </main>

@@ -6,7 +6,7 @@ import { XPublisher } from '../publishers/x.publisher';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import type { DrizzleDB } from '../../database/database.module';
 import { signals, pulseDrafts } from '../../database/schema';
-import { eq, and, desc, isNull, gte } from 'drizzle-orm';
+import { eq, and, desc, isNull, gte, inArray } from 'drizzle-orm';
 import { logEvent } from '../../common/logger';
 
 @Injectable()
@@ -46,7 +46,8 @@ export class PulseScheduler {
             eq(signals.aiProcessed, true),
             eq(signals.aiFailed, false),
             isNull(pulseDrafts.id),
-            gte(signals.score, minScore)
+            gte(signals.score, minScore),
+            inArray(signals.categoryId, ['ai', 'technology'])
           )
         )
         .orderBy(desc(signals.score))
