@@ -44,6 +44,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Blocking script: sets data-theme before paint to prevent flash */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('signalstack_theme');document.documentElement.setAttribute('data-theme',(t==='light'||t==='cyberpunk')?t:'onyx');})();` }} />
+      </head>
       <body className={`${inter.variable} ${hindSiliguri.variable} ${notoBengali.variable} antialiased`} suppressHydrationWarning>
         <LangHandler />
         <ThemeProvider>

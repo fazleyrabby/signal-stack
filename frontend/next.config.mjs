@@ -23,21 +23,31 @@ const nextConfig = {
     ];
   },
 
-  // 🔥 Proper CDN caching (Cloudflare-compatible)
   async headers() {
     return [
-      // ✅ Cache all frontend pages
+      // HTML pages: never edge-cache (Cloudflare Tunnel). Old HTML referencing stale CSS hashes breaks styles.
       {
         source: '/((?!api|_next|favicon.ico).*)',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, s-maxage=7200, stale-while-revalidate=86400',
+            value: 'no-store',
           },
         ],
       },
 
-      // ❌ Never cache API routes
+      // Static assets with content hashes are immutable — cache forever
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+
+      // API routes: no cache
       {
         source: '/api/:path*',
         headers: [

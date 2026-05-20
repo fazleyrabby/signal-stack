@@ -13,18 +13,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [currentTheme, setCurrentTheme] = useState<Theme>("onyx");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Initial sync from localStorage
     const saved = localStorage.getItem("signalstack_theme") as Theme;
     if (saved && ["onyx", "light", "cyberpunk"].includes(saved)) {
       setCurrentTheme(saved);
-      document.documentElement.setAttribute("data-theme", saved);
-    } else {
-      document.documentElement.setAttribute("data-theme", "onyx");
     }
-    setMounted(true);
   }, []);
 
   const setTheme = (theme: Theme) => {
@@ -33,14 +27,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setCurrentTheme(theme);
     localStorage.setItem("signalstack_theme", theme);
     root.setAttribute("data-theme", theme);
-    // Remove transition class after animation completes to avoid interfering with normal UI transitions
     setTimeout(() => root.classList.remove("theme-transition"), 550);
   };
-
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return <div style={{ visibility: "hidden" }}>{children}</div>;
-  }
 
   return (
     <ThemeContext.Provider value={{ currentTheme, setTheme }}>
