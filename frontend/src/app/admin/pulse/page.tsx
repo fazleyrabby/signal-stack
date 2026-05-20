@@ -23,6 +23,8 @@ import {
   Layers,
   ArrowRight,
   UserCheck,
+  Copy,
+  Twitter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +87,7 @@ export default function PulseAdmin() {
 
   // Modals & Forms State
   const [editingDraft, setEditingDraft] = useState<PulseDraft | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editedText, setEditedText] = useState("");
   const [editedSchedule, setEditedSchedule] = useState("");
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -600,14 +603,27 @@ export default function PulseAdmin() {
                               Approve
                             </button>
                           )}
-                          {(draft.status === "approved" || draft.status === "generated" || draft.status === "failed" || draft.status === "scheduled") && (
-                            <button
-                              onClick={() => handlePublishNow(draft.id)}
-                              className="px-3 py-1.5 rounded-lg bg-frost-600 border border-frost-500 text-slate-900 hover:bg-frost-500 text-xs font-semibold transition-colors flex items-center gap-1"
-                            >
-                              <Send className="w-3 h-3" /> Post Now
-                            </button>
-                          )}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(draft.text);
+                              setCopiedId(draft.id);
+                              setTimeout(() => setCopiedId(null), 2000);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-muted border border-border/40 text-muted-foreground hover:bg-accent hover:text-foreground text-xs font-semibold transition-colors flex items-center gap-1"
+                            title="Copy to clipboard"
+                          >
+                            <Copy className="w-3 h-3" />
+                            {copiedId === draft.id ? "Copied!" : "Copy"}
+                          </button>
+                          <a
+                            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(draft.text)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-lg bg-sky-500/15 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 text-xs font-semibold transition-colors flex items-center gap-1"
+                            title="Post on Twitter"
+                          >
+                            <Twitter className="w-3 h-3" /> Tweet
+                          </a>
                         </div>
                       </div>
                     </div>
