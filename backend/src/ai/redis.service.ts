@@ -57,6 +57,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.client.del(key);
   }
 
+  async incr(key: string): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    return this.client.incr(key);
+  }
+
+  async expire(key: string, ttl: number): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    return this.client.expire(key, ttl);
+  }
+
   /**
    * Check and increment the daily AI request count.
    * Resets at UTC midnight.

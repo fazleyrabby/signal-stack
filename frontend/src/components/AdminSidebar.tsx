@@ -22,6 +22,7 @@ import {
   Building2,
   GitBranch,
   Users,
+  Send,
 } from "lucide-react";
 import { logoutAdmin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogFooter } from "@/components/
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Signals', href: '/admin/signals', icon: Activity },
+  { name: 'Pulse', href: '/admin/pulse', icon: Send },
   { name: 'Categories', href: '/admin/categories', icon: Layers },
   { name: 'Sources', href: '/admin/sources', icon: Rss },
   { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },

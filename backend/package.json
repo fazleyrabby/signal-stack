@@ -51,7 +51,8 @@
     "rss": "^1.2.2",
     "rss-parser": "^3.13.0",
     "rxjs": "^7.8.1",
-    "striptags": "^3.2.0"
+    "striptags": "^3.2.0",
+    "twitter-api-v2": "^1.29.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

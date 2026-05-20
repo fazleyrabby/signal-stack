@@ -29,6 +29,13 @@
       "when": 1776504223156,
       "tag": "0003_add_isread_content_hash",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779303328007,
+      "tag": "0004_premium_gamma_corps",
+      "breakpoints": true
     }
   ]
 }

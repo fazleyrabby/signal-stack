@@ -14,6 +14,7 @@ import { VisitorsModule } from './visitors/visitors.module';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { JobsModule } from './jobs/jobs.module';
 import { CompaniesModule } from './companies/companies.module';
+import { PulseModule } from './pulse/pulse.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CompaniesModule } from './companies/companies.module';
     BookmarksModule,
     JobsModule,
     CompaniesModule,
+    PulseModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

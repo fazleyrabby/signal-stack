@@ -223,3 +223,65 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Setting = typeof settings.$inferSelect;
 export type NewSetting = typeof settings.$inferInsert;
+
+export const pulseAccounts = pgTable('pulse_accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  platform: varchar('platform', { length: 50 }).notNull().default('x'),
+  handle: varchar('handle', { length: 100 }).notNull(),
+  apiKey: text('api_key').notNull(),
+  apiSecret: text('api_secret').notNull(),
+  accessToken: text('access_token').notNull(),
+  accessTokenSecret: text('access_token_secret').notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const pulseDrafts = pgTable(
+  'pulse_drafts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sourceSignalId: uuid('source_signal_id').notNull().references(() => signals.id),
+    platform: varchar('platform', { length: 50 }).notNull().default('x'),
+    text: text('text').notNull(),
+    status: varchar('status', { length: 20 }).notNull().default('generated'), // pending | generated | approved | scheduled | published | failed | rejected
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    aiProvider: varchar('ai_provider', { length: 50 }),
+    aiModel: varchar('ai_model', { length: 50 }),
+    retryCount: integer('retry_count').notNull().default(0),
+    metadata: jsonb('metadata').$type<Record<string, any>>().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index('idx_pulse_drafts_status').on(table.status),
+    sourceSignalIdIdx: index('idx_pulse_drafts_source_signal_id').on(table.sourceSignalId),
+    scheduledAtIdx: index('idx_pulse_drafts_scheduled_at').on(table.scheduledAt),
+    createdAtIdx: index('idx_pulse_drafts_created_at').on(table.createdAt),
+  })
+);
+
+export const pulsePublishLogs = pgTable(
+  'pulse_publish_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    draftId: uuid('draft_id').references(() => pulseDrafts.id),
+    platform: varchar('platform', { length: 50 }).notNull().default('x'),
+    action: varchar('action', { length: 20 }).notNull(), // generated | approved | rejected | published | failed | scheduled
+    actorEmail: varchar('actor_email', { length: 255 }), // null = system
+    detail: text('detail'),
+    xPostId: varchar('x_post_id', { length: 100 }), // returned by X API on success
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    draftIdIdx: index('idx_pulse_logs_draft_id').on(table.draftId),
+    createdAtIdx: index('idx_pulse_logs_created_at').on(table.createdAt),
+  })
+);
+
+export type PulseAccount = typeof pulseAccounts.$inferSelect;
+export type NewPulseAccount = typeof pulseAccounts.$inferInsert;
+export type PulseDraft = typeof pulseDrafts.$inferSelect;
+export type NewPulseDraft = typeof pulseDrafts.$inferInsert;
+export type PulsePublishLog = typeof pulsePublishLogs.$inferSelect;
+export type NewPulsePublishLog = typeof pulsePublishLogs.$inferInsert;
