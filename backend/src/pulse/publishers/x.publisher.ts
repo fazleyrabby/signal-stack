@@ -50,7 +50,7 @@ export class XPublisher implements IPublisher {
     accessTokenSecret: string;
   }): Promise<PublishResult> {
     try {
-      // 1. Check daily posting rate limit (Max 17 posts per 24 hours for free X accounts)
+      // 1. Check daily posting rate limit (max 2 posts per day)
       const today = new Date().toISOString().split('T')[0];
       const redisKey = `pulse:x:post_count:${today}`;
       const currentCount = await this.redis.incr(redisKey);
@@ -59,10 +59,10 @@ export class XPublisher implements IPublisher {
         await this.redis.expire(redisKey, 86400 + 3600); // 25 hours TTL
       }
 
-      if (currentCount > 17) {
+      if (currentCount > 2) {
         return {
           success: false,
-          error: 'X publishing limit reached (max 17 tweets per 24h)',
+          error: 'X publishing limit reached (max 2 tweets per day)',
         };
       }
 

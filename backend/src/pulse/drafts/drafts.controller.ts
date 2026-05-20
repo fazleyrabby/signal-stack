@@ -179,7 +179,7 @@ export class DraftsController {
     return {
       autoDraftEnabled: autoEnabled !== 'false',
       minSignalScore: minScore ? parseFloat(minScore) : 7,
-      maxDraftsPerDay: maxDrafts ? parseInt(maxDrafts, 10) : 20,
+      maxDraftsPerDay: maxDrafts ? parseInt(maxDrafts, 10) : 2,
       xConnected: !!activeAccount,
       xHandle: activeAccount?.handle || null,
     };
