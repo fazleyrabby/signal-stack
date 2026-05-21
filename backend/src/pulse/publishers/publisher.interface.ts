@@ -5,5 +5,7 @@ export interface PublishResult {
 }
 
 export interface IPublisher {
+  readonly platform: string;
   publish(text: string, credentials: any): Promise<PublishResult>;
+  verifyCredentials?(credentials: any): Promise<boolean>;
 }

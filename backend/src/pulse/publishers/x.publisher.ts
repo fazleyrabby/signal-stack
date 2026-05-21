@@ -1,93 +1,75 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { RedisService } from '../../ai/redis.service';
 import { IPublisher, PublishResult } from './publisher.interface';
+import { PulseEncryptionService } from '../services/pulse-encryption.service';
+import { PlatformLimitsService } from '../services/platform-limits.service';
 import { TwitterApi } from 'twitter-api-v2';
-import * as crypto from 'crypto';
-
-const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 12;
-const TAG_LENGTH = 16;
 
 @Injectable()
 export class XPublisher implements IPublisher {
+  readonly platform = 'x';
   private readonly logger = new Logger(XPublisher.name);
-  private readonly encryptionKey: Buffer;
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly redis: RedisService,
-  ) {
-    const rawKey = this.configService.get<string>('PULSE_ENCRYPTION_KEY') || 'dev-secret-key-must-be-32-chars-!';
-    this.encryptionKey = crypto.createHash('sha256').update(rawKey).digest();
-  }
+    private readonly encryption: PulseEncryptionService,
+    private readonly platformLimits: PlatformLimitsService,
+  ) {}
 
+  /** Convenience passthrough so DraftsController can encrypt before saving. */
   encrypt(text: string): string {
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv(ALGORITHM, this.encryptionKey, iv);
-    const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
-    const tag = cipher.getAuthTag();
-    return Buffer.concat([iv, tag, encrypted]).toString('hex');
+    return this.encryption.encrypt(text);
   }
 
+  /** Convenience passthrough for credential verification in controller. */
   decrypt(cipherHex: string): string {
-    const cipherBuffer = Buffer.from(cipherHex, 'hex');
-    if (cipherBuffer.length < IV_LENGTH + TAG_LENGTH) {
-      throw new Error('Invalid ciphertext length');
-    }
-    const iv = cipherBuffer.subarray(0, IV_LENGTH);
-    const tag = cipherBuffer.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
-    const encryptedText = cipherBuffer.subarray(IV_LENGTH + TAG_LENGTH);
-    const decipher = crypto.createDecipheriv(ALGORITHM, this.encryptionKey, iv);
-    decipher.setAuthTag(tag);
-    return Buffer.concat([decipher.update(encryptedText), decipher.final()]).toString('utf8');
+    return this.encryption.decrypt(cipherHex);
   }
 
-  async publish(text: string, credentials: {
-    apiKey: string;
-    apiSecret: string;
-    accessToken: string;
-    accessTokenSecret: string;
-  }): Promise<PublishResult> {
+  async publish(
+    text: string,
+    credentials: {
+      apiKey: string;
+      apiSecret: string;
+      accessToken: string;
+      accessTokenSecret: string;
+    },
+  ): Promise<PublishResult> {
     try {
-      // 1. Check daily posting rate limit (max 2 posts per day)
-      const today = new Date().toISOString().split('T')[0];
-      const redisKey = `pulse:x:post_count:${today}`;
-      const currentCount = await this.redis.incr(redisKey);
-
-      if (currentCount === 1) {
-        await this.redis.expire(redisKey, 86400 + 3600); // 25 hours TTL
-      }
-
-      if (currentCount > 2) {
+      // 1. Enforce daily limit
+      const daily = await this.platformLimits.checkAndIncrement('x', 'daily');
+      if (!daily.allowed) {
         return {
           success: false,
-          error: 'X publishing limit reached (max 2 tweets per day)',
+          error: `X daily publishing limit reached (${daily.current - 1}/${daily.limit} posts today)`,
         };
       }
 
-      // 2. Decrypt credentials
-      const apiKey = this.decrypt(credentials.apiKey);
-      const apiSecret = this.decrypt(credentials.apiSecret);
-      const accessToken = this.decrypt(credentials.accessToken);
-      const accessTokenSecret = this.decrypt(credentials.accessTokenSecret);
+      // 2. Enforce hourly limit (advisory — decrement daily if hourly blocked)
+      const hourly = await this.platformLimits.checkAndIncrement('x', 'hourly');
+      if (!hourly.allowed) {
+        return {
+          success: false,
+          error: `X hourly publishing limit reached (${hourly.current - 1}/${hourly.limit} posts this hour)`,
+        };
+      }
 
-      // 3. Initialize Twitter client
+      // 3. Decrypt credentials
+      const apiKey = this.encryption.decrypt(credentials.apiKey);
+      const apiSecret = this.encryption.decrypt(credentials.apiSecret);
+      const accessToken = this.encryption.decrypt(credentials.accessToken);
+      const accessTokenSecret = this.encryption.decrypt(credentials.accessTokenSecret);
+
+      // 4. Initialize Twitter client and post
       const client = new TwitterApi({
         appKey: apiKey,
         appSecret: apiSecret,
-        accessToken: accessToken,
+        accessToken,
         accessSecret: accessTokenSecret,
       });
 
-      // 4. Send tweet
       const res = await client.readWrite.v2.tweet(text);
 
-      if (res && res.data && res.data.id) {
-        return {
-          success: true,
-          postId: res.data.id,
-        };
+      if (res?.data?.id) {
+        return { success: true, postId: res.data.id };
       }
 
       return {
@@ -110,18 +92,12 @@ export class XPublisher implements IPublisher {
     accessTokenSecret: string;
   }): Promise<boolean> {
     try {
-      const apiKey = this.decrypt(credentials.apiKey);
-      const apiSecret = this.decrypt(credentials.apiSecret);
-      const accessToken = this.decrypt(credentials.accessToken);
-      const accessTokenSecret = this.decrypt(credentials.accessTokenSecret);
-
       const client = new TwitterApi({
-        appKey: apiKey,
-        appSecret: apiSecret,
-        accessToken: accessToken,
-        accessSecret: accessTokenSecret,
+        appKey: this.encryption.decrypt(credentials.apiKey),
+        appSecret: this.encryption.decrypt(credentials.apiSecret),
+        accessToken: this.encryption.decrypt(credentials.accessToken),
+        accessSecret: this.encryption.decrypt(credentials.accessTokenSecret),
       });
-
       const me = await client.v2.me();
       return !!me?.data?.id;
     } catch (err: any) {
