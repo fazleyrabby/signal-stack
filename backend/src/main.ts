@@ -33,6 +33,32 @@ async function bootstrap() {
     process.exit(1);
   }
 
+  // Pulse encryption key validation
+  const pulseKey = process.env.PULSE_ENCRYPTION_KEY;
+  const isProd = process.env.NODE_ENV === 'production';
+  if (!pulseKey) {
+    if (isProd) {
+      logger.error(
+        'PULSE_ENCRYPTION_KEY is not set. This is required in production to protect stored publishing credentials. ' +
+        'Generate one with: openssl rand -hex 32',
+      );
+      process.exit(1);
+    } else {
+      logger.warn(
+        'PULSE_ENCRYPTION_KEY not set — using insecure development fallback. ' +
+        'Never run without this key in production.',
+      );
+    }
+  } else if (pulseKey.length < 32) {
+    const msg = `PULSE_ENCRYPTION_KEY is too short (${pulseKey.length} chars, minimum 32).`;
+    if (isProd) {
+      logger.error(msg);
+      process.exit(1);
+    } else {
+      logger.warn(msg + ' Proceeding in development mode.');
+    }
+  }
+
   if (!process.env.DISCORD_WEBHOOK_URL) {
     logger.warn('DISCORD_WEBHOOK_URL not set — alerts will be skipped');
   }
