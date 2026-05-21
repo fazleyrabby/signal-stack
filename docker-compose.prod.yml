@@ -60,6 +60,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@signalstack.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme123}
+      PULSE_ENCRYPTION_KEY: ${PULSE_ENCRYPTION_KEY}
       FRONTEND_URL: "https://signal.fazleyrabbi.xyz"
       NODE_ENV: "production"
       GROQ_API_KEY: ${GROQ_API_KEY}
