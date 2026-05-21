@@ -2,7 +2,8 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DraftsRepository } from '../drafts/drafts.repository';
 import { DraftGenerationWorker } from '../workers/draft-generation.worker';
-import { XPublisher } from '../publishers/x.publisher';
+import { PublisherRegistry } from '../services/publisher-registry.service';
+import { DiscordService } from '../../alerts/discord.service';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import type { DrizzleDB } from '../../database/database.module';
 import { signals, pulseDrafts } from '../../database/schema';
@@ -18,7 +19,8 @@ export class PulseScheduler {
   constructor(
     private readonly draftsRepository: DraftsRepository,
     private readonly worker: DraftGenerationWorker,
-    private readonly publisher: XPublisher,
+    private readonly publisherRegistry: PublisherRegistry,
+    private readonly discord: DiscordService,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
   ) {}
 
@@ -28,7 +30,7 @@ export class PulseScheduler {
     this.isEnqueuing = true;
 
     try {
-      const minScoreStr = await this.draftsRepository.findSetting('pulse_min_signal_score') || '7';
+      const minScoreStr = (await this.draftsRepository.findSetting('pulse_min_signal_score')) || '7';
       const minScore = parseFloat(minScoreStr);
 
       const candidates = await this.db
@@ -38,6 +40,7 @@ export class PulseScheduler {
           aiSummary: signals.aiSummary,
           categoryId: signals.categoryId,
           score: signals.score,
+          url: signals.url,
         })
         .from(signals)
         .leftJoin(pulseDrafts, eq(signals.id, pulseDrafts.sourceSignalId))
@@ -47,8 +50,8 @@ export class PulseScheduler {
             eq(signals.aiFailed, false),
             isNull(pulseDrafts.id),
             gte(signals.score, minScore),
-            inArray(signals.categoryId, ['ai', 'technology'])
-          )
+            inArray(signals.categoryId, ['ai', 'technology']),
+          ),
         )
         .orderBy(desc(signals.score))
         .limit(10);
@@ -61,6 +64,7 @@ export class PulseScheduler {
             aiSummary: signal.aiSummary,
             categoryId: signal.categoryId,
             score: signal.score,
+            sourceUrl: signal.url,
           });
         }
       }
@@ -80,15 +84,21 @@ export class PulseScheduler {
       const pendingDrafts = await this.draftsRepository.findScheduledDraftsToPublish();
       if (pendingDrafts.length === 0) return;
 
-      const activeAccount = await this.draftsRepository.findActiveAccount('x');
-      if (!activeAccount) {
-        this.logger.warn('No active X publishing account configured. Skipping scheduled posts.');
-        return;
-      }
-
       for (const draft of pendingDrafts) {
+        const platform = draft.platform || 'x';
+
+        const activeAccount = await this.draftsRepository.findActiveAccount(platform);
+        if (!activeAccount) {
+          this.logger.warn(
+            `No active ${platform} publishing account configured. Skipping draft ${draft.id}.`,
+          );
+          continue;
+        }
+
+        const publisher = this.publisherRegistry.getPublisher(platform);
+
         try {
-          const res = await this.publisher.publish(draft.text, {
+          const res = await publisher.publish(draft.text, {
             apiKey: activeAccount.apiKey,
             apiSecret: activeAccount.apiSecret,
             accessToken: activeAccount.accessToken,
@@ -102,58 +112,55 @@ export class PulseScheduler {
             });
             await this.draftsRepository.createPublishLog({
               draftId: draft.id,
-              platform: 'x',
+              platform,
               action: 'published',
               xPostId: res.postId,
-              detail: `Successfully posted to X (Post ID: ${res.postId})`,
+              detail: `Successfully posted to ${platform} (Post ID: ${res.postId})`,
             });
-            logEvent('info', 'pulse_publish_success', { draftId: draft.id, postId: res.postId });
+            logEvent('info', 'pulse_publish_success', { draftId: draft.id, platform, postId: res.postId });
           } else {
-            const nextRetries = draft.retryCount + 1;
-            const newStatus = nextRetries >= 3 ? 'failed' : 'scheduled';
-            const newScheduledAt = newStatus === 'scheduled'
-              ? new Date(Date.now() + 5 * 60000)
-              : null;
-
-            await this.draftsRepository.updateDraft(draft.id, {
-              status: newStatus,
-              retryCount: nextRetries,
-              scheduledAt: newScheduledAt,
-            });
-
-            await this.draftsRepository.createPublishLog({
-              draftId: draft.id,
-              platform: 'x',
-              action: 'failed',
-              detail: `Failed to post to X: ${res.error}. Retry: ${nextRetries}/3`,
-            });
-            logEvent('error', 'pulse_publish_failed', { draftId: draft.id, error: res.error });
+            await this.handlePublishFailure(draft, platform, res.error || 'Unknown error');
           }
         } catch (err: any) {
-          const nextRetries = draft.retryCount + 1;
-          const newStatus = nextRetries >= 3 ? 'failed' : 'scheduled';
-          const newScheduledAt = newStatus === 'scheduled'
-            ? new Date(Date.now() + 5 * 60000)
-            : null;
-
-          await this.draftsRepository.updateDraft(draft.id, {
-            status: newStatus,
-            retryCount: nextRetries,
-            scheduledAt: newScheduledAt,
-          });
-
-          await this.draftsRepository.createPublishLog({
-            draftId: draft.id,
-            platform: 'x',
-            action: 'failed',
-            detail: `Failed to post to X: ${err.message}. Retry: ${nextRetries}/3`,
-          });
+          await this.handlePublishFailure(draft, platform, err.message);
         }
       }
     } catch (err: any) {
       this.logger.error(`Scheduled publishing cron failed: ${err.message}`);
     } finally {
       this.isPublishing = false;
+    }
+  }
+
+  private async handlePublishFailure(
+    draft: { id: string; retryCount: number },
+    platform: string,
+    error: string,
+  ): Promise<void> {
+    const nextRetries = draft.retryCount + 1;
+    const isFinal = nextRetries >= 3;
+    const newStatus = isFinal ? 'failed' : 'scheduled';
+    const newScheduledAt = isFinal ? null : new Date(Date.now() + nextRetries * 5 * 60_000);
+
+    await this.draftsRepository.updateDraft(draft.id, {
+      status: newStatus,
+      retryCount: nextRetries,
+      scheduledAt: newScheduledAt,
+    });
+
+    await this.draftsRepository.createPublishLog({
+      draftId: draft.id,
+      platform,
+      action: 'failed',
+      detail: `Failed to post to ${platform}: ${error}. Retry: ${nextRetries}/3`,
+    });
+
+    logEvent('error', 'pulse_publish_failed', { draftId: draft.id, platform, error, retry: nextRetries });
+
+    if (isFinal) {
+      this.logger.error(`Draft ${draft.id} exhausted all ${platform} publish retries: ${error}`);
+      // Notify via Discord on final failure
+      await this.discord.sendPublishFailureAlert(draft.id, platform, error);
     }
   }
 }

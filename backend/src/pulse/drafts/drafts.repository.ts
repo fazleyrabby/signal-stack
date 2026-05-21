@@ -14,7 +14,7 @@ import {
   type PulsePublishLog,
   type NewPulsePublishLog,
 } from '../../database/schema';
-import { eq, and, desc, count, lte, asc, type SQL } from 'drizzle-orm';
+import { eq, and, desc, count, lte, asc, ne, type SQL } from 'drizzle-orm';
 
 @Injectable()
 export class DraftsRepository {
@@ -121,6 +121,10 @@ export class DraftsRepository {
     return results[0];
   }
 
+  async deleteDraft(id: string): Promise<void> {
+    await this.db.delete(pulseDrafts).where(eq(pulseDrafts.id, id));
+  }
+
   async createPublishLog(data: NewPulsePublishLog) {
     const results = await this.db.insert(pulsePublishLogs).values(data).returning();
     return results[0];
@@ -151,6 +155,23 @@ export class DraftsRepository {
       .orderBy(desc(pulseAccounts.createdAt));
   }
 
+  async findAllActiveAccounts() {
+    return this.db
+      .select()
+      .from(pulseAccounts)
+      .where(eq(pulseAccounts.isActive, true))
+      .orderBy(asc(pulseAccounts.platform));
+  }
+
+  async draftExistsForSignalPlatform(signalId: string, platform: string): Promise<boolean> {
+    const results = await this.db
+      .select({ id: pulseDrafts.id })
+      .from(pulseDrafts)
+      .where(and(eq(pulseDrafts.sourceSignalId, signalId), eq(pulseDrafts.platform, platform)))
+      .limit(1);
+    return results.length > 0;
+  }
+
   async createAccount(data: NewPulseAccount) {
     const results = await this.db.insert(pulseAccounts).values(data).returning();
     return results[0];
@@ -163,6 +184,22 @@ export class DraftsRepository {
       .where(eq(pulseAccounts.id, id))
       .returning();
     return results[0];
+  }
+
+  async setActiveAccount(id: string, platform: string): Promise<void> {
+    // Atomically deactivate all accounts for the platform, then activate the target.
+    await this.db
+      .update(pulseAccounts)
+      .set({ isActive: false })
+      .where(and(eq(pulseAccounts.platform, platform), ne(pulseAccounts.id, id)));
+    await this.db
+      .update(pulseAccounts)
+      .set({ isActive: true })
+      .where(eq(pulseAccounts.id, id));
+  }
+
+  async deleteAccount(id: string): Promise<void> {
+    await this.db.delete(pulseAccounts).where(eq(pulseAccounts.id, id));
   }
 
   async findSetting(key: string): Promise<string | null> {
