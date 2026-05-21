@@ -69,6 +69,65 @@ export class DiscordService implements OnModuleInit {
     this.processQueue();
   }
 
+  /**
+   * Alert when AI draft generation is exhausted after all retries.
+   */
+  async sendPulseFailureAlert(signalId: string, error: string): Promise<void> {
+    if (!this.webhookUrl) return;
+    try {
+      await fetch(this.webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          embeds: [{
+            title: '⚠️ Pulse AI Generation Failed',
+            description: `AI draft generation exhausted all retries for signal \`${signalId}\`.`,
+            color: 0xff4444,
+            fields: [
+              { name: 'Signal ID', value: signalId, inline: true },
+              { name: 'Error', value: error.slice(0, 1000), inline: false },
+              { name: 'Action Required', value: 'Open Pulse → Drafts Queue → Failed tab to retry manually.', inline: false },
+            ],
+            timestamp: new Date().toISOString(),
+            footer: { text: 'SignalStack Pulse' },
+          }],
+        }),
+      });
+    } catch (err: any) {
+      logEvent('error', 'pulse_discord_alert_failed', { error: err.message });
+    }
+  }
+
+  /**
+   * Alert when a scheduled publish exhausts all retries.
+   */
+  async sendPublishFailureAlert(draftId: string, platform: string, error: string): Promise<void> {
+    if (!this.webhookUrl) return;
+    try {
+      await fetch(this.webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          embeds: [{
+            title: `⚠️ Pulse Publish Failed — ${platform.toUpperCase()}`,
+            description: `A scheduled post exhausted all publish retries on **${platform}**.`,
+            color: 0xff6600,
+            fields: [
+              { name: 'Draft ID', value: draftId, inline: true },
+              { name: 'Platform', value: platform, inline: true },
+              { name: 'Error', value: error.slice(0, 1000), inline: false },
+              { name: 'Action Required', value: 'Open Pulse → Drafts Queue → Failed tab to inspect and retry.', inline: false },
+            ],
+            timestamp: new Date().toISOString(),
+            footer: { text: 'SignalStack Pulse' },
+          }],
+        }),
+      });
+    } catch (err: any) {
+      logEvent('error', 'pulse_discord_publish_alert_failed', { error: err.message });
+    }
+  }
+
   private async processQueue(): Promise<void> {
     if (this.processing) return;
     this.processing = true;
