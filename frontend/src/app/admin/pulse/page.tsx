@@ -25,6 +25,7 @@ import {
   Plus,
   Globe,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -170,6 +171,7 @@ export default function PulseAdmin() {
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PulseDraft | null>(null);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
 
   const [accountForm, setAccountForm] = useState({ 
     handle: "", 
@@ -264,6 +266,18 @@ export default function PulseAdmin() {
     const res = await fetch(`${API_BASE}/api/admin/pulse/drafts/${id}/retry`, { method: "POST", credentials: "include" });
     if (!res.ok) { const d = await res.json(); alert(d.message || "Retry failed"); return; }
     await mutateDrafts(); await mutateLogs();
+  };
+
+  const handlePublish = async (id: string) => {
+    setPublishingId(id);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/pulse/drafts/${id}/publish`, { method: "POST", credentials: "include" });
+      const d = await res.json();
+      if (!res.ok) { alert(d.message || "Publish failed"); return; }
+      await mutateDrafts(); await mutateLogs();
+    } finally {
+      setPublishingId(null);
+    }
   };
 
   const handleActivateAccount = async (id: string) => {
@@ -634,6 +648,20 @@ export default function PulseAdmin() {
                           <button onClick={() => openEdit(draft)} className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" title="Edit">
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
+
+                          {(draft.status === "generated" || draft.status === "approved") && (
+                            <button
+                              onClick={() => handlePublish(draft.id)}
+                              disabled={publishingId === draft.id}
+                              className="px-2 py-1 rounded-lg bg-blue-500/15 border border-blue-500/20 text-blue-400 text-xs font-semibold hover:bg-blue-500/25 transition-colors flex items-center gap-1 disabled:opacity-60"
+                              title={`Publish now to ${draft.platform}`}
+                            >
+                              {publishingId === draft.id
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Send className="w-3 h-3" />}
+                              Post
+                            </button>
+                          )}
 
                           {draft.status === "generated" && (
                             <>
