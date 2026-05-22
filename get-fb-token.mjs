@@ -13,8 +13,14 @@
  * These are the values you paste into the "Connect Account" form in Pulse settings.
  */
 
-const APP_ID = "REDACTED";
-const APP_SECRET = "REDACTED";
+const APP_ID = process.env.FB_APP_ID;
+const APP_SECRET = process.env.FB_APP_SECRET;
+
+if (!APP_ID || !APP_SECRET) {
+  console.error("Error: FB_APP_ID and FB_APP_SECRET environment variables must be set.");
+  process.exit(1);
+}
+
 const GRAPH = "https://graph.facebook.com/v19.0";
 
 const shortLivedToken = process.argv[2];
