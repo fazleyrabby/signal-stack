@@ -125,6 +125,7 @@ export class DraftsRepository {
   }
 
   async deleteDraft(id: string): Promise<void> {
+    await this.db.delete(pulsePublishLogs).where(eq(pulsePublishLogs.draftId, id));
     await this.db.delete(pulseDrafts).where(eq(pulseDrafts.id, id));
   }
 
