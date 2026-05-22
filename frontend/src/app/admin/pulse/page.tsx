@@ -6,7 +6,7 @@ import {
   Send, Settings, Database, RefreshCw, Edit2, Trash2,
   CheckCircle, XCircle, AlertCircle, ExternalLink, ChevronLeft,
   ChevronRight, Cpu, UserCheck, Copy, RotateCcw, Plus, Globe,
-  Zap, Loader2, FileText, Sparkles, ChevronDown, ChevronUp,
+  Zap, Loader2, FileText, Sparkles, ChevronDown, ChevronUp, Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -588,6 +588,8 @@ export default function PulseAdmin() {
   const [isConnectingAccount, setIsConnectingAccount] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [connectSuccess, setConnectSuccess] = useState(false);
+  const [testingAccountId, setTestingAccountId] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{id: string, success: boolean, message: string} | null>(null);
 
   const [settingsForm, setSettingsForm] = useState({ autoDraftEnabled: true, minSignalScore: 7, maxDraftsPerDay: 20 });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -699,6 +701,21 @@ export default function PulseAdmin() {
       setTimeout(() => setConnectSuccess(false), 3000);
     } catch (e: any) { setConnectError(e.message); }
     finally { setIsConnectingAccount(false); }
+  };
+
+  const handleTestConnection = async (id: string) => {
+    setTestingAccountId(id);
+    setTestResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/pulse/accounts/${id}/test-connection`, { method: "POST", credentials: "include" });
+      const data = await res.json();
+      setTestResult({ id, success: data.success, message: data.message || "Test completed" });
+    } catch (e: any) {
+      setTestResult({ id, success: false, message: e.message || "Test failed" });
+    } finally {
+      setTestingAccountId(null);
+      setTimeout(() => setTestResult(null), 5000);
+    }
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -1086,34 +1103,50 @@ export default function PulseAdmin() {
                   </h3>
                   <div className="space-y-2">
                     {accountsData.map(acct => (
-                      <div key={acct.id} className={cn("flex items-center justify-between px-4 py-3 rounded-lg border",
-                        acct.isActive ? "bg-emerald-500/5 border-emerald-500/20" : "bg-muted/20 border-border/20")}>
-                        <div className="flex items-center gap-2.5">
-                          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center border", PLATFORM_COLOR[acct.platform as Platform] || "bg-muted/20 border-border/20 text-muted-foreground")}>
-                            <PlatformIcon platform={acct.platform} className="w-3.5 h-3.5" />
+                      <div key={acct.id} className="space-y-2">
+                        <div className={cn("flex items-center justify-between px-4 py-3 rounded-lg border",
+                          acct.isActive ? "bg-emerald-500/5 border-emerald-500/20" : "bg-muted/20 border-border/20")}>
+                          <div className="flex items-center gap-2.5">
+                            <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center border", PLATFORM_COLOR[acct.platform as Platform] || "bg-muted/20 border-border/20 text-muted-foreground")}>
+                              <PlatformIcon platform={acct.platform} className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">{acct.handle}</p>
+                              <p className="text-xs text-muted-foreground">{acct.isActive ? "Active publisher" : `Added ${new Date(acct.createdAt).toLocaleDateString()}`}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold">{acct.handle}</p>
-                            <p className="text-xs text-muted-foreground">{acct.isActive ? "Active publisher" : `Added ${new Date(acct.createdAt).toLocaleDateString()}`}</p>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleTestConnection(acct.id)}
+                              disabled={testingAccountId === acct.id}
+                              className={cn("p-1.5 rounded-lg hover:bg-accent transition-colors", testingAccountId === acct.id ? "text-primary opacity-50" : "text-muted-foreground hover:text-foreground")}
+                              title="Test connection"
+                            >
+                              {testingAccountId === acct.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              onClick={() => handleEditAccount(acct.id)}
+                              className={cn("p-1.5 rounded-lg hover:bg-accent transition-colors", editingAccountId === acct.id ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground")}
+                              title="Edit credentials"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            {acct.isActive ? (
+                              <span className="text-xs text-emerald-400 font-semibold px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">Active</span>
+                            ) : (
+                              <>
+                                <button onClick={() => handleActivateAccount(acct.id)} className="text-xs text-primary font-semibold px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors">Set Active</button>
+                                <button onClick={() => handleDeleteAccount(acct.id)} className="p-1.5 rounded-lg hover:bg-red-500/15 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                              </>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleEditAccount(acct.id)}
-                            className={cn("p-1.5 rounded-lg hover:bg-accent transition-colors", editingAccountId === acct.id ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground")}
-                            title="Edit credentials"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          {acct.isActive ? (
-                            <span className="text-xs text-emerald-400 font-semibold px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">Active</span>
-                          ) : (
-                            <>
-                              <button onClick={() => handleActivateAccount(acct.id)} className="text-xs text-primary font-semibold px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors">Set Active</button>
-                              <button onClick={() => handleDeleteAccount(acct.id)} className="p-1.5 rounded-lg hover:bg-red-500/15 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                            </>
-                          )}
-                        </div>
+                        {testResult?.id === acct.id && (
+                          <div className={cn("flex items-center gap-1.5 text-xs rounded-lg px-3 py-2 border", testResult.success ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-red-400 bg-red-500/10 border-red-500/20")}>
+                            {testResult.success ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                            {testResult.message}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

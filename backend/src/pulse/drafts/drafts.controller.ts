@@ -516,6 +516,44 @@ export class DraftsController {
     return { success: true, handle: account.handle };
   }
 
+  @Post('accounts/:id/test-connection')
+  async testAccountConnection(@Param('id') id: string) {
+    const rows = await this.db
+      .select()
+      .from(pulseAccounts)
+      .where(eq(pulseAccounts.id, id))
+      .limit(1);
+
+    const account = rows[0];
+    if (!account) throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+
+    const publisher = this.publisherRegistry.getPublisher(account.platform);
+    if (!publisher) {
+      throw new HttpException(`No publisher available for platform: ${account.platform}`, HttpStatus.BAD_REQUEST);
+    }
+    
+    if (!publisher.verifyCredentials) {
+      return { success: true, message: 'Platform does not support automated connection testing. Assuming valid.' };
+    }
+
+    try {
+      const isValid = await publisher.verifyCredentials({
+        apiKey: account.apiKey,
+        apiSecret: account.apiSecret,
+        accessToken: account.accessToken,
+        accessTokenSecret: account.accessTokenSecret,
+      });
+
+      if (!isValid) {
+        return { success: false, message: 'Invalid credentials. Verification failed.' };
+      }
+      
+      return { success: true, message: 'Connection successful!' };
+    } catch (error: any) {
+      return { success: false, message: `Verification failed: ${error.message}` };
+    }
+  }
+
   @Get('accounts/:id/credentials')
   async getAccountCredentials(@Param('id') id: string) {
     const rows = await this.db

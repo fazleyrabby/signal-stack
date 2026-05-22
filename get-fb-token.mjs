@@ -18,6 +18,7 @@ const APP_SECRET = process.env.FB_APP_SECRET;
 
 if (!APP_ID || !APP_SECRET) {
   console.error("Error: FB_APP_ID and FB_APP_SECRET environment variables must be set.");
+  console.error("Try running: node --env-file=backend/.env get-fb-token.mjs <token>");
   process.exit(1);
 }
 
