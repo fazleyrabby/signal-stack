@@ -1,11 +1,22 @@
 export type CanonicalIntelligenceAsset = {
   title: string;
-  executiveSummary: string;         // 1–2 sentences, dense, technical
-  technicalBreakdown?: string;      // what changed / how it works
-  whyItMatters?: string;            // implications for devs / industry
-  keyPoints?: string[];             // 2–4 bullets, concise
+  executiveSummary: string;
+  detailedSummary?: string;
+  technicalBreakdown?: string;
+  whyItMatters?: string;
+  keyPoints?: string[];
   sourceUrl?: string;
-  tags?: string[];                  // 2–3 technical tags
+  relatedLinks?: string[];
+  tags?: string[];
   category?: string;
+  severity?: number;
   score?: number;
+};
+
+export type PersistedAsset = CanonicalIntelligenceAsset & {
+  id: string;
+  signalId: string;
+  aiProvider: string;
+  aiModel: string;
+  createdAt: Date;
 };

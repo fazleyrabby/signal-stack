@@ -236,11 +236,38 @@ export const pulseAccounts = pgTable('pulse_accounts', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const pulseAssets = pgTable(
+  'pulse_intelligence_assets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    signalId: uuid('signal_id').notNull().references(() => signals.id),
+    title: text('title').notNull(),
+    executiveSummary: text('executive_summary').notNull(),
+    detailedSummary: text('detailed_summary'),
+    technicalBreakdown: text('technical_breakdown'),
+    whyItMatters: text('why_it_matters'),
+    keyPoints: jsonb('key_points').$type<string[]>().default([]),
+    sourceUrl: text('source_url'),
+    relatedLinks: jsonb('related_links').$type<string[]>().default([]),
+    tags: jsonb('tags').$type<string[]>().default([]),
+    category: varchar('category', { length: 100 }),
+    severity: integer('severity'),
+    aiProvider: varchar('ai_provider', { length: 50 }),
+    aiModel: varchar('ai_model', { length: 50 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    signalIdIdx: index('idx_pulse_assets_signal_id').on(table.signalId),
+    createdAtIdx: index('idx_pulse_assets_created_at').on(table.createdAt),
+  })
+);
+
 export const pulseDrafts = pgTable(
   'pulse_drafts',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     sourceSignalId: uuid('source_signal_id').notNull().references(() => signals.id),
+    assetId: uuid('asset_id').references(() => pulseAssets.id, { onDelete: 'set null' }),
     platform: varchar('platform', { length: 50 }).notNull().default('x'),
     text: text('text').notNull(),
     status: varchar('status', { length: 20 }).notNull().default('generated'), // pending | generated | approved | scheduled | published | failed | rejected
@@ -281,6 +308,8 @@ export const pulsePublishLogs = pgTable(
 
 export type PulseAccount = typeof pulseAccounts.$inferSelect;
 export type NewPulseAccount = typeof pulseAccounts.$inferInsert;
+export type PulseAsset = typeof pulseAssets.$inferSelect;
+export type NewPulseAsset = typeof pulseAssets.$inferInsert;
 export type PulseDraft = typeof pulseDrafts.$inferSelect;
 export type NewPulseDraft = typeof pulseDrafts.$inferInsert;
 export type PulsePublishLog = typeof pulsePublishLogs.$inferSelect;

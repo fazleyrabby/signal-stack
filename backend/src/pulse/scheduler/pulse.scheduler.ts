@@ -6,8 +6,8 @@ import { PublisherRegistry } from '../services/publisher-registry.service';
 import { DiscordService } from '../../alerts/discord.service';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import type { DrizzleDB } from '../../database/database.module';
-import { signals, pulseDrafts } from '../../database/schema';
-import { eq, and, desc, isNull, gte, inArray } from 'drizzle-orm';
+import { signals, pulseAssets, pulseDrafts } from '../../database/schema';
+import { eq, and, desc, isNull, gte, inArray, lt } from 'drizzle-orm';
 import { logEvent } from '../../common/logger';
 
 @Injectable()
@@ -43,12 +43,12 @@ export class PulseScheduler {
           url: signals.url,
         })
         .from(signals)
-        .leftJoin(pulseDrafts, eq(signals.id, pulseDrafts.sourceSignalId))
+        .leftJoin(pulseAssets, eq(signals.id, pulseAssets.signalId))
         .where(
           and(
             eq(signals.aiProcessed, true),
             eq(signals.aiFailed, false),
-            isNull(pulseDrafts.id),
+            isNull(pulseAssets.id),
             gte(signals.score, minScore),
             inArray(signals.categoryId, ['ai', 'technology']),
           ),
@@ -96,6 +96,10 @@ export class PulseScheduler {
         }
 
         const publisher = this.publisherRegistry.getPublisher(platform);
+        if (!publisher) {
+          this.logger.warn(`No publisher for platform '${platform}'. Skipping draft ${draft.id}.`);
+          continue;
+        }
 
         try {
           const res = await publisher.publish(draft.text, {
@@ -129,6 +133,32 @@ export class PulseScheduler {
       this.logger.error(`Scheduled publishing cron failed: ${err.message}`);
     } finally {
       this.isPublishing = false;
+    }
+  }
+
+  @Cron('0 3 * * *') // 3am daily
+  async handleDraftRetention() {
+    try {
+      const retentionDaysStr = (await this.draftsRepository.findSetting('pulse_draft_retention_days')) || '25';
+      const retentionDays = parseInt(retentionDaysStr, 10);
+      const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+
+      const expired = await this.db
+        .delete(pulseDrafts)
+        .where(
+          and(
+            lt(pulseDrafts.createdAt, cutoff),
+            inArray(pulseDrafts.status, ['generated', 'failed', 'rejected']),
+          ),
+        )
+        .returning({ id: pulseDrafts.id });
+
+      if (expired.length > 0) {
+        logEvent('info', 'pulse_draft_retention_cleanup', { deleted: expired.length, cutoffDays: retentionDays });
+        this.logger.log(`Retention cleanup: deleted ${expired.length} drafts older than ${retentionDays} days`);
+      }
+    } catch (err: any) {
+      this.logger.error(`Draft retention cleanup failed: ${err.message}`);
     }
   }
 

@@ -22,6 +22,8 @@ services:
       LOCAL_AI_ENABLED: ${LOCAL_AI_ENABLED:-false}
       LOCAL_AI_URL: ${LOCAL_AI_URL:-http://llama:8080}
       PULSE_ENCRYPTION_KEY: ${PULSE_ENCRYPTION_KEY}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

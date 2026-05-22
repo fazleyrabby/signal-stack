@@ -6,17 +6,12 @@ import { DiscordService } from '../../alerts/discord.service';
 import { logEvent } from '../../common/logger';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import type { DrizzleDB } from '../../database/database.module';
-import { pulseDrafts } from '../../database/schema';
+import { pulseAssets } from '../../database/schema';
 import { eq } from 'drizzle-orm';
-import { XFormatter } from '../formatters/x.formatter';
-import { FacebookFormatter } from '../formatters/facebook.formatter';
-import { LinkedInFormatter } from '../formatters/linkedin.formatter';
-import { BlueskyFormatter } from '../formatters/bluesky.formatter';
-import type { PlatformFormatter } from '../formatters/base.formatter';
 
 const POLL_INTERVAL_MS = 1000;
 
-interface DraftJob {
+interface AssetJob {
   id: string;
   title: string;
   aiSummary: string | null;
@@ -26,16 +21,6 @@ interface DraftJob {
   retryCount?: number;
   processAfter?: number;
 }
-
-// Registry of all platform formatters
-const FORMATTERS: PlatformFormatter[] = [
-  new XFormatter(),
-  new FacebookFormatter(),
-  new LinkedInFormatter(),
-  new BlueskyFormatter(),
-];
-
-const FORMATTER_MAP = new Map(FORMATTERS.map(f => [f.platform, f]));
 
 @Injectable()
 export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
@@ -64,11 +49,11 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   async enqueue(signal: { id: string; title: string; aiSummary: string | null; categoryId: string; score: number; sourceUrl?: string | null }) {
-    // Deduplicate: skip if any draft already exists for this signal
+    // Skip if canonical asset already exists for this signal
     const existing = await this.db
-      .select({ id: pulseDrafts.id })
-      .from(pulseDrafts)
-      .where(eq(pulseDrafts.sourceSignalId, signal.id))
+      .select({ id: pulseAssets.id })
+      .from(pulseAssets)
+      .where(eq(pulseAssets.signalId, signal.id))
       .limit(1);
 
     if (existing.length > 0) return;
@@ -79,12 +64,12 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
     const limitStr = await this.draftsRepository.findSetting('pulse_max_drafts_per_day') || '20';
     const limit = parseInt(limitStr, 10);
     const today = new Date().toISOString().split('T')[0];
-    const dailyKey = `pulse:draft_count:${today}`;
+    const dailyKey = `pulse:asset_count:${today}`;
     const current = await this.redis.incr(dailyKey);
 
     if (current === 1) await this.redis.expire(dailyKey, 86400 + 3600);
     if (current > limit) {
-      logEvent('warn', 'pulse_daily_draft_limit_reached', { limit, count: current });
+      logEvent('warn', 'pulse_daily_asset_limit_reached', { limit, count: current });
       return;
     }
 
@@ -95,8 +80,8 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
     await this.pushToQueue(signal);
   }
 
-  private async pushToQueue(signal: DraftJob) {
-    const job: DraftJob = {
+  private async pushToQueue(signal: AssetJob) {
+    const job: AssetJob = {
       id: signal.id,
       title: signal.title,
       aiSummary: signal.aiSummary,
@@ -106,18 +91,18 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
       retryCount: 0,
     };
     const priorityScore = (10 - signal.score) * 1e12 + Date.now();
-    await this.redis.zadd('queue:pulse_draft', priorityScore, JSON.stringify(job));
-    logEvent('info', 'pulse_draft_enqueued', { signalId: signal.id, score: signal.score });
+    await this.redis.zadd('queue:pulse_asset', priorityScore, JSON.stringify(job));
+    logEvent('info', 'pulse_asset_enqueued', { signalId: signal.id, score: signal.score });
   }
 
   private async poll() {
     if (this.shuttingDown || this.activeWorkers >= this.maxWorkers) return;
 
-    const item = await this.redis.zpopmin('queue:pulse_draft');
+    const item = await this.redis.zpopmin('queue:pulse_asset');
     if (!item) return;
 
     const [memberJson] = item;
-    let job: DraftJob;
+    let job: AssetJob;
     try {
       job = JSON.parse(memberJson);
     } catch {
@@ -127,7 +112,7 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
 
     if (job.processAfter && Date.now() < job.processAfter) {
       const score = (10 - job.score) * 1e12 + job.processAfter;
-      await this.redis.zadd('queue:pulse_draft', score, memberJson);
+      await this.redis.zadd('queue:pulse_asset', score, memberJson);
       return;
     }
 
@@ -137,9 +122,8 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  private async processJob(job: DraftJob) {
+  private async processJob(job: AssetJob) {
     try {
-      // 1. Generate canonical intelligence asset
       const { asset, provider, model } = await this.pulseAIService.generateCanonicalAsset({
         id: job.id,
         title: job.title,
@@ -149,70 +133,31 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
         sourceUrl: job.sourceUrl,
       });
 
-      // 2. Get all active social accounts
-      const activeAccounts = await this.draftsRepository.findAllActiveAccounts();
+      await this.db.insert(pulseAssets).values({
+        signalId: job.id,
+        title: asset.title,
+        executiveSummary: asset.executiveSummary,
+        detailedSummary: asset.detailedSummary ?? null,
+        technicalBreakdown: asset.technicalBreakdown ?? null,
+        whyItMatters: asset.whyItMatters ?? null,
+        keyPoints: asset.keyPoints ?? [],
+        sourceUrl: asset.sourceUrl ?? null,
+        relatedLinks: asset.relatedLinks ?? [],
+        tags: asset.tags ?? [],
+        category: asset.category ?? null,
+        severity: asset.severity ?? null,
+        aiProvider: provider,
+        aiModel: model,
+      });
 
-      if (activeAccounts.length === 0) {
-        // No accounts active — still create an X draft so admin can review/copy
-        const formatter = FORMATTER_MAP.get('x')!;
-        const post = formatter.format(asset);
-        await this.createDraftRecord({ job, platform: 'x', text: post.text, provider, model, asset });
-        logEvent('info', 'pulse_draft_created_no_accounts', { signalId: job.id });
-        return;
-      }
-
-      // 3. Create one draft per active platform (dedup per signal+platform)
-      for (const account of activeAccounts) {
-        const platform = account.platform;
-        const alreadyExists = await this.draftsRepository.draftExistsForSignalPlatform(job.id, platform);
-        if (alreadyExists) continue;
-
-        const formatter = FORMATTER_MAP.get(platform);
-        if (!formatter) {
-          this.logger.warn(`No formatter registered for platform: ${platform}`);
-          continue;
-        }
-
-        const post = formatter.format(asset);
-        await this.createDraftRecord({ job, platform, text: post.text, provider, model, asset });
-      }
-
-      logEvent('info', 'pulse_draft_generation_success', { signalId: job.id, platforms: activeAccounts.map(a => a.platform) });
+      logEvent('info', 'pulse_asset_created', { signalId: job.id, provider, model });
     } catch (error: any) {
       await this.handleJobFailure(job, error);
     }
   }
 
-  private async createDraftRecord(params: {
-    job: DraftJob;
-    platform: string;
-    text: string;
-    provider: string;
-    model: string;
-    asset: object;
-  }) {
-    const draft = await this.draftsRepository.createDraft({
-      sourceSignalId: params.job.id,
-      platform: params.platform,
-      text: params.text,
-      status: 'generated',
-      aiProvider: params.provider,
-      aiModel: params.model,
-      metadata: { canonical: params.asset },
-    });
-
-    await this.draftsRepository.createPublishLog({
-      draftId: draft.id,
-      platform: params.platform,
-      action: 'generated',
-      detail: `Draft generated via ${params.provider} (${params.model}) for ${params.platform}`,
-    });
-
-    return draft;
-  }
-
-  private async handleJobFailure(job: DraftJob, error: Error) {
-    logEvent('error', 'pulse_draft_generation_failed', {
+  private async handleJobFailure(job: AssetJob, error: Error) {
+    logEvent('error', 'pulse_asset_generation_failed', {
       signalId: job.id,
       error: error.message,
       retry: (job.retryCount || 0) + 1,
@@ -221,35 +166,14 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
     const retries = job.retryCount || 0;
     if (retries < 3) {
       const backoffMs = (retries + 1) * 30_000;
-      const retryJob: DraftJob = { ...job, retryCount: retries + 1, processAfter: Date.now() + backoffMs };
+      const retryJob: AssetJob = { ...job, retryCount: retries + 1, processAfter: Date.now() + backoffMs };
       const score = (10 - job.score) * 1e12 + retryJob.processAfter!;
-      await this.redis.zadd('queue:pulse_draft', score, JSON.stringify(retryJob));
+      await this.redis.zadd('queue:pulse_asset', score, JSON.stringify(retryJob));
       return;
     }
 
-    this.logger.error(`Draft generation exhausted for signal ${job.id}: ${error.message}`);
-    logEvent('error', 'pulse_draft_generation_exhausted', { signalId: job.id, error: error.message });
-
-    try {
-      const failedDraft = await this.draftsRepository.createDraft({
-        sourceSignalId: job.id,
-        platform: 'x',
-        text: `[AI GENERATION FAILED] Source: ${job.title}`,
-        status: 'failed',
-        retryCount: 3,
-        metadata: { failureReason: error.message },
-      });
-
-      await this.draftsRepository.createPublishLog({
-        draftId: failedDraft.id,
-        platform: 'x',
-        action: 'failed',
-        detail: `AI generation exhausted after 3 retries: ${error.message}`,
-      });
-
-      await this.discord.sendPulseFailureAlert(job.id, error.message);
-    } catch (persistErr: any) {
-      this.logger.error(`Failed to persist exhausted draft: ${persistErr.message}`);
-    }
+    this.logger.error(`Asset generation exhausted for signal ${job.id}: ${error.message}`);
+    logEvent('error', 'pulse_asset_generation_exhausted', { signalId: job.id, error: error.message });
+    await this.discord.sendPulseFailureAlert(job.id, error.message);
   }
 }

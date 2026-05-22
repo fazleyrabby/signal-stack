@@ -18,11 +18,24 @@ import { DraftGenerationWorker } from '../workers/draft-generation.worker';
 import { PublisherRegistry } from '../services/publisher-registry.service';
 import { PulseEncryptionService } from '../services/pulse-encryption.service';
 import { PlatformLimitsService } from '../services/platform-limits.service';
+import { PulseAIService } from '../services/pulse-ai.service';
+import { XFormatter } from '../formatters/x.formatter';
+import { FacebookFormatter } from '../formatters/facebook.formatter';
+import { LinkedInFormatter } from '../formatters/linkedin.formatter';
+import { BlueskyFormatter } from '../formatters/bluesky.formatter';
+import type { PlatformFormatter } from '../formatters/base.formatter';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import type { DrizzleDB } from '../../database/database.module';
-import { signals, pulseAccounts } from '../../database/schema';
+import { signals, pulseAccounts, pulseAssets } from '../../database/schema';
 import { eq } from 'drizzle-orm';
 import { logEvent } from '../../common/logger';
+
+const FORMATTER_MAP = new Map<string, PlatformFormatter>([
+  ['x', new XFormatter()],
+  ['facebook', new FacebookFormatter()],
+  ['linkedin', new LinkedInFormatter()],
+  ['bluesky', new BlueskyFormatter()],
+]);
 
 @Controller('api/admin/pulse')
 @UseGuards(AdminGuard)
@@ -33,8 +46,121 @@ export class DraftsController {
     private readonly publisherRegistry: PublisherRegistry,
     private readonly encryption: PulseEncryptionService,
     private readonly platformLimits: PlatformLimitsService,
+    private readonly pulseAI: PulseAIService,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
   ) {}
+
+  // ─── Assets ──────────────────────────────────────────────────────────────────
+
+  @Get('assets')
+  async getAssets(
+    @Query('page') pageStr = '1',
+    @Query('limit') limitStr = '20',
+  ) {
+    const page = parseInt(pageStr, 10) || 1;
+    const limit = parseInt(limitStr, 10) || 20;
+    const offset = (page - 1) * limit;
+
+    const [assets, total] = await Promise.all([
+      this.draftsRepository.findAssets({ limit, offset }),
+      this.draftsRepository.countAssets(),
+    ]);
+
+    // Attach drafts to each asset so frontend workspace renders without extra requests
+    const assetsWithDrafts = await Promise.all(
+      assets.map(async (asset) => ({
+        ...asset,
+        drafts: await this.draftsRepository.findDraftsByAssetId(asset.id),
+      }))
+    );
+
+    return { assets: assetsWithDrafts, total, page, limit };
+  }
+
+  @Get('assets/:id')
+  async getAsset(@Param('id') id: string) {
+    const asset = await this.draftsRepository.findAssetById(id);
+    if (!asset) throw new HttpException('Asset not found', HttpStatus.NOT_FOUND);
+
+    const drafts = await this.draftsRepository.findDraftsByAssetId(id);
+    return { ...asset, drafts };
+  }
+
+  @Delete('assets/:id')
+  async deleteAsset(@Param('id') id: string) {
+    const asset = await this.draftsRepository.findAssetById(id);
+    if (!asset) throw new HttpException('Asset not found', HttpStatus.NOT_FOUND);
+
+    await this.draftsRepository.deleteAsset(id);
+    logEvent('warn', 'pulse_asset_deleted', { assetId: id });
+    return { success: true };
+  }
+
+  @Post('assets/:id/generate/:platform')
+  async generatePlatformDraft(
+    @Param('id') assetId: string,
+    @Param('platform') platform: string,
+  ) {
+    const VALID_PLATFORMS = ['x', 'facebook', 'linkedin', 'bluesky'];
+    if (!VALID_PLATFORMS.includes(platform)) {
+      throw new HttpException(`Invalid platform: ${platform}`, HttpStatus.BAD_REQUEST);
+    }
+
+    const asset = await this.draftsRepository.findAssetById(assetId);
+    if (!asset) throw new HttpException('Asset not found', HttpStatus.NOT_FOUND);
+
+    const formatter = FORMATTER_MAP.get(platform);
+    if (!formatter) throw new HttpException(`No formatter for platform: ${platform}`, HttpStatus.BAD_REQUEST);
+
+    // Check for existing non-published draft for this asset+platform
+    const existing = await this.draftsRepository.findDraftByAssetAndPlatform(assetId, platform);
+    if (existing && existing.status !== 'published') {
+      // Regenerate: delete old and create fresh
+      await this.draftsRepository.deleteDraft(existing.id);
+    }
+
+    const post = formatter.format({
+      title: asset.title,
+      executiveSummary: asset.executiveSummary,
+      detailedSummary: asset.detailedSummary ?? undefined,
+      technicalBreakdown: asset.technicalBreakdown ?? undefined,
+      whyItMatters: asset.whyItMatters ?? undefined,
+      keyPoints: (asset.keyPoints as string[]) ?? undefined,
+      sourceUrl: asset.sourceUrl ?? undefined,
+      relatedLinks: (asset.relatedLinks as string[]) ?? undefined,
+      tags: (asset.tags as string[]) ?? undefined,
+      category: asset.category ?? undefined,
+      severity: asset.severity ?? undefined,
+    });
+
+    const draft = await this.draftsRepository.createDraft({
+      sourceSignalId: asset.signalId,
+      assetId,
+      platform,
+      text: post.text,
+      status: 'generated',
+      aiProvider: asset.aiProvider ?? 'formatter',
+      aiModel: asset.aiModel ?? 'template',
+    });
+
+    await this.draftsRepository.createPublishLog({
+      draftId: draft.id,
+      platform,
+      action: 'generated',
+      detail: `${platform} variant generated on demand from asset ${assetId}`,
+    });
+
+    logEvent('info', 'pulse_variant_generated', { assetId, platform, draftId: draft.id });
+    return draft;
+  }
+
+  @Post('assets/:id/regenerate/:platform')
+  async regeneratePlatformDraft(
+    @Param('id') assetId: string,
+    @Param('platform') platform: string,
+  ) {
+    return this.generatePlatformDraft(assetId, platform);
+  }
 
   // ─── Drafts ──────────────────────────────────────────────────────────────────
 
@@ -110,14 +236,6 @@ export class DraftsController {
   async deleteDraft(@Param('id') id: string) {
     const draft = await this.draftsRepository.findDraftById(id);
     if (!draft) throw new HttpException('Draft not found', HttpStatus.NOT_FOUND);
-
-    const deletableStatuses = ['rejected', 'failed'];
-    if (!deletableStatuses.includes(draft.status)) {
-      throw new HttpException(
-        `Only rejected or failed drafts can be permanently deleted (current status: ${draft.status})`,
-        HttpStatus.CONFLICT,
-      );
-    }
 
     // Write audit log before deleting so the history survives
     await this.draftsRepository.createPublishLog({
@@ -246,15 +364,22 @@ export class DraftsController {
     const signal = signalList[0];
     if (!signal) throw new HttpException('Signal not found', HttpStatus.NOT_FOUND);
 
+    // If asset already exists, return it instead of re-generating
+    const existing = await this.draftsRepository.findAssetBySignalId(signalId);
+    if (existing) {
+      return { success: true, alreadyExists: true, assetId: existing.id, message: 'Intelligence asset already exists for this signal' };
+    }
+
     await this.worker.forceEnqueue({
       id: signal.id,
       title: signal.title,
       aiSummary: signal.aiSummary,
       categoryId: signal.categoryId || 'General',
       score: signal.score || 5,
+      sourceUrl: signal.url,
     });
 
-    return { success: true, message: 'Signal enqueued for Pulse AI draft generation' };
+    return { success: true, alreadyExists: false, message: 'Signal queued for intelligence asset generation' };
   }
 
   // ─── Logs ────────────────────────────────────────────────────────────────────
@@ -328,7 +453,7 @@ export class DraftsController {
   // ─── Accounts ────────────────────────────────────────────────────────────────
 
   @Get('accounts')
-  async getAccounts(@Query('platform') platform = 'x') {
+  async getAccounts(@Query('platform') platform?: string) {
     const accounts = await this.draftsRepository.findAllAccounts(platform);
     // Return accounts with masked credentials (show handle and metadata only)
     return accounts.map((a) => ({
@@ -389,6 +514,85 @@ export class DraftsController {
 
     logEvent('info', 'pulse_account_connected', { handle: account.handle, platform });
     return { success: true, handle: account.handle };
+  }
+
+  @Get('accounts/:id/credentials')
+  async getAccountCredentials(@Param('id') id: string) {
+    const rows = await this.db
+      .select()
+      .from(pulseAccounts)
+      .where(eq(pulseAccounts.id, id))
+      .limit(1);
+
+    const account = rows[0];
+    if (!account) throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+
+    return {
+      id: account.id,
+      platform: account.platform,
+      handle: account.handle.replace(/^@/, ''),
+      apiKey: this.encryption.decrypt(account.apiKey),
+      apiSecret: this.encryption.decrypt(account.apiSecret),
+      accessToken: this.encryption.decrypt(account.accessToken),
+      accessTokenSecret: this.encryption.decrypt(account.accessTokenSecret),
+    };
+  }
+
+  @Patch('accounts/:id')
+  async updateAccount(
+    @Param('id') id: string,
+    @Body() body: {
+      apiKey?: string;
+      apiSecret?: string;
+      accessToken?: string;
+      accessTokenSecret?: string;
+      handle?: string;
+    },
+  ) {
+    const rows = await this.db
+      .select()
+      .from(pulseAccounts)
+      .where(eq(pulseAccounts.id, id))
+      .limit(1);
+
+    const account = rows[0];
+    if (!account) throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+
+    const updates: Partial<typeof account> = {};
+
+    if (body.handle) {
+      updates.handle = body.handle.startsWith('@') ? body.handle : `@${body.handle}`;
+    }
+    if (body.apiKey) updates.apiKey = this.encryption.encrypt(body.apiKey);
+    if (body.apiSecret) updates.apiSecret = this.encryption.encrypt(body.apiSecret);
+    if (body.accessToken) updates.accessToken = this.encryption.encrypt(body.accessToken);
+    if (body.accessTokenSecret) updates.accessTokenSecret = this.encryption.encrypt(body.accessTokenSecret);
+
+    if (Object.keys(updates).length > 0) {
+      // Verify updated credentials if publisher supports it
+      const mergedEncrypted = {
+        apiKey: updates.apiKey ?? account.apiKey,
+        apiSecret: updates.apiSecret ?? account.apiSecret,
+        accessToken: updates.accessToken ?? account.accessToken,
+        accessTokenSecret: updates.accessTokenSecret ?? account.accessTokenSecret,
+      };
+
+      const publisher = this.publisherRegistry.getPublisher(account.platform);
+      if (publisher?.verifyCredentials) {
+        const isValid = await publisher.verifyCredentials(mergedEncrypted);
+        if (!isValid) {
+          throw new HttpException(
+            `Could not verify updated credentials with ${account.platform} API.`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
+      await this.draftsRepository.updateAccount(id, updates as any);
+    }
+
+    logEvent('info', 'pulse_account_updated', { accountId: id, handle: account.handle });
+    return { success: true };
   }
 
   @Patch('accounts/:id/activate')

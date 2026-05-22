@@ -3,12 +3,15 @@ import { DATABASE_CONNECTION } from '../../database/database.module';
 import type { DrizzleDB } from '../../database/database.module';
 import {
   pulseDrafts,
+  pulseAssets,
   pulseAccounts,
   pulsePublishLogs,
   settings,
   signals,
   type PulseDraft,
   type NewPulseDraft,
+  type PulseAsset,
+  type NewPulseAsset,
   type PulseAccount,
   type NewPulseAccount,
   type PulsePublishLog,
@@ -147,12 +150,12 @@ export class DraftsRepository {
     return results[0] || null;
   }
 
-  async findAllAccounts(platform = 'x') {
-    return this.db
-      .select()
-      .from(pulseAccounts)
-      .where(eq(pulseAccounts.platform, platform))
-      .orderBy(desc(pulseAccounts.createdAt));
+  async findAllAccounts(platform?: string) {
+    const query = this.db.select().from(pulseAccounts);
+    if (platform && platform !== 'all') {
+      return query.where(eq(pulseAccounts.platform, platform)).orderBy(desc(pulseAccounts.createdAt));
+    }
+    return query.orderBy(asc(pulseAccounts.platform), desc(pulseAccounts.createdAt));
   }
 
   async findAllActiveAccounts() {
@@ -219,6 +222,91 @@ export class DraftsRepository {
         target: settings.key,
         set: { value, updatedAt: new Date() },
       });
+  }
+
+  async findAssetBySignalId(signalId: string): Promise<PulseAsset | null> {
+    const results = await this.db
+      .select()
+      .from(pulseAssets)
+      .where(eq(pulseAssets.signalId, signalId))
+      .limit(1);
+    return results[0] || null;
+  }
+
+  async findAssetById(id: string): Promise<PulseAsset | null> {
+    const results = await this.db
+      .select()
+      .from(pulseAssets)
+      .where(eq(pulseAssets.id, id))
+      .limit(1);
+    return results[0] || null;
+  }
+
+  async findAssets(filters: { limit?: number; offset?: number }) {
+    const query = this.db
+      .select({
+        id: pulseAssets.id,
+        signalId: pulseAssets.signalId,
+        title: pulseAssets.title,
+        executiveSummary: pulseAssets.executiveSummary,
+        detailedSummary: pulseAssets.detailedSummary,
+        technicalBreakdown: pulseAssets.technicalBreakdown,
+        whyItMatters: pulseAssets.whyItMatters,
+        keyPoints: pulseAssets.keyPoints,
+        sourceUrl: pulseAssets.sourceUrl,
+        relatedLinks: pulseAssets.relatedLinks,
+        tags: pulseAssets.tags,
+        category: pulseAssets.category,
+        severity: pulseAssets.severity,
+        aiProvider: pulseAssets.aiProvider,
+        aiModel: pulseAssets.aiModel,
+        createdAt: pulseAssets.createdAt,
+        signal: {
+          id: signals.id,
+          title: signals.title,
+          url: signals.url,
+          score: signals.score,
+        },
+      })
+      .from(pulseAssets)
+      .leftJoin(signals, eq(pulseAssets.signalId, signals.id))
+      .orderBy(desc(pulseAssets.createdAt));
+
+    if (filters.limit) query.limit(filters.limit);
+    if (filters.offset) query.offset(filters.offset);
+
+    return query;
+  }
+
+  async countAssets() {
+    const result = await this.db.select({ val: count() }).from(pulseAssets);
+    return result[0]?.val || 0;
+  }
+
+  async deleteAsset(id: string): Promise<void> {
+    const drafts = await this.findDraftsByAssetId(id);
+    for (const draft of drafts) {
+      await this.db.delete(pulsePublishLogs).where(eq(pulsePublishLogs.draftId, draft.id));
+      await this.db.delete(pulseDrafts).where(eq(pulseDrafts.id, draft.id));
+    }
+    await this.db.delete(pulseAssets).where(eq(pulseAssets.id, id));
+  }
+
+  async findDraftByAssetAndPlatform(assetId: string, platform: string): Promise<PulseDraft | null> {
+    const results = await this.db
+      .select()
+      .from(pulseDrafts)
+      .where(and(eq(pulseDrafts.assetId, assetId), eq(pulseDrafts.platform, platform)))
+      .limit(1);
+    return results[0] || null;
+  }
+
+  async findDraftsByAssetId(assetId: string): Promise<PulseDraft[]> {
+    return this.db
+      .select()
+      .from(pulseDrafts)
+      .where(eq(pulseDrafts.assetId, assetId))
+      .orderBy(asc(pulseDrafts.platform));
   }
 
   async findScheduledDraftsToPublish() {

@@ -80,13 +80,16 @@ export class PulseAIService {
       return {
         title,
         executiveSummary,
+        detailedSummary: typeof parsed.detailedSummary === 'string' ? parsed.detailedSummary : undefined,
         technicalBreakdown: typeof parsed.technicalBreakdown === 'string' ? parsed.technicalBreakdown : undefined,
         whyItMatters: typeof parsed.whyItMatters === 'string' ? parsed.whyItMatters : undefined,
         keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.filter((p): p is string => typeof p === 'string') : undefined,
         sourceUrl: typeof parsed.sourceUrl === 'string' && parsed.sourceUrl.length > 0
           ? parsed.sourceUrl : (signal.sourceUrl ?? undefined),
+        relatedLinks: Array.isArray(parsed.relatedLinks) ? parsed.relatedLinks.filter((l): l is string => typeof l === 'string') : undefined,
         tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t): t is string => typeof t === 'string') : undefined,
         category: signal.categoryId,
+        severity: typeof parsed.severity === 'number' ? parsed.severity : undefined,
         score: signal.score,
       };
     } catch {

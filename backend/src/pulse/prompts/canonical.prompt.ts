@@ -37,11 +37,14 @@ export class CanonicalPrompt {
       `{\n` +
       `  "title": "concise factual headline (not clickbait)",\n` +
       `  "executiveSummary": "1-2 dense technical sentences covering what happened and the core implication",\n` +
+      `  "detailedSummary": "3-5 sentences with full context, background, and ecosystem impact",\n` +
       `  "technicalBreakdown": "1-2 sentences on technical mechanism, architecture change, or implementation detail (optional)",\n` +
       `  "whyItMatters": "1-2 sentences on developer/industry/operational implications (optional)",\n` +
       `  "keyPoints": ["2-4 concise bullet point strings, no fluff"],\n` +
       `  "sourceUrl": "${signal.sourceUrl || ''}",\n` +
-      `  "tags": ["2-3 precise technical tags, lowercase, no spaces"]\n` +
+      `  "relatedLinks": [],\n` +
+      `  "tags": ["2-3 precise technical tags, lowercase, no spaces"],\n` +
+      `  "severity": 5\n` +
       `}`
     );
   }
