@@ -17,14 +17,19 @@ export default function GenerateVideoPage() {
   const [backgroundAudio, setBackgroundAudio] = useState("none");
   const [characterMascot, setCharacterMascot] = useState("none");
   const [customCharacterUrl, setCustomCharacterUrl] = useState("");
+  const [scenes, setScenes] = useState<any[]>([]);
 
   const handleTestVoice = async () => {
     setIsTestingVoice(true);
     try {
+      const testText = voice.startsWith("bn-")
+        ? "এটি আপনার নির্বাচিত ভয়েসের একটি পরীক্ষা। আমাদের ভিডিও জেনারেটর এখন বাংলা ভাষা সমর্থন করে।"
+        : "This is a quick test of the selected voice. Software engineering is changing fast.";
+
       const res = await fetch("/api/test-voice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ voice, text: "This is a quick test of the selected voice. Software engineering is changing fast." }),
+        body: JSON.stringify({ voice, text: testText }),
       });
       if (!res.ok) throw new Error("Failed to generate test voice");
       const blob = await res.blob();
@@ -67,8 +72,7 @@ export default function GenerateVideoPage() {
     }
   };
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const startVideoGenerationStream = async (payload: any) => {
     setLoading(true);
     setError(null);
     setVideoUrl(null);
@@ -80,7 +84,7 @@ export default function GenerateVideoPage() {
       const res = await fetch("/api/generate-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, voice, textRevealStyle, backgroundStyle, backgroundAudio, characterMascot, customCharacterUrl }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -114,6 +118,9 @@ export default function GenerateVideoPage() {
                 setProgress(100);
                 setStatusText(data.message);
                 setVideoUrl(data.videoUrl);
+                if (data.scenes) {
+                  setScenes(data.scenes);
+                }
                 await fetchGallery();
                 setLoading(false);
                 return;
@@ -130,6 +137,16 @@ export default function GenerateVideoPage() {
       setError(err.message || "Failed to generate video");
       setLoading(false);
     }
+  };
+
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await startVideoGenerationStream({ prompt, voice, textRevealStyle, backgroundStyle, backgroundAudio, characterMascot, customCharacterUrl });
+  };
+
+  const handleReRender = async () => {
+    if (scenes.length === 0) return;
+    await startVideoGenerationStream({ voice, textRevealStyle, backgroundStyle, backgroundAudio, characterMascot, customCharacterUrl, scenes });
   };
 
   return (
@@ -395,6 +412,175 @@ export default function GenerateVideoPage() {
               >
                 Download MP4
               </a>
+            </div>
+          </div>
+        )}
+
+        {scenes.length > 0 && (
+          <div className="bg-card text-card-foreground p-6 rounded-xl border border-border shadow-xl space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-border pb-4 gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-primary">Cinematic Scene Script Editor</h2>
+                <p className="text-xs text-muted-foreground mt-1">Adjust text, speech scripts, timing (in frames), and tone of individual scenes before re-rendering.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleReRender}
+                disabled={loading}
+                className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg transition-all shadow-md flex items-center gap-2 text-sm disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                ) : null}
+                Save & Re-render Video
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+              {scenes.map((scene, idx) => (
+                <div key={idx} className="bg-background border border-border rounded-lg p-4 relative group">
+                  <div className="absolute top-4 right-4 flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (idx === 0) return;
+                        const nextScenes = [...scenes];
+                        const temp = nextScenes[idx];
+                        nextScenes[idx] = nextScenes[idx - 1];
+                        nextScenes[idx - 1] = temp;
+                        setScenes(nextScenes);
+                      }}
+                      disabled={idx === 0}
+                      className="p-1.5 bg-secondary hover:bg-secondary/80 rounded text-xs disabled:opacity-30"
+                      title="Move Up"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (idx === scenes.length - 1) return;
+                        const nextScenes = [...scenes];
+                        const temp = nextScenes[idx];
+                        nextScenes[idx] = nextScenes[idx + 1];
+                        nextScenes[idx + 1] = temp;
+                        setScenes(nextScenes);
+                      }}
+                      disabled={idx === scenes.length - 1}
+                      className="p-1.5 bg-secondary hover:bg-secondary/80 rounded text-xs disabled:opacity-30"
+                      title="Move Down"
+                    >
+                      ▼
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm("Delete this scene?")) {
+                          const nextScenes = scenes.filter((_, i) => i !== idx);
+                          setScenes(nextScenes);
+                        }
+                      }}
+                      className="p-1.5 bg-red-950/40 hover:bg-red-900 border border-red-900/50 rounded text-red-400 text-xs"
+                      title="Delete Scene"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="text-xs font-bold text-primary mb-3">Scene #{idx + 1}</div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">On-Screen Text (Concise)</label>
+                      <textarea
+                        value={scene.text}
+                        onChange={(e) => {
+                          const nextScenes = [...scenes];
+                          nextScenes[idx].text = e.target.value;
+                          setScenes(nextScenes);
+                        }}
+                        className="w-full p-2 bg-card border border-border rounded text-sm min-h-[70px] focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Cinematic text shown on screen"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Voice Script (Spoken Narration)</label>
+                      <textarea
+                        value={scene.voice}
+                        onChange={(e) => {
+                          const nextScenes = [...scenes];
+                          nextScenes[idx].voice = e.target.value;
+                          setScenes(nextScenes);
+                        }}
+                        className="w-full p-2 bg-card border border-border rounded text-sm min-h-[70px] focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Spoken voice narrations"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Duration (Frames, 30fps)</label>
+                      <input
+                        type="number"
+                        value={scene.duration}
+                        onChange={(e) => {
+                          const nextScenes = [...scenes];
+                          nextScenes[idx].duration = parseInt(e.target.value) || 30;
+                          setScenes(nextScenes);
+                        }}
+                        className="w-full p-2 bg-card border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Emphasis / Emotional Tone</label>
+                      <input
+                        type="text"
+                        value={scene.emphasis}
+                        onChange={(e) => {
+                          const nextScenes = [...scenes];
+                          nextScenes[idx].emphasis = e.target.value;
+                          setScenes(nextScenes);
+                        }}
+                        className="w-full p-2 bg-card border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="e.g. tense, curiosity, reflective"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Visual Prompt Direction</label>
+                      <input
+                        type="text"
+                        value={scene.visual}
+                        onChange={(e) => {
+                          const nextScenes = [...scenes];
+                          nextScenes[idx].visual = e.target.value;
+                          setScenes(nextScenes);
+                        }}
+                        className="w-full p-2 bg-card border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Cinematic visual suggestion"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-start">
+              <button
+                type="button"
+                onClick={() => {
+                  setScenes([...scenes, {
+                    text: "New Scene Text",
+                    voice: "New Scene Voice Narration Spoken by TTS",
+                    duration: 90,
+                    emphasis: "neutral",
+                    visual: "Sleek tech backdrop"
+                  }]);
+                }}
+                className="bg-secondary/40 hover:bg-secondary text-foreground font-semibold py-2 px-4 rounded border border-border text-sm transition-all"
+              >
+                + Add New Scene
+              </button>
             </div>
           </div>
         )}

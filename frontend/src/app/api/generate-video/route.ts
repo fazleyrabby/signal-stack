@@ -49,10 +49,10 @@ Return ONLY valid JSON array.`;
 
 export async function POST(req: Request) {
   try {
-    const { prompt, voice, textRevealStyle, backgroundStyle, backgroundAudio, characterMascot, customCharacterUrl } = await (req.json() as Promise<{ prompt: string; voice: string; textRevealStyle?: string; backgroundStyle?: string; backgroundAudio?: string; characterMascot?: string; customCharacterUrl?: string }>);
+    const { prompt, voice, textRevealStyle, backgroundStyle, backgroundAudio, characterMascot, customCharacterUrl, scenes: preDefinedScenes } = await (req.json() as Promise<{ prompt?: string; voice: string; textRevealStyle?: string; backgroundStyle?: string; backgroundAudio?: string; characterMascot?: string; customCharacterUrl?: string; scenes?: any[] }>);
 
-    if (!prompt) {
-      return new NextResponse("Prompt is required", { status: 400 });
+    if (!prompt && !preDefinedScenes) {
+      return new NextResponse("Prompt or predefined scenes are required", { status: 400 });
     }
 
     const generatorDir = path.resolve(process.cwd(), ["..", "local-video-generator"].join("/"));
@@ -78,59 +78,66 @@ export async function POST(req: Request) {
             }
           }
 
-          // 2. Call local Qwen LLM
-          sendEvent({ status: "processing", progress: 8, message: "Drafting script and scenes with local Qwen LLM..." });
-          console.log("Calling local LLM (Qwen) on port 8081...");
-          
-          let activeModelId = "~/ai/models/mlx/Qwen3.5-4B-OptiQ-4bit";
-          try {
-            const modelsRes = await fetch("http://127.0.0.1:8081/v1/models");
-            if (modelsRes.ok) {
-              const modelsData = await modelsRes.json();
-              if (modelsData.data && modelsData.data.length > 0) {
-                const localModel = modelsData.data.find((m: any) => m.id.startsWith("/"));
-                activeModelId = localModel ? localModel.id : modelsData.data[0].id;
+          let scenes: any[] = [];
+          if (preDefinedScenes && preDefinedScenes.length > 0) {
+            scenes = preDefinedScenes;
+            console.log("Using " + scenes.length + " predefined scenes directly.");
+            sendEvent({ status: "processing", progress: 20, message: `Using ${scenes.length} predefined edited scenes...` });
+          } else {
+            // 2. Call local Qwen LLM
+            sendEvent({ status: "processing", progress: 8, message: "Drafting script and scenes with local Qwen LLM..." });
+            console.log("Calling local LLM (Qwen) on port 8081...");
+            
+            let activeModelId = "~/ai/models/mlx/Qwen3.5-4B-OptiQ-4bit";
+            try {
+              const modelsRes = await fetch("http://127.0.0.1:8081/v1/models");
+              if (modelsRes.ok) {
+                const modelsData = await modelsRes.json();
+                if (modelsData.data && modelsData.data.length > 0) {
+                  const localModel = modelsData.data.find((m: any) => m.id.startsWith("/"));
+                  activeModelId = localModel ? localModel.id : modelsData.data[0].id;
+                }
               }
+            } catch (e) {
+              console.warn("Could not fetch /v1/models, falling back to default.");
             }
-          } catch (e) {
-            console.warn("Could not fetch /v1/models, falling back to default.");
-          }
 
-          let systemPrompt = SYSTEM_PROMPT;
-          if (voice.startsWith("bn-")) {
-            systemPrompt += "\n\nCRITICAL: The selected narration voice is Bengali (Bangla). You MUST generate the JSON 'voice' (narration script) and 'text' (on-screen text) content entirely in Bengali (Bangla) script. Translate the concept beautifully into fluent, natural, and poetic/cinematic Bengali. Do not use English text in 'voice' or 'text' fields.";
-          }
+            let systemPrompt = SYSTEM_PROMPT;
+            if (voice.startsWith("bn-")) {
+              systemPrompt += "\n\nCRITICAL: The selected narration voice is Bengali (Bangla). You MUST generate the JSON 'voice' (narration script) and 'text' (on-screen text) content entirely in Bengali (Bangla) script. Translate the concept beautifully into fluent, natural, and poetic/cinematic Bengali. Do not use English text in 'voice' or 'text' fields.";
+            }
 
-          const llmRes = await fetch("http://127.0.0.1:8081/v1/chat/completions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: activeModelId, 
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: prompt }
-              ],
-              temperature: 0.7
-            })
-          });
+            const llmRes = await fetch("http://127.0.0.1:8081/v1/chat/completions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: activeModelId, 
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: prompt }
+                ],
+                temperature: 0.7
+              })
+            });
 
-          if (!llmRes.ok) {
-            const errorText = await llmRes.text().catch(() => "");
-            throw new Error("Failed to connect to local LLM. Status: " + llmRes.status + " | Response: " + errorText);
-          }
+            if (!llmRes.ok) {
+              const errorText = await llmRes.text().catch(() => "");
+              throw new Error("Failed to connect to local LLM. Status: " + llmRes.status + " | Response: " + errorText);
+            }
 
-          const llmData = await llmRes.json();
-          let jsonContent = llmData.choices[0].message.content.trim();
-          
-          const firstBracket = jsonContent.indexOf('[');
-          const lastBracket = jsonContent.lastIndexOf(']');
-          if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-            jsonContent = jsonContent.substring(firstBracket, lastBracket + 1);
+            const llmData = await llmRes.json();
+            let jsonContent = llmData.choices[0].message.content.trim();
+            
+            const firstBracket = jsonContent.indexOf('[');
+            const lastBracket = jsonContent.lastIndexOf(']');
+            if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+              jsonContent = jsonContent.substring(firstBracket, lastBracket + 1);
+            }
+            
+            scenes = JSON.parse(jsonContent);
+            console.log("Successfully generated " + scenes.length + " scenes.");
+            sendEvent({ status: "processing", progress: 25, message: `Successfully structured ${scenes.length} scenes.` });
           }
-          
-          const scenes = JSON.parse(jsonContent);
-          console.log("Successfully generated " + scenes.length + " scenes.");
-          sendEvent({ status: "processing", progress: 25, message: `Successfully structured ${scenes.length} scenes.` });
 
           // 3. Generate Audio for EACH scene
           const safeVoice = voice.replace(/[^a-zA-Z\-]/g, "");
@@ -230,7 +237,8 @@ export async function POST(req: Request) {
             status: "success",
             progress: 100,
             message: "Video generated successfully!",
-            videoUrl: `/videos/${newestFile}`
+            videoUrl: `/videos/${newestFile}`,
+            scenes: scenes
           });
         } catch (error: any) {
           console.error("Video Generation Error:", error);
