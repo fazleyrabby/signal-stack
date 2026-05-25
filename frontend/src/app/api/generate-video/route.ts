@@ -96,13 +96,18 @@ export async function POST(req: Request) {
             console.warn("Could not fetch /v1/models, falling back to default.");
           }
 
+          let systemPrompt = SYSTEM_PROMPT;
+          if (voice.startsWith("bn-")) {
+            systemPrompt += "\n\nCRITICAL: The selected narration voice is Bengali (Bangla). You MUST generate the JSON 'voice' (narration script) and 'text' (on-screen text) content entirely in Bengali (Bangla) script. Translate the concept beautifully into fluent, natural, and poetic/cinematic Bengali. Do not use English text in 'voice' or 'text' fields.";
+          }
+
           const llmRes = await fetch("http://127.0.0.1:8081/v1/chat/completions", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               model: activeModelId, 
               messages: [
-                { role: "system", content: SYSTEM_PROMPT },
+                { role: "system", content: systemPrompt },
                 { role: "user", content: prompt }
               ],
               temperature: 0.7

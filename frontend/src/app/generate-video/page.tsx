@@ -252,12 +252,11 @@ export default function GenerateVideoPage() {
               <option value="en-US-AnaNeural">Ana (US Female - Cute/Conversational)</option>
             </optgroup>
             
-            <optgroup label="Professional & International">
-              <option value="en-US-AriaNeural">Aria (US Female - Professional/Friendly)</option>
-              <option value="en-US-ChristopherNeural">Christopher (US Male - Professional)</option>
-              <option value="en-GB-SoniaNeural">Sonia (UK Female - Clear)</option>
-              <option value="en-GB-RyanNeural">Ryan (UK Male - Natural)</option>
-              <option value="en-AU-NatashaNeural">Natasha (Australian Female)</option>
+            <optgroup label="Bengali (Bangla)">
+              <option value="bn-BD-NabanitaNeural">Nabanita (BD Female)</option>
+              <option value="bn-BD-PradeepNeural">Pradeep (BD Male)</option>
+              <option value="bn-IN-TanishaaNeural">Tanishaa (IN Female)</option>
+              <option value="bn-IN-BashkarNeural">Bashkar (IN Male)</option>
             </optgroup>
           </select>
 
