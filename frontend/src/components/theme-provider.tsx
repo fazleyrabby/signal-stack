@@ -26,6 +26,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.classList.add("theme-transition");
     setCurrentTheme(theme);
     localStorage.setItem("signalstack_theme", theme);
+    document.cookie = `signalstack_theme=${theme}; path=/; max-age=31536000`;
     root.setAttribute("data-theme", theme);
     setTimeout(() => root.classList.remove("theme-transition"), 550);
   };

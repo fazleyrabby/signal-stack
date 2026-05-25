@@ -37,17 +37,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+import { cookies } from "next/headers";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const theme = cookieStore.get("signalstack_theme")?.value || "onyx";
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Blocking script: sets data-theme before paint to prevent flash */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('signalstack_theme');document.documentElement.setAttribute('data-theme',(t==='light'||t==='cyberpunk')?t:'onyx');})();` }} />
-      </head>
+    <html lang="en" data-theme={theme} suppressHydrationWarning>
       <body className={`${inter.variable} ${hindSiliguri.variable} ${notoBengali.variable} antialiased`} suppressHydrationWarning>
         <LangHandler />
         <ThemeProvider>

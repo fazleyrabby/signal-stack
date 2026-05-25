@@ -82,3 +82,7 @@ models/
 *.sql
 *.dump
 db-backups/
+
+# --- Local Video Generator ---
+/local-video-generator/
+frontend/public/videos/

@@ -19,6 +19,11 @@ export class CanonicalPrompt {
     );
   }
 
+  private static truncateString(str: string | null | undefined, maxLen: number): string {
+    if (!str) return 'Not available.';
+    return str.length > maxLen ? str.slice(0, maxLen) + '... (truncated)' : str;
+  }
+
   static buildUserPrompt(signal: {
     title: string;
     aiSummary?: string | null;
@@ -26,10 +31,12 @@ export class CanonicalPrompt {
     score: number;
     sourceUrl?: string | null;
   }): string {
+    const summary = this.truncateString(signal.aiSummary, 30000);
+
     return (
       `Generate a CanonicalIntelligenceAsset for this signal:\n\n` +
       `Title: ${signal.title}\n` +
-      `Summary: ${signal.aiSummary || 'Not available.'}\n` +
+      `Summary: ${summary}\n` +
       `Category: ${signal.categoryId}\n` +
       `Signal Score: ${signal.score}/10\n` +
       (signal.sourceUrl ? `Source URL: ${signal.sourceUrl}\n` : '') +
