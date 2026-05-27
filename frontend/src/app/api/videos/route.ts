@@ -3,6 +3,10 @@ import fs from "fs/promises";
 import path from "path";
 
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
   try {
     const publicVideosDir = path.resolve(process.cwd(), "public", "videos");
 
@@ -40,6 +44,10 @@ export async function GET() {
 }
 
 export async function DELETE(req: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
   try {
     const url = new URL(req.url);
     const filename = url.searchParams.get("filename");

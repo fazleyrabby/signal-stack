@@ -48,6 +48,10 @@ IMPORTANT RULES
 Return ONLY valid JSON array.`;
 
 export async function POST(req: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
   try {
     const { prompt, voice, textRevealStyle, backgroundStyle, backgroundAudio, characterMascot, customCharacterUrl, scenes: preDefinedScenes } = await (req.json() as Promise<{ prompt?: string; voice: string; textRevealStyle?: string; backgroundStyle?: string; backgroundAudio?: string; characterMascot?: string; customCharacterUrl?: string; scenes?: any[] }>);
 

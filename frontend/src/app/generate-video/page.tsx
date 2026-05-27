@@ -1,7 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
+import { notFound } from "next/navigation";
 
 export default function GenerateVideoPage() {
+  if (process.env.NODE_ENV === "production") {
+    notFound();
+  }
   const [prompt, setPrompt] = useState("");
   const [voice, setVoice] = useState("en-US-BrianNeural");
   const [textRevealStyle, setTextRevealStyle] = useState("sentence");

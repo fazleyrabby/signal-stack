@@ -7,6 +7,10 @@ import util from "util";
 const execAsync = util.promisify(exec);
 
 export async function POST(req: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
   try {
     const { voice, text } = await req.json();
 
