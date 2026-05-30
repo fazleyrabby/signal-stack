@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import { BottomNav } from "@/components/BottomNav";
 import { SearchProvider } from "@/context/SearchContext";
 import { LangHandler } from "@/components/LangHandler";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -49,6 +50,14 @@ export default async function RootLayout({
 
   return (
     <html lang="en" data-theme={theme} suppressHydrationWarning>
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5912010310110935"
+          crossOrigin="anonymous"
+          strategy="lazyOnload"
+        />
+      </head>
       <body className={`${inter.variable} ${hindSiliguri.variable} ${notoBengali.variable} antialiased`} suppressHydrationWarning>
         <LangHandler />
         <ThemeProvider>
