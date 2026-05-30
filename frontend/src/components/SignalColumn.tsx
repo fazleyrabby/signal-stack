@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
 import { GoogleAd } from "@/components/GoogleAd";
 
-const AD_SLOT_FEED = process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT || "8886364023";
+const AD_SLOT_FEED = process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT || "8015940599";
 
 const SIGNALS_API_BASE = `${API_BASE}/api/signals`;
 const BOOKMARKS_API_BASE = `${API_BASE}/api/bookmarks`;
