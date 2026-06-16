@@ -64,8 +64,10 @@ export class PulseAIService {
     raw: string,
     signal: { title: string; aiSummary?: string | null; categoryId?: string; score?: number; sourceUrl?: string | null },
   ): CanonicalIntelligenceAsset {
-    // Strip markdown fences if present
+    // Clean up LLM padding/special tokens (e.g. <pad>) and system/chat tags
     let cleaned = raw.trim();
+    cleaned = cleaned.replace(/<pad>/gi, '').replace(/<\|.*?\|>/g, '').trim();
+    // Strip markdown fences if present
     cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 
     try {
@@ -93,8 +95,14 @@ export class PulseAIService {
         score: signal.score,
       };
     } catch {
-      // JSON parse failed — build minimal canonical from available data
-      this.logger.warn('Canonical JSON parse failed, falling back to raw text as executiveSummary');
+      // JSON parse failed — check if raw text is suitable fallback
+      this.logger.warn('Canonical JSON parse failed, checking fallback suitability');
+      
+      const looksLikeJson = cleaned.startsWith('{') || cleaned.includes('"') || cleaned.includes(':');
+      if (looksLikeJson || cleaned.length < 10) {
+        throw new Error('LLM returned malformed JSON or invalid format');
+      }
+
       return {
         title: signal.title,
         executiveSummary: this.truncateToSentences(cleaned, 300) || signal.aiSummary || signal.title,
