@@ -238,6 +238,11 @@ export class AdminService {
       '%No content provided%',
       '%provide the content for me to summarize%',
       '%As an AI language model%',
+      '%<think%',
+      '%</think>%',
+      '%thinking process%',
+      '%Analyze User Input%',
+      '%**title:**%',
     ];
 
     const conditions = boilerplatePhrases.map((phrase) =>

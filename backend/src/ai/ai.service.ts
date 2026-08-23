@@ -12,6 +12,7 @@ import { signals } from '../database/schema';
 import { eq } from 'drizzle-orm';
 import { logEvent } from '../common/logger';
 import { SettingsService, ProviderId, DEFAULT_SUMMARIZATION_PIPELINE, DEFAULT_TRANSLATION_PIPELINE } from './settings.service';
+import { cleanSummaryText, isLowQualitySummary } from '../common/summary-cleaner';
 
 @Injectable()
 export class AIService {
@@ -31,31 +32,7 @@ export class AIService {
   ) {}
 
   private isLowQuality(text: string): boolean {
-    if (!text || text.length < 20) return true;
-
-    // 1. Detect if the output is raw JSON (broken parsing)
-    const trimmed = text.trim();
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) return true;
-    if (trimmed.startsWith('[') && trimmed.endsWith(']')) return true;
-    if (text.includes('"choices":') || text.includes('"message":') || text.includes('"content":')) return true;
-
-    // 2. Comprehensive refusal/generic phrases
-    const genericPhrases = [
-      'provide the content',
-      'no content provided',
-      'i am an ai',
-      'helpful assistant',
-      'as an ai language model',
-      "can't provide information",
-      "cannot provide information",
-      'do not participate',
-      'political issues',
-      'sensitive nature',
-      'inappropriate content',
-      'against safety policy',
-    ];
-    const lower = text.toLowerCase();
-    return genericPhrases.some((phrase) => lower.includes(phrase));
+    return isLowQualitySummary(text);
   }
 
   private async getPipelineOrder(type: 'summarization' | 'translation'): Promise<ProviderId[]> {
@@ -224,7 +201,8 @@ export class AIService {
         if (providerId === 'mac_local') {
           // Try direct Mac local first
           if (await this.macLocal.isAvailable()) {
-            const macSummary = await this.macLocal.summarize(title, trimmedContent);
+            const rawMac = await this.macLocal.summarize(title, trimmedContent);
+            const macSummary = cleanSummaryText(rawMac);
             if (macSummary && !this.isLowQuality(macSummary)) {
               summary = macSummary;
               provider = 'mac_local';
@@ -236,7 +214,7 @@ export class AIService {
             if (picoResult?.result && (picoResult.provider === 'mac' || picoResult.provider === 'fallback')) {
               let picoSummary = '';
               if (picoResult.provider === 'mac' && (picoResult.result as any).choices) {
-                picoSummary = (picoResult.result as any).choices[0]?.message?.content || '';
+                picoSummary = cleanSummaryText((picoResult.result as any).choices[0]?.message?.content || '');
               } 
               
               // If it's a real summary (not a fallback message), use it
@@ -252,7 +230,7 @@ export class AIService {
           if (picoResult?.result && (picoResult.provider === 'mac' || picoResult.provider === 'fallback')) {
             let picoSummary = '';
             if (picoResult.provider === 'mac' && (picoResult.result as any).choices) {
-              picoSummary = (picoResult.result as any).choices[0]?.message?.content || '';
+              picoSummary = cleanSummaryText((picoResult.result as any).choices[0]?.message?.content || '');
             }
 
             if (picoSummary && !this.isLowQuality(picoSummary)) {
@@ -261,7 +239,8 @@ export class AIService {
             }
           }
         } else if (providerId === 'groq') {
-          const groqSummary = await this.groq.summarize(title, trimmedContent);
+          const rawGroq = await this.groq.summarize(title, trimmedContent);
+          const groqSummary = cleanSummaryText(rawGroq);
           if (groqSummary && !this.isLowQuality(groqSummary)) {
             summary = groqSummary;
             provider = 'groq';
@@ -270,7 +249,8 @@ export class AIService {
           }
         } else if (providerId === 'openrouter') {
           logEvent('info', 'ai_pipeline_fallback', { signalId: id, from: provider, to: 'openrouter' });
-          const orSummary = await this.openRouter.summarize(title, trimmedContent);
+          const rawOr = await this.openRouter.summarize(title, trimmedContent);
+          const orSummary = cleanSummaryText(rawOr);
           if (orSummary && !this.isLowQuality(orSummary)) {
             summary = orSummary;
             provider = 'openrouter';
@@ -283,7 +263,8 @@ export class AIService {
             let localRetries = 0;
             while (!summary && localRetries < 2) {
               try { 
-                const localSummary = await this.local.summarize(title, trimmedContent); 
+                const rawLocal = await this.local.summarize(title, trimmedContent); 
+                const localSummary = cleanSummaryText(rawLocal);
                 if (localSummary && !this.isLowQuality(localSummary)) {
                   summary = localSummary;
                 }

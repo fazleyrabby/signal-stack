@@ -83,7 +83,7 @@ export class SettingsService {
     };
 
     return {
-      groqModel: groqModel || 'llama-3.3-70b-versatile',
+      groqModel: groqModel || 'openai/gpt-oss-120b',
       openrouterModel: openrouterModel || 'meta-llama/llama-3.3-70b-instruct',
       localAiEnabled: localAiEnabled !== 'false',
       googlePlacesApiKey,

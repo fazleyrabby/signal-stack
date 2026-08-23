@@ -7,7 +7,7 @@ import { logEvent } from '../common/logger';
 import { DATABASE_CONNECTION } from '../database/database.module';
 import type { DrizzleDB } from '../database/database.module';
 import { signals } from '../database/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, or, ilike } from 'drizzle-orm';
 import {
   PRIORITY_SCORES,
   AI_SUMMARY_QUEUE_KEY,
@@ -90,6 +90,7 @@ export class AIQueue implements OnModuleInit, OnModuleDestroy {
 
     // Delayed retry: re-enqueue if not ready yet
     if (job.processAfter && Date.now() < job.processAfter) {
+      // Re-insert with original score if backoff hasn't elapsed
       const priority = job.priority || 'MEDIUM';
       const score = PRIORITY_SCORES[priority] + job.processAfter / 1e13;
       await this.redis.zadd(AI_SUMMARY_QUEUE_KEY, score, memberJson);
@@ -105,7 +106,25 @@ export class AIQueue implements OnModuleInit, OnModuleDestroy {
 
   private async requeuePending() {
     try {
-      // Recover ALL unprocessed signals (no score gate), ordered high-score first
+      // 1. Reset signals that have corrupted reasoning traces / boilerplate
+      await this.db
+        .update(signals)
+        .set({
+          aiSummary: null,
+          aiProcessed: false,
+          aiFailed: false,
+          aiProvider: null,
+        })
+        .where(
+          or(
+            ilike(signals.aiSummary, '%<think%'),
+            ilike(signals.aiSummary, '%</think>%'),
+            ilike(signals.aiSummary, '%thinking process%'),
+            ilike(signals.aiSummary, '%Analyze User Input%'),
+          ),
+        );
+
+      // 2. Recover ALL unprocessed signals (no score gate), ordered high-score first
       const pending = await this.db
         .select({
           id: signals.id,

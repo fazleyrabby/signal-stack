@@ -18,12 +18,22 @@ export async function fetchGroqModels(apiKey: string): Promise<LLModel[]> {
     if (!res.ok) return [];
     const data = await res.json();
     return (data.data || [])
-      .filter((m: any) => m.id.includes('llama') || m.id.includes('mixtral'))
+      .filter(
+        (m: any) =>
+          m.active !== false &&
+          !m.id.includes('whisper') &&
+          !m.id.includes('guard') &&
+          !m.id.includes('safeguard') &&
+          !m.id.includes('orpheus') &&
+          (m.output_modalities?.includes('text') || !m.output_modalities) &&
+          ((m.context_window && m.context_window >= 2048) ||
+            (m.context_length && m.context_length >= 2048)),
+      )
       .map((m: any) => ({
         id: m.id,
-        name: m.id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+        name: m.name || m.id.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
         provider: 'groq' as LLMProvider,
-        contextLength: m.context_window || 128000,
+        contextLength: m.context_window || m.context_length || 131072,
         isFree: true,
       }));
   } catch {
@@ -62,31 +72,45 @@ export async function fetchOpenRouterModels(
 export const STATIC_FREE_MODELS: Record<LLMProvider, LLModel[]> = {
   groq: [
     {
-      id: 'llama-3.3-70b-versatile',
-      name: 'Llama 3.3 70B',
+      id: 'openai/gpt-oss-120b',
+      name: 'GPT OSS 120B',
       provider: 'groq',
-      contextLength: 128000,
+      contextLength: 131072,
       isFree: true,
     },
     {
-      id: 'llama-3.1-70b-versatile',
-      name: 'Llama 3.1 70B',
+      id: 'openai/gpt-oss-20b',
+      name: 'GPT OSS 20B',
       provider: 'groq',
-      contextLength: 128000,
+      contextLength: 131072,
       isFree: true,
     },
     {
-      id: 'llama-3.1-8b-instant',
-      name: 'Llama 3.1 8B',
+      id: 'qwen/qwen3.6-27b',
+      name: 'Qwen 3.6 27B',
       provider: 'groq',
-      contextLength: 128000,
+      contextLength: 131072,
       isFree: true,
     },
     {
-      id: 'mixtral-8x7b-32768',
-      name: 'Mixtral 8x7B',
+      id: 'groq/compound',
+      name: 'Compound',
       provider: 'groq',
-      contextLength: 32768,
+      contextLength: 131072,
+      isFree: true,
+    },
+    {
+      id: 'groq/compound-mini',
+      name: 'Compound Mini',
+      provider: 'groq',
+      contextLength: 131072,
+      isFree: true,
+    },
+    {
+      id: 'allam-2-7b',
+      name: 'ALLaM 2 7B',
+      provider: 'groq',
+      contextLength: 4096,
       isFree: true,
     },
   ],

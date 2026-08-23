@@ -29,10 +29,20 @@ export async function POST(req: Request) {
 
     await fs.writeFile(textFile, text);
 
-    const safeVoice = voice.replace(/[^a-zA-Z\-]/g, "");
+    const safeVoice = voice.replace(/[^a-zA-Z0-9_\-]/g, "");
+    const engine = safeVoice.startsWith("am_") || safeVoice.startsWith("bm_") || safeVoice.startsWith("af_") || safeVoice.startsWith("bf_") || safeVoice.startsWith("cartoon-")
+      ? "kokoro"
+      : "edge";
 
     // Generate audio
-    await execAsync('"' + pythonExe + '" "' + pythonScript + '" "' + safeVoice + '" "' + textFile + '" "' + audioFile + '"');
+    try {
+      const { stderr } = await execAsync(
+        `"${pythonExe}" "${pythonScript}" "${safeVoice}" "${textFile}" "${audioFile}" --engine ${engine}`
+      );
+      if (stderr) console.warn("generate_audio stderr:", stderr);
+    } catch (execErr: any) {
+      throw new Error(`Python TTS failed: ${execErr.stderr || execErr.stdout || execErr.message}`);
+    }
 
     // Read generated audio
     const audioBuffer = await fs.readFile(audioFile);
