@@ -20,9 +20,6 @@ import { FeedSkeleton } from "@/components/SignalSkeleton";
 import { SignalDetailModal } from "@/components/SignalDetailModal";
 import { cn } from "@/lib/utils";
 import type { Signal } from "@/lib/api";
-import { GoogleAd } from "@/components/GoogleAd";
-
-const AD_SLOT_FEED = process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT || "8015940599";
 
 const SIGNALS_API_BASE = `${API_BASE}/api/signals`;
 const BOOKMARKS_API_BASE = `${API_BASE}/api/bookmarks`;
@@ -545,32 +542,18 @@ export function SignalColumn({
                           />
                         </div>
                       ))
-                  : filtered.reduce<React.ReactNode[]>((acc, signal, index) => {
-                      acc.push(
-                        <div key={signal.id} className="break-inside-avoid mb-3 cursor-pointer hover:opacity-90 transition-opacity"
-                             onClick={() => setSelectedSignal(signal)}>
-                          <SignalCard
-                            signal={signal}
-                            isCompact={layoutMode === 'list'}
-                            isBookmarked={bookmarkedIdsSet.has(signal.id)}
-                            isBookmarking={bookmarkingIds.has(signal.id)}
-                            onToggleBookmark={handleToggleBookmark}
-                          />
-                        </div>
-                      );
-
-                      // Inject an ad card after the 5th signal, and then every 10 signals after
-                      const itemIndex = index + 1;
-                      if (itemIndex === 5 || (itemIndex > 5 && (itemIndex - 5) % 10 === 0)) {
-                        acc.push(
-                          <div key={`ad-${signal.id}`} className="break-inside-avoid mb-3">
-                            <GoogleAd slot={AD_SLOT_FEED} />
-                          </div>
-                        );
-                      }
-
-                      return acc;
-                    }, [])}
+                  : filtered.map((signal) => (
+                      <div key={signal.id} className="break-inside-avoid mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                           onClick={() => setSelectedSignal(signal)}>
+                        <SignalCard
+                          signal={signal}
+                          isCompact={layoutMode === 'list'}
+                          isBookmarked={bookmarkedIdsSet.has(signal.id)}
+                          isBookmarking={bookmarkingIds.has(signal.id)}
+                          onToggleBookmark={handleToggleBookmark}
+                        />
+                      </div>
+                    ))}
               </div>
 
               {/* Infinite scroll sentinel */}
