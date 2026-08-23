@@ -13,6 +13,7 @@ import {
   TranslationEntry,
   TranslationPriority,
 } from '../ai/translation.constants';
+import { cleanSummaryText, isLowQualitySummary } from '../common/summary-cleaner';
 
 function scoreToPriority(score: number): TranslationPriority {
   if (score >= 7) return 'HIGH';
@@ -130,7 +131,14 @@ export class SignalsService {
 
     const lang = params.lang || 'en';
     const data = await Promise.all(
-      rawData.map((signal) => this.localizeSignal(signal, lang)),
+      rawData.map((signal) => {
+        const sanitizedSignal = { ...signal };
+        if (sanitizedSignal.aiSummary) {
+          const cleaned = cleanSummaryText(sanitizedSignal.aiSummary);
+          sanitizedSignal.aiSummary = isLowQualitySummary(cleaned) ? null : cleaned;
+        }
+        return this.localizeSignal(sanitizedSignal, lang);
+      }),
     );
 
     return {

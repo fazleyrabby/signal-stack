@@ -3,15 +3,16 @@ import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../redis.service';
 import { SettingsService } from '../settings.service';
 import { logEvent } from '../../common/logger';
+import { cleanSummaryText, isLowQualitySummary } from '../../common/summary-cleaner';
 
 @Injectable()
 export class GroqProvider implements OnModuleInit {
   private apiKey: string | undefined;
   private readonly apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-  private defaultModel = 'llama-3.3-70b-versatile';
+  private defaultModel = 'openai/gpt-oss-120b';
 
   public lastError: number | null = null;
-  public modelName = 'llama-3.3-70b-versatile';
+  public modelName = 'openai/gpt-oss-120b';
 
   constructor(
     private readonly configService: ConfigService,
@@ -47,7 +48,7 @@ export class GroqProvider implements OnModuleInit {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       const res = await fetch(this.apiUrl, {
         method: 'POST',
@@ -61,7 +62,7 @@ export class GroqProvider implements OnModuleInit {
             {
               role: 'system',
               content:
-                'Summarize why this matters in one sentence. max 30 words, no fluff, no repetition, plain English.',
+                'Summarize why this matters in one sentence. Max 30 words, no fluff, plain English. Do NOT output reasoning or <think> tags. Output only the final one-sentence summary.',
             },
             {
               role: 'user',
@@ -69,7 +70,7 @@ export class GroqProvider implements OnModuleInit {
             },
           ],
           temperature: 0.1,
-          max_tokens: 150,
+          max_tokens: 400,
         }),
         signal: controller.signal,
       });
@@ -105,49 +106,77 @@ export class GroqProvider implements OnModuleInit {
     }
   }
 
-  async complete(prompt: string, systemPrompt?: string, modelOverride?: string): Promise<string | null> {
-    const model = modelOverride || await this.getModel();
-    try {
-      const res = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+  async complete(
+    prompt: string,
+    systemPrompt?: string,
+    modelOverride?: string,
+    maxTokens: number = 2048,
+    jsonMode: boolean = false,
+  ): Promise<string | null> {
+    if (!this.apiKey) return null;
+
+    const defaultModel = await this.getModel();
+    const candidateModels = [
+      modelOverride || defaultModel,
+      'openai/gpt-oss-20b',
+      'openai/gpt-oss-120b',
+      'qwen/qwen3.6-27b',
+      'allam-2-7b',
+    ].filter((m, i, arr): m is string => Boolean(m) && arr.indexOf(m) === i);
+
+    for (const model of candidateModels) {
+      try {
+        const body: Record<string, any> = {
           model,
           messages: [
             { role: 'system', content: systemPrompt || 'You are a helpful assistant.' },
             { role: 'user', content: prompt },
           ],
           temperature: 0.1,
-          max_tokens: 500,
-        }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data?.choices?.[0]?.message?.content?.trim() || null;
-    } catch {
-      return null;
+          max_tokens: maxTokens,
+        };
+        if (jsonMode) {
+          body.response_format = { type: 'json_object' };
+        }
+
+        const res = await fetch(this.apiUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          logEvent('warn', 'groq_complete_error', {
+            model,
+            status: res.status,
+            error: errData?.error?.message || res.statusText,
+          });
+          continue;
+        }
+
+        const data = await res.json();
+        const content = data?.choices?.[0]?.message?.content?.trim();
+        if (content) {
+          return content;
+        }
+      } catch (err: any) {
+        logEvent('warn', 'groq_complete_exception', { model, error: err.message });
+      }
     }
+
+    return null;
   }
 
   private cleanResponse(text: string): string {
-    const cleaned = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-    
-    // Filter out common LLM failure/boilerplate phrases
-    const lower = cleaned.toLowerCase();
-    if (
-      lower.includes("provide the content") || 
-      lower.includes("no content provided") ||
-      lower.includes("don't see any content") ||
-      lower.includes("i am an ai") ||
-      cleaned.length < 5
-    ) {
+    const cleaned = cleanSummaryText(text);
+    if (isLowQualitySummary(cleaned)) {
       return '';
     }
-
-    return cleaned.slice(0, 200);
+    return cleaned.slice(0, 250);
   }
 
   async checkHealth(): Promise<{

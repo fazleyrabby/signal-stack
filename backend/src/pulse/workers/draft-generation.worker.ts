@@ -61,15 +61,19 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
     const autoEnabled = await this.draftsRepository.findSetting('pulse_auto_draft_enabled');
     if (autoEnabled === 'false') return;
 
-    const limitStr = await this.draftsRepository.findSetting('pulse_max_drafts_per_day') || '20';
+    // Check deduplication set first
+    const isAlreadyQueued = await this.redis.sismember('pulse:enqueued_signals', signal.id);
+    if (isAlreadyQueued === 1) return;
+
+    // Read counter first to avoid infinite increments when over limit
+    const limitStr = (await this.draftsRepository.findSetting('pulse_max_drafts_per_day')) || '3';
     const limit = parseInt(limitStr, 10);
     const today = new Date().toISOString().split('T')[0];
     const dailyKey = `pulse:asset_count:${today}`;
-    const current = await this.redis.incr(dailyKey);
+    const countStr = await this.redis.get(dailyKey);
+    const currentCount = countStr ? parseInt(countStr, 10) : 0;
 
-    if (current === 1) await this.redis.expire(dailyKey, 86400 + 3600);
-    if (current > limit) {
-      logEvent('warn', 'pulse_daily_asset_limit_reached', { limit, count: current });
+    if (currentCount >= limit) {
       return;
     }
 
@@ -81,6 +85,12 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   private async pushToQueue(signal: AssetJob) {
+    const added = await this.redis.sadd('pulse:enqueued_signals', signal.id);
+    if (!added) {
+      // Already enqueued
+      return;
+    }
+
     const job: AssetJob = {
       id: signal.id,
       title: signal.title,
@@ -88,7 +98,7 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
       categoryId: signal.categoryId,
       score: signal.score,
       sourceUrl: signal.sourceUrl,
-      retryCount: 0,
+      retryCount: signal.retryCount ?? 0,
     };
     const priorityScore = (10 - signal.score) * 1e12 + Date.now();
     await this.redis.zadd('queue:pulse_asset', priorityScore, JSON.stringify(job));
@@ -124,6 +134,19 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
 
   private async processJob(job: AssetJob) {
     try {
+      // ── Safety re-check: verify daily limit before processing ──
+      const limitStr = (await this.draftsRepository.findSetting('pulse_max_drafts_per_day')) || '3';
+      const limit = parseInt(limitStr, 10);
+      const today = new Date().toISOString().split('T')[0];
+      const countStr = await this.redis.get(`pulse:asset_count:${today}`);
+      const currentCount = countStr ? parseInt(countStr, 10) : 0;
+
+      if (currentCount >= limit) {
+        this.logger.warn(`Daily limit reached (${currentCount}/${limit}). Dropping queued job for ${job.id}.`);
+        await this.redis.srem('pulse:enqueued_signals', job.id);
+        return;
+      }
+
       const { asset, provider, model } = await this.pulseAIService.generateCanonicalAsset({
         id: job.id,
         title: job.title,
@@ -150,6 +173,14 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
         aiModel: model,
       });
 
+      // Increment daily counter upon successful asset creation
+      const dailyKey = `pulse:asset_count:${today}`;
+      const current = await this.redis.incr(dailyKey);
+      if (current === 1) await this.redis.expire(dailyKey, 86400 + 3600);
+
+      // Remove from enqueued set
+      await this.redis.srem('pulse:enqueued_signals', job.id);
+
       logEvent('info', 'pulse_asset_created', { signalId: job.id, provider, model });
     } catch (error: any) {
       await this.handleJobFailure(job, error);
@@ -175,5 +206,8 @@ export class DraftGenerationWorker implements OnModuleInit, OnModuleDestroy {
     this.logger.error(`Asset generation exhausted for signal ${job.id}: ${error.message}`);
     logEvent('error', 'pulse_asset_generation_exhausted', { signalId: job.id, error: error.message });
     await this.discord.sendPulseFailureAlert(job.id, error.message);
+
+    // Remove from enqueued set since we gave up
+    await this.redis.srem('pulse:enqueued_signals', job.id);
   }
 }

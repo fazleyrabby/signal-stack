@@ -39,3 +39,31 @@ export function getProviderLabel(provider: string | null): string {
   };
   return labels[provider] || provider;
 }
+
+export function cleanDisplaySummary(text: string | null | undefined): string | null {
+  if (!text) return null;
+  let cleaned = text.trim();
+
+  // Strip closed think blocks
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  // Strip unclosed think blocks
+  cleaned = cleaned.replace(/<think>[\s\S]*$/gi, '').trim();
+  cleaned = cleaned.replace(/^[\s\S]*?<\/think>/gi, '').trim();
+
+  // Strip special tokens & reasoning preambles
+  cleaned = cleaned.replace(/<\|im_start\|>(?:system|assistant|user)?\s*/gi, '').trim();
+  cleaned = cleaned.replace(/<\|im_end\|>/gi, '').trim();
+  cleaned = cleaned.replace(/<pad>/gi, '').replace(/<\|.*?\|>/g, '').trim();
+  cleaned = cleaned.replace(/^(?:Here's a thinking process|Thinking Process|Thought process):?\s*/i, '').trim();
+
+  // If text is structured prompt echo / notes
+  if (cleaned.includes('**Analyze User Input:**') || cleaned.includes('**Task:**') || cleaned.includes('**Constraints:**')) {
+    return null;
+  }
+
+  // Normalize whitespace
+  cleaned = cleaned.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  if (cleaned.length < 10) return null;
+  return cleaned;
+}

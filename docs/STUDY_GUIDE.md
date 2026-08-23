@@ -4314,3 +4314,141 @@ Postgres data lives in a named Docker volume attached to the running `signalstac
 ### Recommendation
 
 Run `docker image prune -f` after every deploy cycle that uses `--no-cache`. Add to `deploy.sh` as a post-deploy cleanup step to prevent disk accumulation.
+
+---
+
+## Section 51: Local Video Generation Pipeline (June 2026)
+
+### Overview
+
+A fully local, offline-capable cinematic video generation system was built and integrated into the SignalStack frontend. It generates cinematic MP4 shorts from a text essay or script — entirely on local hardware with no cloud API required (except Edge TTS for voice).
+
+### System Components
+
+```
+User Prompt (text essay / script)
+        │
+        ▼
+1. Local Qwen LLM (port 8081)     ← structures prompt into JSON scenes
+        │
+        ▼
+2. TTS Audio Synthesis (per scene)
+   ├─ Edge TTS  → scene_N.mp3
+   └─ Kokoro TTS (local Apache-2.0 model, optional)
+        │
+        ▼
+3. Lip-Sync Analysis (optional)
+   └─ Rhubarb → scene_N_visemes.json (mouth cue timecodes)
+        │
+        ▼
+4. Remotion Render
+   └─ node render.mjs sample-data.json → out/pulse-<timestamp>.mp4
+        │
+        ▼
+5. Output
+   └─ Copied to frontend/public/videos/ → served as /videos/<file>.mp4
+```
+
+### Why a Local LLM?
+
+The LLM (Qwen running on port 8081 via `mlx-lm`) does the creative heavy lifting:
+- Splits a long essay into 3–8 second cinematic scenes
+- Writes short punchy on-screen text (≤3 lines) separate from the full narration voice script
+- Assigns character, body pose, and expression per scene when lip-sync is enabled
+- Never sends your content to a cloud — fully private
+
+The LLM talks to a **system prompt** that enforces cinematic pacing rules (Apple-style presentation, documentary feel, no dumping paragraphs on screen).
+
+### Scene JSON Schema
+
+```json
+{
+  "text": "The fear is economic.",
+  "voice": "The deepest fear isn't about AI replacing work — it's about becoming economically replaceable.",
+  "duration": 150,
+  "visual": "Close-up on anxious developer staring at a job board",
+  "emphasis": "tense",
+  "characterId": "analyst",
+  "bodyPose": "concerned",
+  "expression": "serious"
+}
+```
+
+### API Endpoint
+
+`POST /api/generate-video` — streams SSE progress events while the pipeline runs:
+
+```json
+{ "status": "processing", "progress": 25, "message": "Structured 8 scenes." }
+{ "status": "success", "progress": 100, "videoUrl": "/videos/pulse-xxx.mp4", "scenes": [...] }
+```
+
+The full pipeline is coordinated in `frontend/src/app/api/generate-video/route.ts`.
+
+### Characters
+
+Two sprite-based characters exist for personal avatar use:
+
+| ID | Description |
+|----|-------------|
+| `pixel-user` | 8-bit retro pixel art character |
+| `anime-vtuber` | 2D anime VTuber in Demon Slayer style |
+
+Plus 6 SVG-based characters: `narrator`, `professor`, `hacker`, `analyst`, `creative`, `executive`.
+
+Each spritesheet is a **2×1 grid** — left = idle, right = talking. The renderer swaps between cells based on audio volume threshold.
+
+### Lip-Sync
+
+Uses **Rhubarb Lip Sync** to analyze audio and output frame-accurate mouth cues (9 phoneme mouth shapes). The `LipSyncCharacter` component reads the viseme JSON and drives SVG mouth paths per frame.
+
+If Rhubarb is not installed, a silence-only fallback (mouth closed) is used automatically.
+
+### Scene Editor
+
+After generation, the frontend shows a **Cinematic Scene Script Editor** where each scene's text, narration, duration, emphasis, character, pose, and expression can be edited. Clicking **Save & Re-render** bypasses the LLM and feeds the edited scenes directly to TTS + Remotion — useful for fine-tuning without re-generating from scratch.
+
+---
+
+## Section 52: VTuber Portrait Layout & Character Stability Fixes (June 2026)
+
+### Problem 1: Anime VTuber Covered the Dialog Box
+
+The `anime-vtuber` character was rendering as a 900×900px full-body sprite positioned at `bottom: 0, right: 0` — it occupied almost the full screen height and overlapped the RPG dialog box text, making the text unreadable.
+
+### Fix: Compact Portrait Mode
+
+The VTuber now renders as a **480×480px framed portrait** anchored **above the left side** of the dialog box:
+
+```tsx
+// PulseVideo.tsx — RPG layout character positioning
+left: isVtuber ? "40px" : undefined,
+right: isVtuber ? undefined : "80px",
+bottom: isVtuber ? "248px" : "290px",  // dialog box is 220px + 40px offset = 260px
+```
+
+A new `portraitSize` prop was added to `PixelCharacter`. When set + `isAnime`:
+- Renders a fixed-size framed box (pixel-art border style matching the dialog box)
+- No full-body sprite — just the upper body cropped into the portrait
+
+The speaker name tag in `GameDialogBox` was also updated with a `speakerTagAlign` prop — set to `"right"` for the VTuber so it appears on the opposite side from the portrait and avoids overlap.
+
+### Problem 2: Character Was Shaking Excessively
+
+The character had three sources of unintended visual noise:
+
+| Source | Before | After |
+|--------|--------|-------|
+| Vertical bob | `Math.sin(frame / 8) * 6px` — ±6px every ~0.25s | `Math.sin(frame / 60) * 1.5px` — ±1.5px over ~2s |
+| Mouth swap | Every 3 frames (10× per second) | Every 8 frames (~3.75× per second) |
+| Portrait bob | Bob + entrance transform combined | Entrance spring only — locks still after settling |
+
+**Key insight:** The bob at `frame / 8` was running at essentially the same frequency as the mouth swap — both causing rapid visual flickering that read as "shaking." Slowing each independently to a natural breathing rhythm made the character feel stable and alive, not jittery.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `local-video-generator/src/PulseVideo.tsx` | VTuber anchored bottom-left in portrait, speaker tag aligned right |
+| `local-video-generator/src/PixelCharacter.tsx` | `portraitSize` prop added; bob slowed; mouth swap slowed; portrait mode removes bob |
+| `local-video-generator/src/GameDialogBox.tsx` | `speakerTagAlign` prop added (`"left"` \| `"right"`) |

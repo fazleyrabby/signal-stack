@@ -3,12 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { logEvent } from '../../common/logger';
 import { SettingsService } from '../settings.service';
 import { RedisService } from '../redis.service';
+import { cleanSummaryText, isLowQualitySummary } from '../../common/summary-cleaner';
 
 @Injectable()
 export class LocalProvider {
   private readonly timeout = 35000;
-  private readonly maxTokens = 56;
-  private readonly maxSummaryChars = 120;
+  private readonly maxTokens = 256;
+  private readonly maxSummaryChars = 200;
 
   public lastError: number | null = null;
   private baseUrl: string;
@@ -127,28 +128,14 @@ export class LocalProvider {
   private buildPrompt(title: string, content: string): string {
     const trimmedContent = content.slice(0, 140);
     return `Write exactly one short sentence (12-22 words) explaining why this matters.
-Rules: plain English, no markdown, no line breaks, end with a period.
+Rules: plain English, no markdown, no line breaks, end with a period. Do NOT output reasoning or <think> tags.
 Title: ${title}
 Content: ${trimmedContent}`;
   }
 
   private cleanResponse(text: string): string {
-    let cleaned = text;
-    cleaned = cleaned.replace(/<\|.*?\|>/g, ' ');
-    cleaned = cleaned.replace(/<.*?>/g, '');
-    cleaned = cleaned.replace(/\n/g, ' ');
-    cleaned = cleaned.replace(/\s+/g, ' ');
-    cleaned = cleaned.trim();
-    
-    // Filter out common LLM failure/boilerplate phrases
-    const lower = cleaned.toLowerCase();
-    if (
-      lower.includes("provide the content") || 
-      lower.includes("no content provided") ||
-      lower.includes("don't see any content") ||
-      lower.includes("i am an ai") ||
-      cleaned.length < 5
-    ) {
+    let cleaned = cleanSummaryText(text);
+    if (isLowQualitySummary(cleaned)) {
       return '';
     }
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, ExternalLink, Bookmark, Link2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
-import { cn, getProviderLabel } from "@/lib/utils";
+import { cn, getProviderLabel, cleanDisplaySummary } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Signal } from "@/lib/api";
 
@@ -78,17 +78,21 @@ export function SignalDetailModal({ signal, onOpenChange, isBookmarked, isBookma
         {/* Body — scrollable */}
         <div className="px-6 pb-4 space-y-4 overflow-y-auto flex-1 min-h-0">
           {/* AI Summary */}
-          {(signal.aiSummary || signal.summary) && (
-            <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Sparkles className="w-3 h-3 text-primary" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary/70">AI Analysis</span>
+          {(() => {
+            const displaySummary = cleanDisplaySummary(signal.aiSummary) || signal.summary;
+            if (!displaySummary) return null;
+            return (
+              <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Sparkles className="w-3 h-3 text-primary" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary/70">AI Analysis</span>
+                </div>
+                <p className="text-sm leading-relaxed">
+                  {displaySummary}
+                </p>
               </div>
-              <p className="text-sm leading-relaxed">
-                {signal.aiSummary || signal.summary}
-              </p>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Content Snippet */}
           {signal.content && (

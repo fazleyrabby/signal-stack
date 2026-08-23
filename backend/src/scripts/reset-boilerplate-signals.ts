@@ -11,13 +11,18 @@ async function resetBoilerplateSignals() {
   const app = await NestFactory.createApplicationContext(AppModule);
   const db = app.get(DATABASE_CONNECTION);
 
-  // Common boilerplate phrases returned by LLMs when content is missing
+  // Common boilerplate phrases and thinking traces returned by LLMs
   const boilerplatePhrases = [
     '%I don\'t see any content provided%',
     '%Please provide the content%',
     '%No content provided%',
     '%provide the content for me to summarize%',
-    '%As an AI language model%'
+    '%As an AI language model%',
+    '%<think%',
+    '%</think>%',
+    '%thinking process%',
+    '%Analyze User Input%',
+    '%**title:**%',
   ];
 
   try {

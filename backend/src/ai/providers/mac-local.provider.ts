@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RedisService } from '../redis.service';
 import { SettingsService } from '../settings.service';
 import { logEvent } from '../../common/logger';
+import { cleanSummaryText, isLowQualitySummary } from '../../common/summary-cleaner';
 
 @Injectable()
 export class MacLocalProvider {
@@ -74,7 +75,7 @@ export class MacLocalProvider {
     try {
       const config = await this.settingsService.getModelConfig();
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), config.macLocalTimeout || 3000);
+      const timeoutId = setTimeout(() => controller.abort(), config.macLocalTimeout || 5000);
 
       const res = await fetch(`${endpoint}/v1/chat/completions`, {
         method: 'POST',
@@ -84,7 +85,7 @@ export class MacLocalProvider {
           messages: [
             {
               role: 'system',
-              content: 'Summarize why this matters in one sentence. max 30 words, no fluff, plain English.',
+              content: 'Summarize why this matters in one sentence. Max 30 words, plain English. Do NOT output reasoning or <think> tags. Output only the final summary sentence.',
             },
             {
               role: 'user',
@@ -92,7 +93,7 @@ export class MacLocalProvider {
             },
           ],
           temperature: 0.1,
-          max_tokens: 150,
+          max_tokens: 400,
         }),
         signal: controller.signal,
       });
@@ -116,7 +117,12 @@ export class MacLocalProvider {
         );
       }
 
-      return data?.choices?.[0]?.message?.content?.trim() || null;
+      const raw = data?.choices?.[0]?.message?.content || '';
+      const cleaned = cleanSummaryText(raw);
+      if (isLowQualitySummary(cleaned)) {
+        return null;
+      }
+      return cleaned.slice(0, 250);
     } catch (error: any) {
       logEvent('warn', 'mac_local_provider_error', { message: error.message });
       await this.redisService.set('mac_local:status', 'offline', 'EX', 60);

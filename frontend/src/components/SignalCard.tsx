@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, cleanDisplaySummary } from "@/lib/utils";
 import { useParams } from "next/navigation";
 import {
   Sparkles,
@@ -136,15 +136,19 @@ export function SignalCard({ signal, isCompact, className, isBookmarked, isBookm
                 <div className="h-3 bg-muted/40 rounded animate-pulse w-5/6" />
                 <div className="h-3 bg-muted/40 rounded animate-pulse w-2/3" />
               </div>
-            ) : (signal.aiSummary || signal.summary) && (
-              <p className={cn(
-                "text-muted-foreground/70 leading-relaxed",
-                isCompact ? "text-[12px] sm:text-[14px]" : "text-[11px] sm:text-[13px]",
-                isBN ? "overflow-hidden max-h-[6em]" : (isCompact ? "line-clamp-2 sm:line-clamp-4" : "line-clamp-2 sm:line-clamp-3")
-              )}>
-                {signal.aiSummary || signal.summary}
-              </p>
-            )}
+            ) : (() => {
+              const displaySummary = cleanDisplaySummary(signal.aiSummary) || signal.summary;
+              if (!displaySummary) return null;
+              return (
+                <p className={cn(
+                  "text-muted-foreground/70 leading-relaxed",
+                  isCompact ? "text-[12px] sm:text-[14px]" : "text-[11px] sm:text-[13px]",
+                  isBN ? "overflow-hidden max-h-[6em]" : (isCompact ? "line-clamp-2 sm:line-clamp-4" : "line-clamp-2 sm:line-clamp-3")
+                )}>
+                  {displaySummary}
+                </p>
+              );
+            })()}
           </div>
 
           {/* Footer: Impact Score + Actions + More Info */}

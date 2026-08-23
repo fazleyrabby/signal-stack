@@ -240,4 +240,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return deleted;
   }
 
+  async sadd(key: string, ...members: string[]): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    return this.client.sadd(key, ...members);
+  }
+
+  async srem(key: string, ...members: string[]): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    return this.client.srem(key, ...members);
+  }
+
+  async sismember(key: string, member: string): Promise<number> {
+    if (!this.client || this.client.status !== 'ready') return 0;
+    return this.client.sismember(key, member);
+  }
 }

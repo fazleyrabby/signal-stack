@@ -4,6 +4,7 @@ import { DraftsRepository } from '../drafts/drafts.repository';
 import { DraftGenerationWorker } from '../workers/draft-generation.worker';
 import { PublisherRegistry } from '../services/publisher-registry.service';
 import { DiscordService } from '../../alerts/discord.service';
+import { RedisService } from '../../ai/redis.service';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import type { DrizzleDB } from '../../database/database.module';
 import { signals, pulseAssets, pulseDrafts } from '../../database/schema';
@@ -21,6 +22,7 @@ export class PulseScheduler {
     private readonly worker: DraftGenerationWorker,
     private readonly publisherRegistry: PublisherRegistry,
     private readonly discord: DiscordService,
+    private readonly redis: RedisService,
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB,
   ) {}
 
@@ -30,6 +32,18 @@ export class PulseScheduler {
     this.isEnqueuing = true;
 
     try {
+      // ── Daily limit guard: skip entirely if cap reached ──
+      const maxDraftsStr = (await this.draftsRepository.findSetting('pulse_max_drafts_per_day')) || '3';
+      const maxDrafts = parseInt(maxDraftsStr, 10);
+      const today = new Date().toISOString().split('T')[0];
+      const countStr = await this.redis.get(`pulse:asset_count:${today}`);
+      const currentCount = countStr ? parseInt(countStr, 10) : 0;
+
+      if (currentCount >= maxDrafts) {
+        this.logger.debug(`Daily limit reached (${currentCount}/${maxDrafts}). Skipping auto-enqueue.`);
+        return;
+      }
+
       const minScoreStr = (await this.draftsRepository.findSetting('pulse_min_signal_score')) || '7';
       const minScore = parseFloat(minScoreStr);
 
@@ -97,7 +111,7 @@ export class PulseScheduler {
 
         const publisher = this.publisherRegistry.getPublisher(platform);
         if (!publisher) {
-          this.logger.warn(`No publisher for platform '${platform}'. Skipping draft ${draft.id}.`);
+          this.logger.warn(`No publisher for platform ${platform}. Skipping draft ${draft.id}.`);
           continue;
         }
 
