@@ -6,13 +6,6 @@ const withNextIntl = createNextIntlPlugin('./src/i18n.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Fix for next-intl with Turbopack
-  turbopack: {
-    resolveAlias: {
-      'next-intl/config': './src/i18n.ts',
-    },
-  },
-
   // Proxy API to backend
   async rewrites() {
     return [
@@ -25,12 +18,20 @@ const nextConfig = {
 
   async headers() {
     return [
-      // HTML pages: never edge-cache (Cloudflare Tunnel). Old HTML referencing stale CSS hashes breaks styles.
+      // HTML pages and root: never edge-cache (Cloudflare Tunnel).
       {
-        source: '/((?!api|_next|favicon.ico).*)',
+        source: '/:path*',
         headers: [
           {
             key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'no-store',
+          },
+          {
+            key: 'Cloudflare-CDN-Cache-Control',
             value: 'no-store',
           },
         ],
@@ -53,7 +54,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'no-store',
+            value: 'no-store, no-cache, must-revalidate, max-age=0',
           },
         ],
       },
