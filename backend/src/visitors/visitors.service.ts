@@ -70,10 +70,14 @@ export class VisitorsService {
   }
 
   private detectBot(userAgent: string | null, pageViews: number): boolean {
-    if (pageViews > 100) return true;
-    if (!userAgent) return false;
-    const ua = userAgent.toLowerCase();
-    return ['curl', 'bot', 'crawler', 'spider'].some(k => ua.includes(k));
+    // UA-based detection is the primary signal
+    if (userAgent) {
+      const ua = userAgent.toLowerCase();
+      if (['curl', 'bot', 'crawler', 'spider'].some(k => ua.includes(k))) return true;
+    }
+    // Extreme page volume heuristic only — raised so real power users aren't flagged
+    if (pageViews > 1000) return true;
+    return false;
   }
 
   private async enrichVisitor(sessionId: string, ip: string) {
