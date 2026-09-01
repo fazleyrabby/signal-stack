@@ -138,16 +138,17 @@ export class VisitorsService {
     // Realtime = sessions active in the last 5 minutes
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
+    const notBot = sql`${visitors.isBot} = false`;
     const [totalSessionsResult, totalViewsResult, todayResult, realtimeResult] = await Promise.all([
-      // Total unique sessions (visitors)
-      this.db.select({ count: sql<number>`count(*)::int` }).from(visitors),
-      // Total page views across all sessions (sum of pageViews column)
-      this.db.select({ sum: sql<number>`COALESCE(SUM(${visitors.pageViews}), 0)::int` }).from(visitors),
-      // Today's unique visitors
+      // Total unique sessions (non-bots only)
+      this.db.select({ count: sql<number>`count(*)::int` }).from(visitors).where(notBot),
+      // Total page views across all sessions (non-bots only)
+      this.db.select({ sum: sql<number>`COALESCE(SUM(${visitors.pageViews}), 0)::int` }).from(visitors).where(notBot),
+      // Today's unique visitors (non-bots only)
       this.db
         .select({ count: sql<number>`count(*)::int` })
         .from(visitors)
-        .where(gte(visitors.firstSeen, todayStart)),
+        .where(and(gte(visitors.firstSeen, todayStart), notBot)),
       // Realtime: sessions active in last 5 minutes (non-bots)
       this.db
         .select({ count: sql<number>`count(*)::int` })
@@ -155,7 +156,7 @@ export class VisitorsService {
         .where(
           and(
             gte(visitors.lastSeen, fiveMinutesAgo),
-            sql`${visitors.isBot} = false`,
+            notBot,
           ),
         ),
     ]);
