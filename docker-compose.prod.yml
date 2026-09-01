@@ -84,6 +84,12 @@ services:
       SMTP_PASS: ${SMTP_PASS}
       DIGEST_RECIPIENTS: ${DIGEST_RECIPIENTS}
       DIGEST_ENABLED: ${DIGEST_ENABLED:-false}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     volumes:
       - backups:/app/backups
       - ./geoip:/geoip:ro
@@ -114,7 +120,8 @@ services:
       API_BACKEND_URL: "http://signalstack-app:3000"
       NODE_ENV: "production"
     depends_on:
-      - app
+      app:
+        condition: service_healthy
 
 #  geoip:
 #    image: maxmindinc/geoipupdate

@@ -167,7 +167,7 @@ export function Header({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                 </span>
-                {visitorCount !== undefined && visitorCount > 0 ? (
+                {visitorCount !== undefined ? (
                   <>
                     <Users className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     <span className="text-[11px] font-black tabular-nums tracking-wide text-emerald-600 dark:text-emerald-400">{visitorCount}</span>
