@@ -5,11 +5,10 @@ import {
   Search, 
   Sun,
   Moon,
-  ChevronUp,
-  ChevronDown,
   Users,
   BarChart3,
   Rss,
+  Eye,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -46,6 +45,7 @@ interface HeaderProps {
   showControls?: boolean;
   onToggleControls?: () => void;
   visitorCount?: number;
+  totalViews?: number;
 }
 
 export function Header({ 
@@ -53,7 +53,8 @@ export function Header({
   isFullWidth = false,
   showControls = true,
   onToggleControls,
-  visitorCount
+  visitorCount,
+  totalViews,
 }: HeaderProps) {
   const t = safeUseTranslations('Index');
   const { searchQuery, setSearchQuery } = useSearch();
@@ -159,24 +160,46 @@ export function Header({
           
 
 <div className="flex items-center gap-4 border-l border-border/10 pl-4 hidden md:flex h-6">
-              <div className="flex flex-col items-end leading-none">
-                 <div className="flex items-center gap-2">
-                    {visitorCount !== undefined && visitorCount > 0 ? (
-                      <>
-                        <Users className="w-3 h-3 text-emerald-600 dark:text-emerald-500" />
-                        <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-500">{visitorCount}</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-500 animate-[pulse_2s_infinite]" />
-                        <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-500 uppercase">{t('liveUplink')}</span>
-                      </>
-                    )}
-                 </div>
-                <span className="text-[8px] font-black text-muted-foreground/30 uppercase tracking-widest mt-1">
-                  {visitorCount !== undefined ? t('viewers') : t('protocolSynced')}
+            {/* Realtime viewers */}
+            <div className="flex flex-col items-end leading-none gap-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                 </span>
-             </div>
+                {visitorCount !== undefined && visitorCount > 0 ? (
+                  <>
+                    <Users className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-[11px] font-black tabular-nums tracking-wide text-emerald-600 dark:text-emerald-400">{visitorCount}</span>
+                  </>
+                ) : (
+                  <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-500 uppercase">{t('liveUplink')}</span>
+                )}
+              </div>
+              <span className="text-[8px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                {t('viewers')}
+              </span>
+            </div>
+
+            {/* Total views separator + stat */}
+            {totalViews !== undefined && (
+              <>
+                <div className="w-px h-5 bg-border/20" />
+                <div className="flex flex-col items-end leading-none gap-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="w-3 h-3 text-indigo-400 dark:text-indigo-400" />
+                    <span className="text-[11px] font-black tabular-nums tracking-wide text-indigo-600 dark:text-indigo-400">
+                      {totalViews >= 1000000
+                        ? `${(totalViews / 1000000).toFixed(1)}M`
+                        : totalViews >= 1000
+                        ? `${(totalViews / 1000).toFixed(1)}K`
+                        : totalViews}
+                    </span>
+                  </div>
+                  <span className="text-[8px] font-bold text-muted-foreground/40 uppercase tracking-widest">total views</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

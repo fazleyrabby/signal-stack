@@ -135,27 +135,34 @@ export class VisitorsService {
       now.getMonth(),
       now.getDate(),
     );
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    // Realtime = sessions active in the last 5 minutes
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-    const [totalResult, todayResult, realtimeResult] = await Promise.all([
+    const [totalSessionsResult, totalViewsResult, todayResult, realtimeResult] = await Promise.all([
+      // Total unique sessions (visitors)
       this.db.select({ count: sql<number>`count(*)::int` }).from(visitors),
+      // Total page views across all sessions (sum of pageViews column)
+      this.db.select({ sum: sql<number>`COALESCE(SUM(${visitors.pageViews}), 0)::int` }).from(visitors),
+      // Today's unique visitors
       this.db
         .select({ count: sql<number>`count(*)::int` })
         .from(visitors)
         .where(gte(visitors.firstSeen, todayStart)),
+      // Realtime: sessions active in last 5 minutes (non-bots)
       this.db
         .select({ count: sql<number>`count(*)::int` })
         .from(visitors)
         .where(
           and(
-            gte(visitors.lastSeen, yesterday),
-            gte(visitors.lastSeen, todayStart),
+            gte(visitors.lastSeen, fiveMinutesAgo),
+            sql`${visitors.isBot} = false`,
           ),
         ),
     ]);
 
     return {
-      total: totalResult[0]?.count || 0,
+      total: totalSessionsResult[0]?.count || 0,
+      totalViews: totalViewsResult[0]?.sum || 0,
       today: todayResult[0]?.count || 0,
       realtime: realtimeResult[0]?.count || 0,
     };

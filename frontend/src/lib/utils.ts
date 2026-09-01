@@ -9,6 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export interface VisitorStats {
   total: number;
+  totalViews: number;
   today: number;
   realtime: number;
 }

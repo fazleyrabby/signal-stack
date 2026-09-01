@@ -68,7 +68,7 @@ function SignalsDashboardMain() {
   const { data: visitorData } = useSWR<VisitorStats>(
     '/api/visitors/stats',
     fetcher,
-    { refreshInterval: 60000 }
+    { refreshInterval: 30000 }
   );
 
   useEffect(() => {
@@ -90,6 +90,7 @@ function SignalsDashboardMain() {
         isRefreshing={false}
         isFullWidth={false}
         visitorCount={visitorData?.realtime}
+        totalViews={visitorData?.totalViews}
       />
 
       <div className="flex-1 w-full flex flex-col overflow-hidden px-2 sm:px-6 pt-1 pb-2 sm:pb-4">

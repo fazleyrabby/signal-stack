@@ -83,6 +83,20 @@ models/
 *.dump
 db-backups/
 
-# --- Local Video Generator ---
+# --- Local Video Generator & Assets ---
 /local-video-generator/
 frontend/public/videos/
+frontend/public/scene_images/
+frontend/public/pixel_user*.png
+frontend/public/anime_user*.png
+
+# --- Personal / Machine-Specific Tool Configs ---
+ghostty.terminfo
+opencode.config.json
+.opencode/
+*.tsbuildinfo
+
+# --- One-off Dev Scripts (keep off git) ---
+decrypt-test.ts
+get-fb-token.mjs
+backend/encrypt-fb.ts
