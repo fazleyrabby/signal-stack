@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Param, ParseUUIDPipe } from '@nestjs/common';
 import { SignalsService } from './signals.service';
 import { FeedService } from '../feed/feed.service';
 
@@ -73,5 +73,10 @@ export class SignalsController {
   @Get('signals/geo')
   async getGeoStats() {
     return this.signalsService.getGeoStats();
+  }
+
+  @Get('signals/:id')
+  async getSignal(@Param('id', new ParseUUIDPipe()) id: string, @Query('lang') lang?: string) {
+    return this.signalsService.getSignal(id, lang);
   }
 }

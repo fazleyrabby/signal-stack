@@ -4,10 +4,11 @@ import type { DrizzleDB } from '../database/database.module';
 import { Inject } from '@nestjs/common';
 import { bookmarks, signals } from '../database/schema';
 import { eq, and } from 'drizzle-orm';
+import { SignalsService } from '../signals/signals.service';
 
 @Injectable()
 export class BookmarksService {
-  constructor(@Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB) {}
+  constructor(@Inject(DATABASE_CONNECTION) private readonly db: DrizzleDB, private readonly signalsService: SignalsService) {}
 
   /**
    * Toggle bookmark for a signal - if bookmarked, remove it; if not, add it
@@ -64,7 +65,7 @@ export class BookmarksService {
   /**
    * Get full signal data for bookmarked signals with pagination
    */
-  async getBookmarkedSignals(sessionId: string, limit: number, offset: number) {
+  async getBookmarkedSignals(sessionId: string, limit: number, offset: number, lang = 'en') {
     const signalData = await this.db
       .select({
         id: signals.id,
@@ -92,7 +93,7 @@ export class BookmarksService {
       .offset(offset);
 
     return {
-      data: signalData,
+      data: lang === 'en' ? signalData : await Promise.all(signalData.map(signal => this.signalsService.getSignal(signal.id, lang))),
       meta: {
         limit,
         offset,

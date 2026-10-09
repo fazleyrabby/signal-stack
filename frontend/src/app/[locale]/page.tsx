@@ -1,43 +1,41 @@
-import { Suspense } from "react";
-import { SWRConfig } from 'swr';
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import SignalsDashboardContent from "@/components/SignalsDashboardContent";
-
-const API_BACKEND = process.env.API_BACKEND_URL || 'http://localhost:3000';
-
-async function getInitialSignals(locale: string) {
-  try {
-    const res = await fetch(
-      `${API_BACKEND}/api/signals?limit=30&categoryId=geopolitics&sort=created_at&order=desc&lang=${locale}`,
-      { next: { revalidate: 60 } }
-    );
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) {
-    console.error('Failed to fetch initial signals:', e);
-    return null;
-  }
+import { getStoryFeed, siteUrl } from "@/lib/server-stories";
+import { locales } from "@/navigation";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Reader" });
+  const url = `${siteUrl}/${locale}`;
+  return {
+    title: `SignalStack — ${t("latest")}`,
+    description: t("intro"),
+    alternates: {
+      canonical: url,
+      languages: Object.fromEntries(locales.map((l) => [l, `${siteUrl}/${l}`])),
+    },
+    openGraph: {
+      title: `SignalStack — ${t("latest")}`,
+      description: t("intro"),
+      url,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `SignalStack — ${t("latest")}`,
+      description: t("intro"),
+    },
+  };
 }
-
-export default async function SignalsDashboard({
+export default async function Page({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const initialData = await getInitialSignals(locale);
-
-  // Prefetching keys for SWR fallback
-  const fallback: Record<string, any> = {};
-  if (initialData) {
-    const key = `/api/signals?limit=30&categoryId=geopolitics&sort=created_at&order=desc&lang=${locale}`;
-    fallback[key] = initialData;
-  }
-
-  return (
-    <SWRConfig value={{ fallback }}>
-      <Suspense fallback={<div className="h-screen bg-background animate-pulse" />}>
-        <SignalsDashboardContent />
-      </Suspense>
-    </SWRConfig>
-  );
+  return <SignalsDashboardContent initialData={await getStoryFeed(locale)} />;
 }

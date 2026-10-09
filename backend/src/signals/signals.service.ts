@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { SignalsRepository } from './signals.repository';
 import { ScoredSignal } from '../common/types';
 import { logEvent } from '../common/logger';
@@ -150,6 +150,16 @@ export class SignalsService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async getSignal(id: string, lang = 'en') {
+    const signal = await this.repository.findById(id);
+    if (!signal) throw new NotFoundException('Story not found');
+    const cleaned = signal.aiSummary ? cleanSummaryText(signal.aiSummary) : null;
+    return this.localizeSignal({
+      ...signal,
+      aiSummary: cleaned && !isLowQualitySummary(cleaned) ? cleaned : null,
+    }, ['en', 'bn', 'es'].includes(lang) ? lang : 'en');
   }
 
   private async localizeSignal(signal: any, lang: string): Promise<any> {

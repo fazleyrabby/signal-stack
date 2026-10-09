@@ -33,6 +33,8 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/messages ./messages
+COPY --from=builder /app/src/i18n.ts ./src/i18n.ts
+COPY --from=builder /app/src/navigation.ts ./src/navigation.ts
 
 EXPOSE 3001
 

@@ -44,7 +44,7 @@ services:
     environment:
       API_BACKEND_URL: http://signalstack-app:3000
       PORT: 3001
-      NODE_ENV: development
+      NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://localhost:3000
     depends_on:
       - app
@@ -124,5 +124,4 @@ services:
 volumes:
   pgdata:
   geoip:
-
 

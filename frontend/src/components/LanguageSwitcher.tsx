@@ -1,29 +1,34 @@
-'use client';
+"use client";
 
-import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from '@/navigation';
-import { locales } from '@/navigation';
+import { useLocale } from "next-intl";
+import { useRouter, usePathname } from "@/navigation";
+import { locales } from "@/navigation";
+import { useSearchParams } from "next/navigation";
 
 const LOCALE_LABELS: Record<string, string> = {
-  en: 'EN',
-  bn: 'বাং',
-  es: 'ES',
+  en: "EN",
+  bn: "বাং",
+  es: "ES",
 };
 
 export function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  const query = useSearchParams();
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    router.replace(pathname, { locale: e.target.value as (typeof locales)[number] });
+    router.replace(`${pathname}${query.size ? `?${query}` : ""}`, {
+      locale: e.target.value as (typeof locales)[number],
+    });
   };
 
   return (
     <select
       value={locale}
+      aria-label="Language / ভাষা / Idioma"
       onChange={handleChange}
-      className="h-9 px-2 text-[11px] font-bold bg-accent/20 border border-border/10 rounded-lg text-foreground hover:bg-accent/40 transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/20"
+      className="h-11 px-2 text-sm font-medium bg-transparent border border-border rounded-lg text-foreground cursor-pointer"
     >
       {locales.map((l) => (
         <option key={l} value={l}>

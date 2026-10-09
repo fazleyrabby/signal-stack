@@ -1,24 +1,20 @@
 "use client";
-
 import Link from "next/link";
-import { useParams } from "next/navigation";
-
+import { useLocale, useTranslations } from "next-intl";
+import { Rss } from "lucide-react";
 export function Footer() {
-  const params = useParams();
-  const locale = (params?.locale as string) || 'en';
-
+  const locale = useLocale(),
+    t = useTranslations("Reader");
   return (
-    <footer className="border-t border-border/10 bg-background/50 backdrop-blur-sm py-2">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/40">
-        <span>© 2026 SignalStack</span>
-        <div className="flex items-center gap-3">
-          <Link href={`/${locale}/changelog`} className="hover:text-foreground transition-colors">
-            Changelog
-          </Link>
-          <Link href="https://fazleyrabbi.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-            Portfolio
-          </Link>
-        </div>
+    <footer className="reader-footer">
+      <span>© {new Date().getFullYear()} SignalStack</span>
+      <div className="flex flex-wrap items-center gap-6">
+        <Link href={`/${locale}/about`}>{t("about")}</Link>
+        <Link href={`/${locale}/trends`}>{t("trends")}</Link>
+        <a href="/api/feed.xml" className="inline-flex items-center gap-2">
+          <Rss className="size-4" />
+          {t("rss")}
+        </a>
       </div>
     </footer>
   );

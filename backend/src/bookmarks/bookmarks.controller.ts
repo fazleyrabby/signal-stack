@@ -38,6 +38,7 @@ export class BookmarksController {
     @Req() req: Request,
     @Query('limit') limitStr?: string,
     @Query('offset') offsetStr?: string,
+    @Query('lang') lang?: string,
   ) {
     const ip =
       (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
@@ -49,6 +50,6 @@ export class BookmarksController {
     const limit = limitStr ? parseInt(limitStr, 10) : 20;
     const offset = offsetStr ? parseInt(offsetStr, 10) : 0;
 
-    return this.bookmarksService.getBookmarkedSignals(sessionId, limit, offset);
+    return this.bookmarksService.getBookmarkedSignals(sessionId, Math.min(100, Math.max(1, limit || 20)), Math.max(0, offset || 0), lang);
   }
 }

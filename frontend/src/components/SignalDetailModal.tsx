@@ -1,15 +1,34 @@
 "use client";
-
-import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, ExternalLink, Bookmark, Link2, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
-import { cn, getProviderLabel, cleanDisplaySummary } from "@/lib/utils";
+import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Bookmark,
+  Share2,
+  ExternalLink,
+  Loader2,
+  ArrowRight,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+  storyPath,
+  storySummary,
+  sourceExcerpt,
+  publishedLabel,
+  signalPriority,
+  shareStory,
+  safeSourceUrl,
+} from "@/lib/stories";
 import type { Signal } from "@/lib/api";
-
 interface SignalDetailModalProps {
   signal: Signal | null;
   onOpenChange: (signal: Signal | null) => void;
@@ -17,132 +36,135 @@ interface SignalDetailModalProps {
   isBookmarking?: boolean;
   onToggleBookmark?: (signalId: string) => Promise<void>;
 }
-
-const SEVERITY_COLORS = {
-  high: "bg-red-500 text-white",
-  medium: "bg-amber-500 text-white",
-  low: "bg-emerald-500 text-white",
-} as const;
-
-export function SignalDetailModal({ signal, onOpenChange, isBookmarked, isBookmarking, onToggleBookmark }: SignalDetailModalProps) {
-  const handleOpenChange = (open: boolean) => {
-    if (!open) onOpenChange(null);
-  };
-
+export function SignalDetailModal({
+  signal,
+  onOpenChange,
+  isBookmarked,
+  isBookmarking,
+  onToggleBookmark,
+}: SignalDetailModalProps) {
+  const t = useTranslations("Reader");
+  const locale = useLocale();
   if (!signal) return null;
-
-  const publishedDate = signal.publishedAt
-    ? format(new Date(signal.publishedAt), "MMM d, yyyy 'at' HH:mm")
-    : "Unknown";
-
-  const scoreColor = signal.score >= 8 ? "text-red-500" : signal.score >= 5 ? "text-amber-500" : "text-blue-500";
-
+  const summary = storySummary(signal),
+    excerpt = sourceExcerpt(signal.content),
+    sourceUrl = safeSourceUrl(signal.url);
   return (
-    <Dialog open={!!signal} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden max-h-[calc(100dvh-2rem)] flex flex-col">
-        {/* Header with severity stripe */}
-        <div className={cn(
-          "border-l-4 px-6 pt-6 pb-4",
-          signal.severity === "high" ? "border-l-red-500" : signal.severity === "medium" ? "border-l-amber-500" : "border-l-emerald-500"
-        )}>
-          <DialogHeader className="flex items-center justify-between space-y-1">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <span className="font-semibold">{signal.source}</span>
-              <span>·</span>
-              <span>{publishedDate}</span>
-            </div>
-            <div className="flex items-start gap-2 w-full">
-              <DialogTitle className="text-base font-bold leading-snug flex-1">
-                {signal.title}
-              </DialogTitle>
-              <button
-                onClick={async () => {
-                  if (isBookmarking || !onToggleBookmark) return;
-                  await onToggleBookmark(signal.id);
-                }}
-                disabled={isBookmarking}
-                className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all shrink-0 disabled:opacity-40"
-              >
-                {isBookmarking
-                  ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  : <Bookmark className={cn("w-3.5 h-3.5", isBookmarked ? "text-primary fill-primary" : "text-muted-foreground/60")} />
-                }
-                BOOKMARK
-              </button>
-            </div>
+    <Dialog
+      open={!!signal}
+      onOpenChange={(open) => {
+        if (!open) onOpenChange(null);
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        className="public-surface reader-modal flex flex-col gap-0 p-0 overflow-hidden"
+      >
+        <DialogClose
+          className="reader-icon-button absolute right-2 top-2"
+          aria-label={t("close")}
+        >
+          <X className="size-5" />
+        </DialogClose>
+        <div className="overflow-y-auto min-h-0 flex-1 p-6 sm:p-9">
+          <DialogHeader>
+            <DialogDescription className="text-sm pr-8">
+              {signal.source}{" "}
+              {publishedLabel(signal.publishedAt, locale) &&
+                `· ${publishedLabel(signal.publishedAt, locale)}`}
+            </DialogDescription>
+            <DialogTitle className="reader-modal-title">
+              {signal.title}
+            </DialogTitle>
           </DialogHeader>
-          {/* Accessible description required by Dialog */}
-          <DialogDescription className="sr-only">{signal.source} — {publishedDate}</DialogDescription>
-        </div>
-
-        {/* Body — scrollable */}
-        <div className="px-6 pb-4 space-y-4 overflow-y-auto flex-1 min-h-0">
-          {/* AI Summary */}
-          {(() => {
-            const displaySummary = cleanDisplaySummary(signal.aiSummary) || signal.summary;
-            if (!displaySummary) return null;
-            return (
-              <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <Sparkles className="w-3 h-3 text-primary" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary/70">AI Analysis</span>
-                </div>
-                <p className="text-sm leading-relaxed">
-                  {displaySummary}
-                </p>
-              </div>
-            );
-          })()}
-
-          {/* Content Snippet */}
-          {signal.content && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1.5">Content Preview</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {(() => {
-                  const stripped = signal.content.replace(/<[^>]*>/g, '');
-                  return stripped.length > 300 ? stripped.substring(0, 300) + "..." : stripped;
-                })()}
+          <div className="reader-briefing mt-8">
+            <h2 className="text-base font-semibold mb-3">
+              {signal.aiSummary ? t("aiSummary") : t("summary")}
+            </h2>
+            <p className="text-base leading-7">{summary || t("noSummary")}</p>
+            {signal.aiSummary && (
+              <p className="mt-4 text-xs leading-5 text-muted-foreground">
+                {t("aiNote")}
               </p>
-            </div>
-          )}
-
-          {/* Metadata */}
-          <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border/30">
-            <Badge variant="secondary" className={cn("text-[10px] font-bold", SEVERITY_COLORS[signal.severity])}>
-              {signal.severity.toUpperCase()}
-            </Badge>
-            <span className={cn("text-sm font-bold tabular-nums", scoreColor)}>
-              {signal.score} IMPACT
-            </span>
-            {signal.aiProvider && signal.aiProvider !== "none" && (
-              <Badge variant="outline" className="text-[10px] font-bold uppercase">
-                {getProviderLabel(signal.aiProvider)}
-              </Badge>
             )}
           </div>
+          {excerpt && excerpt.toLowerCase() !== summary?.toLowerCase() && (
+            <details className="reader-excerpt mt-6">
+              <summary className="cursor-pointer font-medium py-3">
+                {t("sourceExcerpt")}
+              </summary>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t("excerptNote")}
+              </p>
+              <p className="mt-3 text-base leading-7">{excerpt}</p>
+            </details>
+          )}
+          <details className="mt-6 text-sm text-muted-foreground">
+            <summary className="cursor-pointer py-2">
+              {t(signalPriority(signal.score))} · {signal.score}/12 —{" "}
+              {t("aboutScore")}
+            </summary>
+            <p className="py-2 leading-6">{t("scoreHelp")}</p>
+          </details>
         </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-border/30 px-6 py-4 bg-muted/30">
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(signal.url);
-              toast.success("Link copied");
-            }}
-            className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all mr-auto"
-          >
-            SHARE <Link2 className="w-3.5 h-3.5" />
-          </button>
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(null)}>
-            Close
-          </Button>
-          <a href={signal.url} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" className="gap-1.5">
-              Read Original
-              <ExternalLink className="w-3 h-3" />
-            </Button>
-          </a>
+        <div className="reader-modal-actions border-t border-border p-4 sm:px-9 sm:py-5">
+          <div className="flex items-center gap-2">
+            {onToggleBookmark && (
+              <button
+                className="reader-icon-button"
+                aria-label={isBookmarked ? t("unsave") : t("save")}
+                aria-pressed={!!isBookmarked}
+                disabled={isBookmarking}
+                onClick={() => void onToggleBookmark(signal.id)}
+              >
+                {isBookmarking ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Bookmark
+                    className={cn(
+                      "size-4",
+                      isBookmarked && "fill-current text-primary",
+                    )}
+                  />
+                )}
+              </button>
+            )}
+            <button
+              className="reader-icon-button"
+              aria-label={t("share")}
+              onClick={async () => {
+                try {
+                  if ((await shareStory(signal, locale)) === "copied")
+                    toast.success(t("linkCopied"));
+                } catch {
+                  toast.error(t("shareError"));
+                }
+              }}
+            >
+              <Share2 className="size-4" />
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {sourceUrl && (
+              <a
+                className="reader-secondary-button"
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("readSource")}
+                <ExternalLink className="size-4" />
+              </a>
+            )}
+            <Link
+              className="reader-primary-button"
+              href={storyPath(signal.id, locale)}
+              onClick={() => onOpenChange(null)}
+            >
+              {t("openStory")}
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

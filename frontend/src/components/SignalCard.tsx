@@ -1,23 +1,17 @@
 "use client";
-
-import { cn, cleanDisplaySummary } from "@/lib/utils";
-import { useParams } from "next/navigation";
-import {
-  Sparkles,
-  ChevronRight,
-  Cpu,
-  Zap,
-  Globe,
-  Bookmark,
-  Link2,
-  RefreshCw,
-} from "lucide-react";
+import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { Bookmark, Share2, ArrowUpRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { useTranslations } from "next-intl";
+import { cn } from "@/lib/utils";
+import {
+  storyPath,
+  storySummary,
+  signalPriority,
+  publishedLabel,
+  shareStory,
+} from "@/lib/stories";
 import type { Signal } from "@/lib/api";
-
 interface SignalCardProps {
   signal: Signal;
   isCompact: boolean;
@@ -25,184 +19,115 @@ interface SignalCardProps {
   isBookmarked?: boolean;
   isBookmarking?: boolean;
   onToggleBookmark?: (signalId: string) => Promise<void> | undefined;
+  onPreview?: (signal: Signal) => void;
 }
-
-const getImpactColor = (score: number) => {
-  if (score >= 9) return { bg: "bg-red-500", text: "text-red-400", ring: "ring-red-500/20", label: "critical" };
-  if (score >= 7) return { bg: "bg-orange-500", text: "text-orange-400", ring: "ring-orange-500/20", label: "high" };
-  if (score >= 5) return { bg: "bg-amber-500", text: "text-amber-400", ring: "ring-amber-500/20", label: "medium" };
-  return { bg: "bg-emerald-500", text: "text-emerald-400", ring: "ring-emerald-500/20", label: "low" };
-};
-
-const getCategoryBorder = (cat: string) => {
-  if (cat.includes('geopolitics')) return 'border-l-violet-500/30 hover:border-l-violet-500/50';
-  if (cat.includes('technology')) return 'border-l-indigo-500/30 hover:border-l-indigo-500/50';
-  if (cat.includes('ai')) return 'border-l-emerald-500/30 hover:border-l-emerald-500/50';
-  return 'border-l-border/30 hover:border-l-border/50';
-};
-
-export function SignalCard({ signal, isCompact, className, isBookmarked, isBookmarking, onToggleBookmark }: SignalCardProps) {
-  const t = useTranslations('Index');
-  const params = useParams();
-  const isBN = params?.locale === 'bn';
-  const impact = getImpactColor(signal.score);
-  
-  const getRelativeTime = (dateStr: string | null) => {
-    if (!dateStr) return t("now");
-    try {
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
-      if (diffInMinutes < 1) return t("now");
-      if (diffInMinutes < 60) return `${diffInMinutes}${t("minutesShort")}`;
-      const diffInHours = Math.floor(diffInMinutes / 60);
-      if (diffInHours < 24) return `${diffInHours}${t("hoursShort")}`;
-      return date.toLocaleDateString();
-    } catch {
-      return t("recent");
-    }
-  };
-
-  const category = signal.categoryId || signal.aiCategory?.toLowerCase() || '';
-
+export function SignalCard({
+  signal,
+  className,
+  isBookmarked,
+  isBookmarking,
+  onToggleBookmark,
+  onPreview,
+}: SignalCardProps) {
+  const t = useTranslations("Reader");
+  const locale = useLocale();
+  const summary = storySummary(signal);
+  const date = publishedLabel(signal.publishedAt, locale);
   return (
-    <Card className={cn(
-      "group relative overflow-hidden transition-all duration-300 cursor-pointer",
-      "bg-muted/15 hover:bg-muted/30",
-      isCompact ? "rounded-none border-b border-transparent hover:border-border/20" : "rounded-sm border-0",
-      getCategoryBorder(category),
-      className
-    )}>
-      <div className={cn("flex flex-col h-full", isCompact && "py-2 sm:py-3 px-3 sm:px-4")}>
-        <div className="flex flex-col h-full justify-between gap-2.5 sm:gap-4">
-          <div className="space-y-2 sm:space-y-3">
-            {/* Header: Source + Time + Bookmark */}
-            <div className="flex items-center justify-between gap-2 min-w-0">
-              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-hidden">
-                <span className={cn(
-                  "text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-sm shrink-0 max-w-[90px] sm:max-w-[100px] truncate",
-                  "bg-muted/50 text-muted-foreground/80"
-                )}>
-                  {signal.source}
-                </span>
-                <span className="text-[11px] sm:text-[12px] text-muted-foreground/60 tabular-nums shrink-0">
-                  {getRelativeTime(signal.publishedAt)}
-                </span>
-                {isCompact && (
-                  <>
-                    <span className="text-[12px] text-muted-foreground/40 shrink-0">|</span>
-                    <span className="text-[12px] text-muted-foreground/60 truncate min-w-0 flex-1">
-                      {signal.categoryId || signal.aiCategory}
-                    </span>
-                  </>
-                )}
-              </div>
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  if (isBookmarking || !onToggleBookmark) return;
-                  await onToggleBookmark(signal.id);
-                }}
-                disabled={isBookmarking}
-                className="p-1.5 text-muted-foreground/50 hover:text-primary transition-all disabled:opacity-40"
-              >
-                {isBookmarking
-                  ? <RefreshCw className="w-4 h-4 animate-spin" />
-                  : <Bookmark className={cn("w-4 h-4", isBookmarked && "text-primary fill-primary")} />
-                }
-              </button>
-            </div>
-
-            {/* Title */}
-            {signal.translationPending ? (
-              <div className="space-y-1.5">
-                <div className="h-4 bg-muted/50 rounded animate-pulse w-full" />
-                <div className="h-4 bg-muted/50 rounded animate-pulse w-3/4" />
-              </div>
+    <article className={cn("story-card", className)}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{signal.source}</span>
+          {date && (
+            <time className="mt-1 block text-xs" dateTime={signal.publishedAt!}>
+              {date}
+            </time>
+          )}
+        </div>
+        {onToggleBookmark && (
+          <button
+            className="reader-icon-button shrink-0"
+            aria-label={isBookmarked ? t("unsave") : t("save")}
+            aria-pressed={!!isBookmarked}
+            disabled={isBookmarking}
+            onClick={(e) => {
+              e.stopPropagation();
+              void onToggleBookmark(signal.id);
+            }}
+          >
+            {isBookmarking ? (
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <h2 className={cn(
-                "font-semibold leading-snug text-foreground/90 group-hover:text-foreground transition-colors",
-                isCompact ? "text-[14px] sm:text-[16px]" : "text-[13px] sm:text-[15px]",
-                isBN ? "overflow-hidden max-h-[3.2em]" : "line-clamp-2"
-              )}>
-                {signal.title}
-              </h2>
-            )}
-
-            {/* Summary */}
-            {signal.translationPending ? (
-              <div className="space-y-1">
-                <div className="h-3 bg-muted/40 rounded animate-pulse w-full" />
-                <div className="h-3 bg-muted/40 rounded animate-pulse w-5/6" />
-                <div className="h-3 bg-muted/40 rounded animate-pulse w-2/3" />
-              </div>
-            ) : (() => {
-              const displaySummary = cleanDisplaySummary(signal.aiSummary) || signal.summary;
-              if (!displaySummary) return null;
-              return (
-                <p className={cn(
-                  "text-muted-foreground/70 leading-relaxed",
-                  isCompact ? "text-[12px] sm:text-[14px]" : "text-[11px] sm:text-[13px]",
-                  isBN ? "overflow-hidden max-h-[6em]" : (isCompact ? "line-clamp-2 sm:line-clamp-4" : "line-clamp-2 sm:line-clamp-3")
-                )}>
-                  {displaySummary}
-                </p>
-              );
-            })()}
-          </div>
-
-          {/* Footer: Impact Score + Actions + More Info */}
-          <div className={cn(
-            "flex items-center justify-between pt-2 sm:pt-3 border-t border-border/10",
-            isCompact && "mt-1 sm:mt-2"
-          )}>
-            <div className="flex items-center gap-2.5 sm:gap-4">
-              <div className={cn(
-                "w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center font-bold text-[12px] sm:text-[14px] shadow-md shrink-0",
-                impact.bg, "text-white"
-              )}>
-                {Math.floor(signal.score)}
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className={cn("text-[11px] sm:text-[12px] font-semibold uppercase tracking-wide", impact.text)}>
-                  {signal.score >= 7 ? t('critical') : signal.score >= 5 ? t('elevated') : t('stable')}
-                </span>
-                {isCompact && signal.countryCode && (
-                  <span className="text-[11px] text-muted-foreground/50">
-                    {signal.countryCode}
-                  </span>
-                )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigator.clipboard.writeText(signal.url);
-                  toast.success("Link copied");
-                }}
-                className="p-2 rounded-sm text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 transition-all"
-              >
-                <Link2 className="w-4 h-4" />
-              </button>
-              <a
-                href={signal.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
+              <Bookmark
                 className={cn(
-                  "flex items-center gap-1 h-7 px-3 rounded-sm text-[11px] font-medium uppercase tracking-wider transition-all",
-                  "text-muted-foreground/70 hover:text-foreground hover:bg-muted/50"
+                  "size-4",
+                  isBookmarked && "fill-current text-primary",
                 )}
-              >
-                {t('intel')}
-                  <ChevronRight className="w-2.5 h-2.5" />
-                </a>
-              </div>
-            </div>
-          </div>
+              />
+            )}
+          </button>
+        )}
+      </div>
+      <h3 className="story-headline">
+        <Link
+          href={storyPath(signal.id, locale)}
+          prefetch={false}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (
+              onPreview &&
+              !e.metaKey &&
+              !e.ctrlKey &&
+              !e.shiftKey &&
+              !e.altKey
+            ) {
+              e.preventDefault();
+              onPreview(signal);
+            }
+          }}
+        >
+          {signal.title}
+        </Link>
+      </h3>
+      {signal.translationPending ? (
+        <p className="text-sm text-muted-foreground">
+          {t("translationPending")}
+        </p>
+      ) : (
+        summary && <p className="story-summary">{summary}</p>
+      )}
+      <div className="story-card-footer">
+        <span className="text-xs text-muted-foreground" title={t("scoreHelp")}>
+          {t(signalPriority(signal.score))}{" "}
+          <span className="tabular-nums">{signal.score}/12</span>
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            className="reader-icon-button"
+            aria-label={t("share")}
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                if ((await shareStory(signal, locale)) === "copied")
+                  toast.success(t("linkCopied"));
+              } catch {
+                toast.error(t("shareError"));
+              }
+            }}
+          >
+            <Share2 className="size-4" />
+          </button>
+          <Link
+            href={storyPath(signal.id, locale)}
+            prefetch={false}
+            className="reader-text-link"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {t("story")}
+            <ArrowUpRight className="size-4" />
+          </Link>
         </div>
       </div>
-    </Card>
+    </article>
   );
 }
